@@ -11,14 +11,10 @@
 		"skipLibCheck": true,
 		"declaration": true,
 		"allowJs": true,
-		"outDir": "dist",
-		"noEmit": false,
+		"noEmit": true,
 		"forceConsistentCasingInFileNames": true,
 	},
 	"include": [
-		"src/**/*.ts"
-	],
-	"exclude": [
-		"src/**/*.test.ts"
+		"src/**/*.ts",
 	]
 }

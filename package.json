@@ -21,7 +21,7 @@
     "lint": "eslint . --color",
     "prepack": "npm run build && npm run doc",
     "start": "tsx src/index.ts",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern packages/google-cloud"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "repository": {
     "type": "git",

@@ -15,7 +15,7 @@ jest.spyOn(console, 'log').mockReturnValue();
 jest.mock('express', () => express); // Mock express
 jest.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
-const basePath = new URL('../../../../', import.meta.url).pathname;
+const basePath = new URL('../../', import.meta.url).pathname;
 
 interface MockedServer {
 	get: (url: string) => Promise<Test>;
