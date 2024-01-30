@@ -16,8 +16,8 @@ const config: JestConfigWithTsJest = {
 		'/dist/'
 	],
 	collectCoverageFrom: [
-		'**/src/**/*.test.ts',
-		'!**/src/**/*.mock.test.ts',
+		'**/src/**/*.ts',
+		'!**/src/**/*.test.ts',
 		'!**/node_modules/**',
 		'!jest*.ts',
 	]
