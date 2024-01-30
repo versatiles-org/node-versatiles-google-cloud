@@ -7,18 +7,20 @@ export type EncodingType = 'br' | 'gzip' | 'raw';
 
 /**
  * Interface representing tools for handling different encoding types.
+ * Each property represents a functionality related to a specific encoding type.
  */
 export interface EncodingTools {
 	name: EncodingType;
-	compressStream?: (fast: boolean, size?: number) => Transform;
-	decompressStream?: () => Transform;
-	compressBuffer?: (buffer: Buffer, fast: boolean) => Buffer | Promise<Buffer>;
-	decompressBuffer?: (buffer: Buffer) => Buffer | Promise<Buffer>;
-	setEncodingHeader: (headers: OutgoingHttpHeaders) => void;
+	compressStream?: (fast: boolean, size?: number) => Transform; // Create a stream for compressing data
+	decompressStream?: () => Transform; // Create a stream for decompressing data
+	compressBuffer?: (buffer: Buffer, fast: boolean) => Buffer | Promise<Buffer>; // Compress a buffer
+	decompressBuffer?: (buffer: Buffer) => Buffer | Promise<Buffer>; // Decompress a buffer
+	setEncodingHeader: (headers: OutgoingHttpHeaders) => void; // Set appropriate encoding headers
 }
 
 /**
  * Record mapping encoding types to their respective tools.
+ * Provides implementations for 'br', 'gzip', and 'raw' encodings.
  */
 export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 	'br': ((): EncodingTools => {
@@ -27,8 +29,11 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 			if (size != null) params[zlib.constants.BROTLI_PARAM_SIZE_HINT] = size;
 			return { params };
 		}
+
+		// Brotli encoding tools
 		return {
 			name: 'br',
+			// Implementations for Brotli-specific methods
 			compressStream: (fast: boolean, size?: number) => zlib.createBrotliCompress(getOptions(fast, size)),
 			decompressStream: () => zlib.createBrotliDecompress(),
 			compressBuffer: async (buffer: Buffer, fast: boolean) => new Promise(resolve => {
@@ -51,8 +56,11 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 		function getOptions(fast: boolean): ZlibOptions {
 			return { level: fast ? 3 : 9 };
 		}
+
+		// Gzip encoding tools
 		return {
 			name: 'gzip',
+			// Implementations for Gzip-specific methods
 			compressStream: (fast: boolean) => zlib.createGzip(getOptions(fast)),
 			decompressStream: () => zlib.createGunzip(),
 			compressBuffer: async (buffer: Buffer, fast: boolean) => new Promise(resolve => {
@@ -86,6 +94,7 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
  * @throws Error if the content encoding is unknown.
  */
 export function parseContentEncoding(headers: OutgoingHttpHeaders): EncodingTools {
+	// Logic to parse content encoding
 	const contentEncoding = headers['content-encoding'];
 	if (contentEncoding == null) return ENCODINGS.raw;
 
@@ -107,6 +116,7 @@ export function parseContentEncoding(headers: OutgoingHttpHeaders): EncodingTool
  * @returns The best available `EncodingTools` based on client's preferences.
  */
 export function findBestEncoding(headers: IncomingHttpHeaders): EncodingTools {
+	// Logic to find the best encoding
 	const encodingHeader = headers['accept-encoding'];
 	if (typeof encodingHeader !== 'string') return ENCODINGS.raw;
 
@@ -124,6 +134,7 @@ export function findBestEncoding(headers: IncomingHttpHeaders): EncodingTools {
  * @returns `true` if the encoding is acceptable, otherwise `false`.
  */
 export function acceptEncoding(headers: IncomingHttpHeaders, encoding: EncodingTools): boolean {
+	// Logic to check if the encoding is acceptable
 	if (encoding.name === 'raw') return true;
 
 	const encodingHeader = headers['accept-encoding'];

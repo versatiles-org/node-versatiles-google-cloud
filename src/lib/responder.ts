@@ -4,19 +4,27 @@ import { ENCODINGS, type EncodingType } from './encoding.js';
 import type { Response } from 'express';
 import { recompress } from './recompress.js';
 
+/**
+ * Interface defining the structure and methods of a Responder.
+ */
 export interface ResponderInterface {
-	del: (key: string) => void;
-	error: (code: number, message: string) => void;
-	fastRecompression: boolean;
-	requestNo: number;
-	requestHeaders: IncomingHttpHeaders;
-	respond: (content: Buffer | string, contentMIME: string, contentEncoding: EncodingType) => Promise<void>;
-	response: Response;
-	responseHeaders: OutgoingHttpHeaders;
-	set: (key: string, value: string) => ResponderInterface;
-	verbose: boolean;
+	del: (key: string) => void; // Function to delete a header from the response
+	error: (code: number, message: string) => void; // Function to send an error response
+	fastRecompression: boolean; // Flag for fast recompression mode
+	requestNo: number; // The current request number for logging
+	requestHeaders: IncomingHttpHeaders; // Headers of the incoming request
+	respond: (content: Buffer | string, contentMIME: string, contentEncoding: EncodingType) => Promise<void>; // Function to send a response
+	response: Response; // The Express response object
+	responseHeaders: OutgoingHttpHeaders; // Headers to be sent in the response
+	set: (key: string, value: string) => ResponderInterface; // Function to set a header in the response
+	verbose: boolean; // Flag for verbose logging
 }
 
+/**
+ * Factory function to create a Responder instance.
+ * @param options - Configuration options for the Responder.
+ * @returns A new Responder instance.
+ */
 export function Responder(options: {
 	fastRecompression: boolean;
 	requestHeaders: IncomingHttpHeaders;
@@ -26,10 +34,12 @@ export function Responder(options: {
 }): ResponderInterface {
 	const { fastRecompression, response, requestHeaders, requestNo, verbose } = options;
 
+	// Initialize default response headers
 	const responseHeaders: OutgoingHttpHeaders = {
-		'cache-control': 'max-age=86400', // default: 1 day
+		'cache-control': 'max-age=86400', // Set default cache control header (1 day)
 	};
 
+	// Define the responder object with its methods
 	const responder: ResponderInterface = {
 		error,
 		del,
@@ -57,6 +67,7 @@ export function Responder(options: {
 
 	return responder;
 
+	// Implementation of respond method
 	async function respond(body: Buffer | string, contentType: string, encoding: EncodingType): Promise<void> {
 		set('content-type', contentType);
 		ENCODINGS[encoding].setEncodingHeader(responseHeaders);
@@ -65,6 +76,7 @@ export function Responder(options: {
 		await recompress(responder, body);
 	}
 
+	// Implementation of error method
 	function error(code: number, message: string): void {
 		if (verbose) console.log(`  #${requestNo} error ${code}: ${message}`);
 		response
@@ -73,11 +85,13 @@ export function Responder(options: {
 			.send(message);
 	}
 
+	// Implementation of set method
 	function set(key: string, value: string): ResponderInterface {
 		responseHeaders[key] = value;
 		return responder;
 	}
 
+	// Implementation of del method
 	function del(key: string): void {
 		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 		delete responseHeaders[key];

@@ -1,4 +1,3 @@
-
 import type { Header as VersatilesHeader, Reader } from '@versatiles/container';
 import type { MaplibreStyle } from '@versatiles/style/dist/lib/types.js';
 import type { ResponderInterface } from './responder.js';
@@ -7,27 +6,38 @@ import { Container as VersatilesContainer } from '@versatiles/container';
 import { guessStyle } from '@versatiles/style';
 import { readFile } from 'node:fs/promises';
 
-
-
+// Path to the preview HTML file
 const filenamePreview = new URL('../../static/preview.html', import.meta.url).pathname;
 
+// Cache for Versatiles containers
 const containerCache = new Map<string, {
 	container: VersatilesContainer;
 	header: VersatilesHeader;
 	metadata: unknown;
 }>();
 
+/**
+ * Serves content from a Versatiles container.
+ * @param file - The Versatiles container file.
+ * @param path - The path to the file.
+ * @param query - The query string from the request.
+ * @param responder - The ResponderInterface instance to handle responses.
+ */
 // eslint-disable-next-line @typescript-eslint/max-params
 export async function serveVersatiles(file: File, path: string, query: string, responder: ResponderInterface): Promise<void> {
+	// Log serving versatiles if verbose mode is enabled
 	if (responder.verbose) console.log(`  #${responder.requestNo} serve versatiles`);
 
 	let container: VersatilesContainer;
 	let header: VersatilesHeader;
 	let metadata: unknown = {};
 
+	// Check if container is cached and use it, otherwise read from file
 	const cache = containerCache.get(file.name);
 	if (cache == null) {
+		// Define a reader function for the Versatiles container
 		const reader: Reader = async (position: number, length: number): Promise<Buffer> => {
+			// Read data from the file stream
 			return new Promise<Buffer>((resolve, reject) => {
 				const buffers = Array<Buffer>();
 				file.createReadStream({ start: position, end: position + length - 1 })
@@ -41,6 +51,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 			});
 		};
 
+		// Initialize Versatiles container and read its header and metadata
 		container = new VersatilesContainer(reader);
 		header = await container.getHeader();
 
@@ -53,13 +64,16 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 			console.log(`  #${responder.requestNo} metadata: ${JSON.stringify(metadata).slice(0, 80)}`);
 		}
 
+		// Cache the container for future use
 		containerCache.set(file.name, { container, header, metadata });
 	} else {
 		({ container, header, metadata } = cache);
 	}
 
+	// Log the query if verbose mode is enabled
 	if (responder.verbose) console.log(`  #${responder.requestNo} query: ${JSON.stringify(query)}`);
 
+	// Handle different queries: preview, meta.json, style.json, or tile queries
 	switch (query) {
 		case 'preview':
 			if (responder.verbose) console.log(`  #${responder.requestNo} respond preview`);
@@ -120,6 +134,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 			return;
 	}
 
+	// Extract tile coordinates from the query and serve the requested tile
 	const match = /tiles\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/.exec(query);
 	if (match == null) {
 		responder.error(400, 'get parameter must be "meta.json", "style.json", or "tile/{z}/{x}/{y}"');
@@ -134,6 +149,8 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 		parseInt(x, 10),
 		parseInt(y, 10),
 	);
+
+	// Return error for invalid queries
 	if (tile == null) {
 		responder.error(404, `map tile {x:${x}, y:${y}, z:${z}} not found`);
 	} else {

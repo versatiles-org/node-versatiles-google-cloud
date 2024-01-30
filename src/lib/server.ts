@@ -7,18 +7,24 @@ import { recompress } from './recompress.js';
 import { serveVersatiles } from './versatiles.js';
 import { createLocalDirectoryBucket } from './localDirectoryBucket.js';
 
-
-
+/**
+ * Interface defining the options for starting the server.
+ */
 export interface ServerOptions {
-	baseUrl: string;
-	bucket: Bucket | string;
-	bucketPrefix: string;
-	fastRecompression: boolean;
-	localDirectory?: string;
-	port: number;
-	verbose: boolean;
+	baseUrl: string; // Base URL for the server
+	bucket: Bucket | string; // Google Cloud Storage bucket or its name
+	bucketPrefix: string; // Prefix for objects in the bucket
+	fastRecompression: boolean; // Flag for fast recompression
+	localDirectory?: string; // Local directory path to use instead of GCS bucket
+	port: number; // Port number for the server
+	verbose: boolean; // Flag for verbose logging
 }
 
+/**
+ * Starts an Express server with specified options.
+ * @param opt - Configuration options for the server.
+ * @returns A promise resolving to the Express server instance.
+ */
 export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	const { port, fastRecompression, verbose } = opt;
 	let bucketPrefix = opt.bucketPrefix.replace(/^\/+|\/+$/g, '');
@@ -27,6 +33,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	const baseUrl = new URL(opt.baseUrl).href;
 	const storage = new Storage();
 
+	// Initialize the bucket based on the provided options
 	let bucket: Bucket;
 	if (typeof opt.localDirectory == 'string') {
 		bucket = createLocalDirectoryBucket(opt.localDirectory);
@@ -42,6 +49,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	app.set('query parser', (a: string): string => a);
 	app.disable('x-powered-by');
 
+	// Health check endpoint
 	app.get('/healthcheck', (serverRequest, serverResponse) => {
 		serverResponse
 			.status(200)
@@ -49,6 +57,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			.send('ok');
 	});
 
+	// Handler for all GET requests
 	app.get(/.*/, (request, response): void => {
 		void (async (): Promise<void> => {
 			requestNo++;
@@ -64,6 +73,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			try {
 				const filename = decodeURI(String(request.path)).trim().replace(/^\/+/, '');
 
+				// Handle file requests
 				if (verbose) console.log(`  #${requestNo} public filename: ${filename}`);
 
 				if (filename === '') {
@@ -109,12 +119,12 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 			} catch (error) {
 				console.error({ error });
-
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));
 			}
 		})();
 	});
 
+	// Start the server and return the server instance
 	return new Promise(res => {
 		const server = app.listen(port, () => {
 			console.log(`listening on port ${port}`);
