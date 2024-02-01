@@ -30,7 +30,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 
 	let container: VersatilesContainer;
 	let header: VersatilesHeader;
-	let metadata: unknown = {};
+	let metadata: unknown = null;
 
 	// Check if container is cached and use it, otherwise read from file
 	const cache = containerCache.get(file.name);
@@ -120,7 +120,12 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 						responder.error(500, 'metadata.vector_layers must be an array');
 						return;
 					}
-					style = guessStyle({ ...options, format, vectorLayers });
+					try {
+						style = guessStyle({ ...options, format, vectorLayers });
+					} catch (e) {
+						responder.error(500, 'style can not be guessed based on metadata');
+						return;
+					}
 					break;
 				case 'bin':
 				case 'geojson':
