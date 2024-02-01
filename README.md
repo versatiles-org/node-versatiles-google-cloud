@@ -6,8 +6,10 @@
 This tool solves perfectly the use cases, when you want to publish multiple map application using multiple versatiles tile sources in Google Cloud.
 E.g. for data journalists, academia, ...
 
-> \[!WARNING]
-> It is strongly recommended to always use a CDN in front of this server!
+> [!WARNING]
+> It is strongly recommended:
+> - always use a CDN in front of this server and
+> - not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
 
 ## Outline:
 
@@ -19,13 +21,30 @@ E.g. for data journalists, academia, ...
 * This server will make sure that every file will be compressed optimally according to "accept-encoding" header of the browser.
 * \*.versatiles files will not be served. Instead the server will provide a simple GET API to access every tile, and serve them with optimal compression. E.g. tile x=4, y=5, z=6 in file `gs://bucket/map/earth.versatiles` could be accessed via `https://public.domain.com/map/earth.versatiles?tiles/6/4/5`
 
-## Setup
+## Run in Google Cloud Run
 
-## Install
+Run the following Docker Container in Google Cloud Run, e.g. by using Google Cloud Build.
 
-## Run
+```Dockerfile
+FROM node:20-alpine
+RUN npm install -g @versatiles/google-cloud
+EXPOSE 8080
+CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
+```
 
 ## Test locally
+
+Install `@versatiles/google-cloud` on your machine:
+```bash
+npm install -g @versatiles/google-cloud
+```
+
+Start the server (edit the path to point to your local folder):
+```bash
+npm run start -f -l local/data/
+```
+
+Note that for security and performance reasons no file listing is implemented. If you have a file such as `local/data/app/index.html` you will need to open the correct URL in your browser to view the file: `http://localhost:8080/app/index.html`
 
 ## Options
 
