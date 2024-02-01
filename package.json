@@ -20,6 +20,7 @@
     "doc": "npx vrt cmd2md versatiles-google-cloud | npx vrt insertmd README.md '## Options'",
     "lint": "eslint . --color",
     "prepack": "npm run build && npm run doc",
+    "release": "npx vrt release-npm",
     "start": "tsx src/index.ts",
     "test-coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
