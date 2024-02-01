@@ -6,10 +6,11 @@
 This tool solves perfectly the use cases, when you want to publish multiple map application using multiple versatiles tile sources in Google Cloud.
 E.g. for data journalists, academia, ...
 
-> [!WARNING]
+> \[!WARNING]
 > It is strongly recommended:
-> - always use a CDN in front of this server and
-> - not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
+>
+> * always use a CDN in front of this server and
+> * not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
 
 ## Outline:
 
@@ -35,11 +36,13 @@ CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
 ## Test locally
 
 Install `@versatiles/google-cloud` on your machine:
+
 ```bash
 npm install -g @versatiles/google-cloud
 ```
 
 Start the server (edit the path to point to your local folder):
+
 ```bash
 npm run start -f -l local/data/
 ```
