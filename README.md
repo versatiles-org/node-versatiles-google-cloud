@@ -6,7 +6,7 @@
 This tool solves perfectly the use cases, when you want to publish multiple map application using multiple versatiles tile sources in Google Cloud.
 E.g. for data journalists, academia, ...
 
-> \[!WARNING]
+> [!WARNING]
 > It is strongly recommended:
 >
 > * always use a CDN in front of this server and
