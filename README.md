@@ -39,7 +39,7 @@ Initialises a server to serve files from a specified Google Bucket to a Google
 Load Balancer with CDN, handles HTTP headers and compression, and provides a
 RESTful API for VersaTiles containers.
 For more details, visit:
-https://github.com/versatiles-org/node-versatiles/blob/main/packages/google-cloud/README.md
+https://github.com/versatiles-org/node-versatiles-google-cloud/
 
 Arguments:
   bucket-name                   Name of the Google Cloud Storage bucket.
@@ -52,8 +52,8 @@ Options:
   -f, --fast-recompression      Enable faster server responses by avoiding
                                 recompression.
   -l, --local-directory <path>  Ignore bucket and use a local directory
-                                instead. (Useful e.g. for local development.)
-  -p, --port <port>             Set the server port. (default: 8080)
+                                instead. Useful for local development.
+  -p, --port <port>             Set the server port. Default: 8080
   -v, --verbose                 Enable verbose mode for detailed operational
                                 logs.
   -h, --help                    display help for command
