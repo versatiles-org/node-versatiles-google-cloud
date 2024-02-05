@@ -28,49 +28,49 @@ describe('index.ts', () => {
 		mockedStartServer.mockReset();
 	});
 
-	test('starts server with default options', async () => {
+	it('starts server with default options', async () => {
 		await run('test-bucket');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults });
 	});
 
-	test('starts server in local directory mode', async () => {
+	it('starts server in local directory mode', async () => {
 		await run('test-bucket', '-l', '.');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, localDirectory: '.' });
 	});
 
-	test('starts server with base URL', async () => {
+	it('starts server with base URL', async () => {
 		await run('test-bucket', '-b', 'https://example.org');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'https://example.org' });
 	});
 
-	test('starts server with bucket prefix', async () => {
+	it('starts server with bucket prefix', async () => {
 		await run('test-bucket', '-d', '/public/');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, bucketPrefix: '/public/' });
 	});
 
-	test('starts server with fast recompression', async () => {
+	it('starts server with fast recompression', async () => {
 		await run('test-bucket', '-f');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, fastRecompression: true });
 	});
 
-	test('starts server with different port', async () => {
+	it('starts server with different port', async () => {
 		await run('test-bucket', '-p', '3000');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'http://localhost:3000/', port: 3000 });
 	});
 
-	test('starts server with different port', async () => {
+	it('starts server with different port', async () => {
 		await run('test-bucket', '-b', 'https://example.org', '-p', '3000');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'https://example.org', port: 3000 });
 	});
 
-	test('starts server in verbose mode', async () => {
+	it('starts server in verbose mode', async () => {
 		await run('test-bucket', '-v');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, verbose: true });

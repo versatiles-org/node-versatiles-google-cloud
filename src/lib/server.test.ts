@@ -114,55 +114,55 @@ describe('Server Tests', () => {
 			await server.close();
 		});
 
-		test('health check endpoint', async () => {
+		it('health check endpoint', async () => {
 			const response = await server.get('/healthcheck');
 			expect(response.status).toBe(200);
 			expect(response.text).toBe('ok');
 		});
 
-		test('serve static file', async () => {
+		it('serve static file', async () => {
 			const response = await server.get('/static/file');
 			expect(response.status).toBe(200);
 			expect(response.text).toBe('static file');
 		});
 
-		test('serve versatiles meta', async () => {
+		it('serve versatiles meta', async () => {
 			const response = await server.get('/geodata/test.versatiles?meta.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
 		});
 
-		test('serve versatiles style', async () => {
+		it('serve versatiles style', async () => {
 			const response = await server.get('/geodata/test.versatiles?style.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"version":8/);
 		});
 
-		test('serve versatiles preview', async () => {
+		it('serve versatiles preview', async () => {
 			const response = await server.get('/geodata/test.versatiles?preview');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^<!DOCTYPE html>/);
 		});
 
-		test('serve versatiles tile', async () => {
+		it('serve versatiles tile', async () => {
 			const response = await server.get('/geodata/test.versatiles?tiles/14/3740/4505');
 			expect(response.status).toBe(200);
 			expect(response.text).toContain('water_lines');
 		});
 
-		test('handle missing versatiles tile', async () => {
+		it('handle missing versatiles tile', async () => {
 			const response = await server.get('/geodata/test.versatiles?tiles/10/0/0');
 			expect(response.status).toBe(404);
 			expect(response.text).toBe('map tile {x:0, y:0, z:10} not found');
 		});
 
-		test('handle missing static file', async () => {
+		it('handle missing static file', async () => {
 			const response = await server.get('/static/missing/file');
 			expect(response.status).toBe(404);
 			expect(response.text).toBe('file "static/missing/file" not found');
 		});
 
-		test('handle wrong versatiles request', async () => {
+		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
 			expect(response.text).toBe('get parameter must be "meta.json", "style.json", or "tile/{z}/{x}/{y}"');
@@ -180,31 +180,31 @@ describe('Server Tests', () => {
 			await server.close();
 		});
 
-		test('serve static file', async () => {
+		it('serve static file', async () => {
 			const response = await server.get('/README.md');
 			expect(response.status).toBe(200);
 			expect(response.text).toBe(readFileSync(resolve(basePath, 'README.md'), 'utf8'));
 		});
 
-		test('handle missing static file', async () => {
+		it('handle missing static file', async () => {
 			const response = await server.get('/static/file');
 			expect(response.status).toBe(404);
 			expect(response.text).toBe('file "static/file" not found');
 		});
 
-		test('serve versatiles meta', async () => {
+		it('serve versatiles meta', async () => {
 			const response = await server.get('/testdata/island.versatiles?meta.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
 		});
 
-		test('serve versatiles style', async () => {
+		it('serve versatiles style', async () => {
 			const response = await server.get('/testdata/island.versatiles?style.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"version":8/);
 		});
 
-		test('serve versatiles preview', async () => {
+		it('serve versatiles preview', async () => {
 			const response = await server.get('/testdata/island.versatiles?preview');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^<!DOCTYPE html>/);
