@@ -152,8 +152,8 @@ describe('Server Tests', () => {
 
 		it('handle missing versatiles tile', async () => {
 			const response = await server.get('/geodata/test.versatiles?tiles/10/0/0');
-			expect(response.status).toBe(404);
-			expect(response.text).toBe('map tile {x:0, y:0, z:10} not found');
+			expect(response.status).toBe(204);
+			expect(response.text).toBe('');
 		});
 
 		it('handle missing static file', async () => {

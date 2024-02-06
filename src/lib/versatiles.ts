@@ -157,7 +157,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 
 	// Return error for invalid queries
 	if (tile == null) {
-		responder.error(404, `map tile {x:${x}, y:${y}, z:${z}} not found`);
+		responder.error(204, `no map tile at ${z}/${x}/${y}`);
 	} else {
 		if (responder.verbose) console.log(`  #${responder.requestNo} return tile ${z}/${x}/${y}`);
 		await responder.respond(tile, header.tileMime, header.tileCompression);

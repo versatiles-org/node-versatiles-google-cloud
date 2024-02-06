@@ -93,7 +93,7 @@ describe('serve VersaTiles', () => {
 	it('should handle missing tiles correctly', async () => {
 		await serveVersatiles(mockFile, 'https://example.com/osm.versatiles', 'tiles/13/2870/2252', mockResponder);
 
-		checkError(404, 'map tile {x:2870, y:2252, z:13} not found');
+		checkError(204, 'no map tile at 13/2870/2252');
 	});
 
 	it('should handle wrong requests correctly', async () => {
