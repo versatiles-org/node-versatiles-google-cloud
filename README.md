@@ -35,17 +35,24 @@ CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
 
 ## Test locally
 
-Install `@versatiles/google-cloud` on your machine:
+Install `@versatiles/google-cloud` globally and run:
 
 ```bash
 npm install -g @versatiles/google-cloud
+versatiles-google-cloud -f -l local/data/
 ```
 
-Start the server (edit the path to point to your local folder):
-
+Or clone and run the repo:
 ```bash
-npm run start -f -l local/data/
+git clone https://github.com/versatiles-org/node-versatiles-google-cloud.git
+cd node-versatiles-google-cloud
+npm install
+npm start -f -l local/data/
 ```
+
+The arguments used:
+- `-f` or `--fast-recompression` disables recompression, so it's faster if you're developing locally.
+- `-l` or `--local-directory` uses a local directory instead of a Google Bucket.
 
 Note that for security and performance reasons no file listing is implemented. If you have a file such as `local/data/app/index.html` you will need to open the correct URL in your browser to view the file: `http://localhost:8080/app/index.html`
 
