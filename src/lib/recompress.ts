@@ -15,8 +15,6 @@ export class BufferStream extends Writable {
 
 	readonly #responder: Responder;
 
-	readonly #logPrefix: string | undefined;
-
 	readonly #buffers: Buffer[] = [];
 
 	#size = 0;
@@ -26,13 +24,9 @@ export class BufferStream extends Writable {
 	/*
 	 * Class constructor will receive the injections as parameters.
 	 */
-	public constructor(
-		responder: Responder,
-		logPrefix?: string,
-	) {
+	public constructor(responder: Responder) {
 		super();
 		this.#responder = responder;
-		this.#logPrefix = logPrefix;
 	}
 
 	/**
@@ -43,9 +37,7 @@ export class BufferStream extends Writable {
 	 */
 	public _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
 		// Log the new chunk if log prefix is provided
-		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'new chunk:', chunk.length);
-		}
+		this.#responder.log(`bufferstream - new chunk: ${chunk.length}`);
 
 		// Buffer the chunks until the maximum buffer size is reached
 		if (this.#bufferMode) {
@@ -54,9 +46,7 @@ export class BufferStream extends Writable {
 
 			// Switch to stream mode if max buffer size is exceeded
 			if (this.#size >= maxBufferSize) {
-				if (this.#logPrefix != null) {
-					console.log(this.#logPrefix, 'stop bufferMode:', this.#buffers.length);
-				}
+				this.#responder.log(`bufferstream - stop bufferMode: ${this.#buffers.length}`);
 
 				this.#bufferMode = false;
 				this.#prepareStreamMode();
@@ -82,17 +72,13 @@ export class BufferStream extends Writable {
 	 */
 	public _final(callback: (error?: Error | null | undefined) => void): void {
 		// Log finishing the stream if log prefix is provided
-		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'finish stream');
-		}
+		this.#responder.log('bufferstream - finish stream');
 
 		// Handle the finalization of the buffer mode
 		if (this.#bufferMode) {
 			const buffer = Buffer.concat(this.#buffers);
 
-			if (this.#logPrefix != null) {
-				console.log(this.#logPrefix, 'flush to handleBuffer:', buffer.length);
-			}
+			this.#responder.log(`bufferstream - flush to handleBuffer: ${buffer.length}`);
 
 			this.#prepareBufferMode(buffer.length);
 			this.#responder.sendHeaders(200);
@@ -109,10 +95,8 @@ export class BufferStream extends Writable {
 		headers.remove('transfer-encoding');
 		headers.set('content-length', String(bufferLength));
 
-		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for buffer:', headers.toString());
-			console.log(this.#logPrefix, 'response buffer length:', bufferLength);
-		}
+		this.#responder.log(`bufferstream - response header for buffer: ${headers.toString()}`);
+		this.#responder.log(`bufferstream - response buffer length: ${bufferLength}`);
 	}
 
 	// Prepare the response headers for stream mode, setting transfer-encoding to chunked and removing content-length
@@ -120,10 +104,8 @@ export class BufferStream extends Writable {
 		const { headers } = this.#responder;
 		headers.set('transfer-encoding', 'chunked');
 		headers.remove('content-length');
-
-		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for stream:', headers.toString());
-		}
+		
+		this.#responder.log(`bufferstream - response header for stream: ${headers.toString()}`);
 	}
 }
 
@@ -134,11 +116,7 @@ export class BufferStream extends Writable {
  * @param logPrefix - Optional prefix for logging purposes.
  * @returns A promise that resolves when recompression is complete.
  */
-export async function recompress(
-	responder: Responder,
-	body: Buffer | Readable,
-	logPrefix?: string,
-): Promise<void> {
+export async function recompress(responder: Responder, body: Buffer | Readable): Promise<void> {
 	// Detect and set the incoming and outgoing encodings
 	const encodingIn: EncodingTools = responder.headers.getContentEncoding();
 	let encodingOut: EncodingTools = encodingIn;
@@ -183,9 +161,7 @@ export async function recompress(
 
 	// Handle recompression if the input and output encodings are different
 	if (encodingIn !== encodingOut) {
-		if (logPrefix != null) {
-			console.log(logPrefix, 'recompress:', encodingIn.name, encodingOut.name);
-		}
+		responder.log(`recompress: ${encodingIn.name} to ${encodingOut.name}`);
 
 		if (encodingIn.decompressStream) {
 			streams.push(encodingIn.decompressStream());
@@ -199,7 +175,7 @@ export async function recompress(
 	}
 
 	// Add the BufferStream to the pipeline and execute the pipeline
-	streams.push(new BufferStream(responder, (logPrefix != null) ? logPrefix + ' bufferStream' : undefined));
+	streams.push(new BufferStream(responder));
 
 	await pipeline(streams);
 

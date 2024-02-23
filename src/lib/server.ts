@@ -102,7 +102,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 					metadata.setHeaders(responder.headers);
 
-					void recompress(responder, file.createReadStream(), verbose ? `  #${requestNo}` : undefined);
+					void recompress(responder, file.createReadStream());
 				}
 
 			} catch (error) {
