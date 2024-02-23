@@ -3,11 +3,11 @@
 import type { Bucket, File, FileMetadata } from '@google-cloud/storage';
 import Request from 'supertest';
 import express from 'express';
-import { startServer } from './server.js';
+import { startServer } from './server';
 import { jest } from '@jest/globals';
 import { Readable } from 'stream';
 import { openSync, readFileSync, readSync } from 'fs';
-import type Test from 'supertest/lib/test.js';
+import type Test from 'supertest/lib/test';
 import { resolve } from 'path';
 
 

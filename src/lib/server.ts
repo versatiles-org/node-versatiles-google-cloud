@@ -2,10 +2,10 @@ import type { Server } from 'http';
 import type { Bucket } from '@google-cloud/storage';
 import express from 'express';
 import { Storage } from '@google-cloud/storage';
-import { Responder } from './responder.js';
-import { recompress } from './recompress.js';
-import { serveVersatiles } from './versatiles.js';
-import { createLocalDirectoryBucket } from './localDirectoryBucket.js';
+import { Responder } from './responder';
+import { recompress } from './recompress';
+import { serveVersatiles } from './versatiles';
+import { createLocalDirectoryBucket } from './localDirectoryBucket';
 
 /**
  * Interface defining the options for starting the server.
