@@ -92,10 +92,8 @@ describe('recompress', () => {
 
 		const response = responder.response as Response & { getBuffer: () => Buffer };
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(200);
-		expect(response.set).toHaveBeenCalledTimes(1);
-		expect(response.set).toHaveBeenCalledWith({
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-length': '90',
 			'content-type': 'audio/mpeg',
@@ -117,10 +115,8 @@ describe('recompress', () => {
 
 		const response = responder.response as Response & { getBuffer: () => Buffer };
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(200);
-		expect(response.set).toHaveBeenCalledTimes(1);
-		expect(response.set).toHaveBeenCalledWith({
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-type': 'audio/mpeg',
 			'transfer-encoding': 'chunked',
@@ -170,8 +166,8 @@ describe('recompress', () => {
 	});
 
 	function checkResponseHeaders(responder: MockedResponder, responseHeaders: OutgoingHttpHeaders): void {
-		expect(responder.headers).toStrictEqual(responseHeaders);
-		expect(responder.response.set).toHaveBeenCalledTimes(1);
-		expect(responder.response.set).toHaveBeenCalledWith(responseHeaders);
+		expect(responder.headers.getHeaders()).toStrictEqual(responseHeaders);
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, responseHeaders);
 	}
 });

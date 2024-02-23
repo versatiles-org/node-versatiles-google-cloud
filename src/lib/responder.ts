@@ -78,7 +78,7 @@ export class Responder {
 	}
 
 	public write(buffer: Buffer, callback: () => void): void {
-		if (this.#responderState <= ResponderState.HeaderSend) throw Error('Headers not send yet');
+		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
 
 		this.#options.response.write(buffer, error => {
 			if (error) throw Error();
