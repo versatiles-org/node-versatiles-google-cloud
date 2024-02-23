@@ -100,7 +100,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 					const metadata = await file.getMetadata();
 					responder.log(`metadata: ${metadata.toString()}`);
 
-					metadata.setHeaders(responder);
+					metadata.setHeaders(responder.headers);
 
 					void recompress(responder, file.createReadStream(), verbose ? `  #${requestNo}` : undefined);
 				}
