@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { File } from '@google-cloud/storage';
 import type { Response } from 'express';
-import { serveVersatiles } from './versatiles.js';
+import { serveVersatiles } from './versatiles';
 import { jest } from '@jest/globals';
 import { Readable } from 'stream';
 import { openSync, readFileSync, readSync } from 'fs';
 import { createHash } from 'crypto';
-import type { EnhancedResponder, EnhancedResponse } from './responder.mock.test.js';
-import { getMockedResponder } from './responder.mock.test.js';
+import type { EnhancedResponder, EnhancedResponse } from './responder.mock.test';
+import { getMockedResponder } from './responder.mock.test';
 import type { Format, Header } from '@versatiles/container';
 import { Container } from '@versatiles/container';
 

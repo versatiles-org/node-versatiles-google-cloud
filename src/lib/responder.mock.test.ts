@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
-import type { ResponderInterface } from './responder.js';
+import type { ResponderInterface } from './responder';
 import type { Response } from 'express';
 import { Writable } from 'stream';
-import { Responder } from './responder.js';
+import { Responder } from './responder';
 import { jest } from '@jest/globals';
 
 export type EnhancedResponse = Response & { getBuffer: () => Buffer };

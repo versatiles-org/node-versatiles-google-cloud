@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
-import { ENCODINGS, type EncodingType } from './encoding.js';
+import { ENCODINGS, type EncodingType } from './encoding';
 import type { Response } from 'express';
-import { recompress } from './recompress.js';
+import { recompress } from './recompress';
 
 /**
  * Interface defining the structure and methods of a Responder.

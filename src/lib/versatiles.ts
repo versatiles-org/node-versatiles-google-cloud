@@ -1,6 +1,6 @@
 import type { Header as VersatilesHeader, Reader } from '@versatiles/container';
-import type { MaplibreStyle } from '@versatiles/style/dist/lib/types.js';
-import type { ResponderInterface } from './responder.js';
+import type { MaplibreStyle } from '@versatiles/style/dist/lib/types';
+import type { ResponderInterface } from './responder';
 import type { File } from '@google-cloud/storage';
 import { Container as VersatilesContainer } from '@versatiles/container';
 import { guessStyle } from '@versatiles/style';

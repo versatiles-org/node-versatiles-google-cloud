@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Response } from 'express';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
-import { getMockedResponder } from './responder.mock.test.js';
+import { getMockedResponder } from './responder.mock.test';
 
 
 

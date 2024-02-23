@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { EncodingType } from './encoding.js';
+import type { EncodingType } from './encoding';
 import type { IncomingHttpHeaders } from 'node:http';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
-import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
+import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
 import { Readable } from 'node:stream';
 
 describe('Encoding Tools', () => {
