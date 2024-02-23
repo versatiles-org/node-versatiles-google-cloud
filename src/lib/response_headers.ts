@@ -27,10 +27,11 @@ export class ResponseHeaders {
 		return this;
 	}
 
-	public remove(key: string): void {
+	public remove(key: string): this {
 		if (this.#locked) throw Error('Headers are locked. Probably because they have already been sent.');
 		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 		delete this.#headers[key];
+		return this;
 	}
 
 	public toString(): string {
@@ -45,7 +46,8 @@ export class ResponseHeaders {
 		return parseContentEncoding(this.#headers['content-encoding']);
 	}
 
-	public lock(): void {
+	public lock(): this {
 		this.#locked = true;
+		return this;
 	}
 }
