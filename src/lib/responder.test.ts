@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Response } from 'express';
@@ -113,3 +114,52 @@ describe('Responder', () => {
 	});
 });
 
+describe('Responder Error Handling', () => {
+	it('should throw error when trying to write before headers are sent', () => {
+		expect(() => {
+			getMockedResponder().write(Buffer.from('Test'), () => { });
+		}).toThrow('Headers not send yet');
+	});
+
+	it('should throw error when trying to end before headers are sent', async () => {
+		const responder = getMockedResponder();
+
+		await expect(async () => responder.end()).rejects.toThrow('Headers not send yet');
+	});
+
+	it('should throw error when trying to send headers after they are already sent', () => {
+		const responder = getMockedResponder();
+		responder.sendHeaders(200);
+		expect(() => {
+			responder.sendHeaders(200);
+		}).toThrow('Headers already send');
+	});
+
+	it('should throw error when trying to end after response is already ended', async () => {
+		const responder = getMockedResponder();
+		responder.sendHeaders(200);
+		await responder.end();
+		await expect(async () => responder.end()).rejects.toThrow('already ended');
+	});
+
+	it('should correctly transition through states', async () => {
+		const responder = getMockedResponder();
+
+		// Initially, headers should not be sent
+		expect(() => {
+			responder.write(Buffer.from('Test'), () => { });
+		}).toThrow('Headers not send yet');
+
+		// Send headers
+		responder.sendHeaders(200);
+		// Now, headers are sent, write should not throw
+		expect(() => {
+			responder.write(Buffer.from('Test'), () => { });
+		}).not.toThrow();
+
+		// End the response
+		await responder.end();
+		// Trying to end again should throw
+		await expect(async () => responder.end()).rejects.toThrow('already ended');
+	});
+});
