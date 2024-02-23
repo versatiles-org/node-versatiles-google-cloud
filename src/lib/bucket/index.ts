@@ -36,11 +36,12 @@ export class BucketFileMetadata {
 
 	public setHeaders(responder: Responder): void {
 		const header = this.#header;
+		const { headers } = responder;
 
-		if (header.size != null) responder.addHeader('content-length', header.size);
-		if (header.cacheControl != null) responder.addHeader('cache-control', header.cacheControl);
-		responder.addHeader('etag', header.etag);
-		responder.addHeader('content-type', header.contentType);
+		if (header.size != null) headers.set('content-length', header.size);
+		if (header.cacheControl != null) headers.set('cache-control', header.cacheControl);
+		headers.set('etag', header.etag);
+		headers.set('content-type', header.contentType);
 	}
 
 	public toString(): string {

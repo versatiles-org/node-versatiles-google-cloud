@@ -1,5 +1,5 @@
 import type { BrotliOptions, ZlibOptions } from 'node:zlib';
-import type { OutgoingHttpHeaders, IncomingHttpHeaders } from 'node:http';
+import type { IncomingHttpHeaders } from 'node:http';
 import type { Transform } from 'node:stream';
 import zlib from 'node:zlib';
 import type { Responder } from './responder';
@@ -48,7 +48,7 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 				});
 			}),
 			setEncodingHeader: (responder: Responder): void => {
-				responder.addHeader('content-encoding', 'br');
+				responder.headers.set('content-encoding', 'br');
 				return;
 			},
 		};
@@ -75,7 +75,7 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 				});
 			}),
 			setEncodingHeader: (responder: Responder): void => {
-				responder.addHeader('content-encoding', 'gzip');
+				responder.headers.set('content-encoding', 'gzip');
 				return;
 			},
 		};
@@ -83,7 +83,7 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 	'raw': {
 		name: 'raw',
 		setEncodingHeader: (responder: Responder): void => {
-			responder.delHeader('content-encoding');
+			responder.headers.remove('content-encoding');
 			return;
 		},
 	},
@@ -95,9 +95,8 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
  * @returns The corresponding `EncodingTools` based on the content encoding header.
  * @throws Error if the content encoding is unknown.
  */
-export function parseContentEncoding(headers: OutgoingHttpHeaders): EncodingTools {
+export function parseContentEncoding(contentEncoding?: string): EncodingTools {
 	// Logic to parse content encoding
-	const contentEncoding = headers['content-encoding'];
 	if (contentEncoding == null) return ENCODINGS.raw;
 
 	if (typeof contentEncoding !== 'string') throw Error(`unknown content-encoding ${JSON.stringify(contentEncoding)}`);

@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
+import type { IncomingHttpHeaders } from 'http';
 import type { EncodingTools, EncodingType } from './encoding';
 import type { Response } from 'express';
 import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
 import { recompress } from './recompress';
+import { ResponseHeaders } from './response_headers';
 
 /**
  * Interface defining the structure and methods of a Responder.
@@ -32,22 +33,26 @@ export class Responder {
 
 	readonly #time: number;
 
-	readonly #responseHeaders: OutgoingHttpHeaders = {
-		'cache-control': 'max-age=86400', // Set default cache control header (1 day)
-	};
+	readonly #responseHeaders: ResponseHeaders;
 
 	public constructor(options: ResponderOptions) {
+		this.#time = Date.now();
 		this.#options = options;
 		this.#responderState = ResponderState.Initialised;
-		this.#time = Date.now();
+		this.#responseHeaders = new ResponseHeaders();
 	}
 
 	public get fastRecompression(): boolean {
 		return this.#options.fastRecompression;
 	}
 
+	public get headers(): ResponseHeaders {
+		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
+		return this.#responseHeaders;
+	}
+
 	public async respond(content: Buffer | string, contentMIME: string, contentEncoding: EncodingType): Promise<void> {
-		this.addHeader('content-type', contentMIME);
+		this.#responseHeaders.set('content-type', contentMIME);
 		ENCODINGS[contentEncoding].setEncodingHeader(this);
 		if (typeof content === 'string') content = Buffer.from(content);
 		if (this.#options.verbose) console.log(`  #${this.#options.requestNo} respond`);
@@ -60,30 +65,6 @@ export class Responder {
 			.status(code)
 			.type('text')
 			.send(message);
-	}
-
-	public addHeader(key: string, value: number | string): this {
-		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
-		this.#responseHeaders[key] = value;
-		return this;
-	}
-
-	public setHeaders(header: Map<string, string>): this {
-		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
-		for (const [key, value] of header.entries()) {
-			this.#responseHeaders[key] = value;
-		}
-		return this;
-	}
-
-	public delHeader(key: string): void {
-		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
-		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-		delete this.#responseHeaders[key];
-	}
-
-	public getHeadersAsString(): string {
-		return JSON.stringify(this.#responseHeaders);
 	}
 
 	public write(buffer: Buffer, callback: () => void): void {
@@ -113,16 +94,17 @@ export class Responder {
 
 	public sendHeaders(status: number): void {
 		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
-		this.#options.response.writeHead(status, this.#responseHeaders);
+		this.#options.response.writeHead(status, this.#responseHeaders.getHeaders());
 		this.#responderState = ResponderState.HeaderSend;
 	}
 
 	public getContentEncoding(): EncodingTools {
-		return parseContentEncoding(this.#responseHeaders);
+		return parseContentEncoding(this.#responseHeaders.get('content-encoding'));
 	}
 
 	public getMediaType(): string {
-		return String(this.#responseHeaders['content-type']).replace(/\/.*/, '').toLowerCase();
+		const contentType: string = this.#responseHeaders.get('content-type') ?? '';
+		return contentType.replace(/\/.*/, '').toLowerCase();
 	}
 
 	public acceptEncoding(encoding: EncodingTools): boolean {
