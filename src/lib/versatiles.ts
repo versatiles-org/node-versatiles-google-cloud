@@ -1,7 +1,7 @@
 import type { Header as VersatilesHeader, Reader } from '@versatiles/container';
 import type { MaplibreStyle } from '@versatiles/style/dist/lib/types';
-import type { ResponderInterface } from './responder';
-import type { File } from '@google-cloud/storage';
+import type { AbstractBucketFile } from './bucket';
+import type { Responder } from './responder';
 import { Container as VersatilesContainer } from '@versatiles/container';
 import { guessStyle } from '@versatiles/style';
 import { readFile } from 'node:fs/promises';
@@ -24,9 +24,9 @@ const containerCache = new Map<string, {
  * @param responder - The ResponderInterface instance to handle responses.
  */
 // eslint-disable-next-line @typescript-eslint/max-params
-export async function serveVersatiles(file: File, path: string, query: string, responder: ResponderInterface): Promise<void> {
+export async function serveVersatiles(file: AbstractBucketFile, path: string, query: string, responder: Responder): Promise<void> {
 	// Log serving versatiles if verbose mode is enabled
-	if (responder.verbose) console.log(`  #${responder.requestNo} serve versatiles`);
+	responder.log('serve versatiles');
 
 	let container: VersatilesContainer;
 	let header: VersatilesHeader;
@@ -59,10 +59,8 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 			metadata = JSON.parse(await container.getMetadata() ?? '');
 		} catch (e) { }
 
-		if (responder.verbose) {
-			console.log(`  #${responder.requestNo} header: ${JSON.stringify(header)}`);
-			console.log(`  #${responder.requestNo} metadata: ${JSON.stringify(metadata).slice(0, 80)}`);
-		}
+		responder.log(`header: ${JSON.stringify(header)}`);
+		responder.log(`metadata: ${JSON.stringify(metadata).slice(0, 80)}`);
 
 		// Cache the container for future use
 		containerCache.set(file.name, { container, header, metadata });
@@ -71,20 +69,20 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 	}
 
 	// Log the query if verbose mode is enabled
-	if (responder.verbose) console.log(`  #${responder.requestNo} query: ${JSON.stringify(query)}`);
+	responder.log(`query: ${JSON.stringify(query)}`);
 
 	// Handle different queries: preview, meta.json, style.json, or tile queries
 	switch (query) {
 		case 'preview':
-			if (responder.verbose) console.log(`  #${responder.requestNo} respond preview`);
+			responder.log('respond preview');
 			await responder.respond(await readFile(filenamePreview), 'text/html', 'raw');
 			return;
 		case 'meta.json':
-			if (responder.verbose) console.log(`  #${responder.requestNo} respond with meta.json`);
+			responder.log('respond with meta.json');
 			await responder.respond(JSON.stringify(metadata), 'application/json', 'raw');
 			return;
 		case 'style.json':
-			if (responder.verbose) console.log(`  #${responder.requestNo} respond with style.json`);
+			responder.log('respond with style.json');
 
 			let style: MaplibreStyle;
 			const format = header.tileFormat;
@@ -147,7 +145,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 	}
 
 	const { z, x, y } = match.groups as { x: string; y: string; z: string };
-	if (responder.verbose) console.log(`  #${responder.requestNo} fetch tile x:${x}, y:${y}, z:${z}`);
+	responder.log(`fetch tile x:${x}, y:${y}, z:${z}`);
 
 	const tile = await container.getTile(
 		parseInt(z, 10),
@@ -159,7 +157,7 @@ export async function serveVersatiles(file: File, path: string, query: string, r
 	if (tile == null) {
 		responder.error(204, `no map tile at ${z}/${x}/${y}`);
 	} else {
-		if (responder.verbose) console.log(`  #${responder.requestNo} return tile ${z}/${x}/${y}`);
+		responder.log(`return tile ${z}/${x}/${y}`);
 		await responder.respond(tile, header.tileMime, header.tileCompression);
 	}
 

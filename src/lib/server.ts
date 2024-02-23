@@ -1,18 +1,17 @@
 import type { Server } from 'http';
-import type { Bucket } from '@google-cloud/storage';
+import type { AbstractBucket } from './bucket';
 import express from 'express';
-import { Storage } from '@google-cloud/storage';
 import { Responder } from './responder';
 import { recompress } from './recompress';
 import { serveVersatiles } from './versatiles';
-import { createLocalDirectoryBucket } from './localDirectoryBucket';
+import { BucketGoogle, BucketLocal } from './bucket';
 
 /**
  * Interface defining the options for starting the server.
  */
 export interface ServerOptions {
 	baseUrl: string; // Base URL for the server
-	bucket: Bucket | string; // Google Cloud Storage bucket or its name
+	bucket: AbstractBucket | string; // Google Cloud Storage bucket or its name
 	bucketPrefix: string; // Prefix for objects in the bucket
 	fastRecompression: boolean; // Flag for fast recompression
 	localDirectory?: string; // Local directory path to use instead of GCS bucket
@@ -31,16 +30,16 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
 	const baseUrl = new URL(opt.baseUrl).href;
-	const storage = new Storage();
 
 	// Initialize the bucket based on the provided options
-	let bucket: Bucket;
+	let bucket: AbstractBucket;
 	if (typeof opt.localDirectory == 'string') {
-		bucket = createLocalDirectoryBucket(opt.localDirectory);
+		bucket = new BucketLocal(opt.localDirectory);
 	} else if (typeof opt.bucket == 'string') {
-		bucket = storage.bucket(opt.bucket);
+		bucket = new BucketGoogle(opt.bucket);
 	} else {
-		({ bucket } = opt);
+		// eslint-disable-next-line @typescript-eslint/prefer-destructuring
+		bucket = opt.bucket;
 	}
 
 	let requestNo = 0;
@@ -61,7 +60,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	app.get(/.*/, (request, response): void => {
 		void (async (): Promise<void> => {
 			requestNo++;
-			const responder = Responder({
+			const responder = new Responder({
 				fastRecompression,
 				requestHeaders: request.headers,
 				requestNo,
@@ -69,22 +68,22 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
-			if (verbose) console.log('new request: #' + requestNo);
+			responder.log('new request');
+
 			try {
 				const filename = decodeURI(String(request.path)).trim().replace(/^\/+/, '');
 
 				// Handle file requests
-				if (verbose) console.log(`  #${requestNo} public filename: ${filename}`);
+				responder.log(`public filename: ${filename}`);
 
 				if (filename === '') {
 					responder.error(404, `file "${filename}" not found`); return;
 				}
 
-				if (verbose) console.log(`  #${requestNo} request filename: ${bucketPrefix + filename}`);
-				const file = bucket.file(bucketPrefix + filename);
+				responder.log(`request filename: ${bucketPrefix + filename}`);
+				const file = bucket.getFile(bucketPrefix + filename);
 
-				const [exists] = await file.exists();
-				if (!exists) {
+				if (!await file.exists()) {
 					responder.error(404, `file "${filename}" not found`);
 					return;
 				}
@@ -96,23 +95,12 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				}
 
 				async function serveFile(): Promise<void> {
-					if (verbose) console.log(`  #${requestNo} serve file`);
+					responder.log('serve file');
 
-					const [metadata] = await file.getMetadata();
-					if (verbose) console.log(`  #${requestNo} metadata: ${JSON.stringify(metadata)}`);
+					const metadata = await file.getMetadata();
+					responder.log(`metadata: ${metadata.toString()}`);
 
-					if (metadata.contentType != null) responder.set('content-type', metadata.contentType);
-					if (metadata.size != null) responder.set('content-length', String(metadata.size));
-					if (metadata.etag != null) responder.set('etag', metadata.etag);
-					if (metadata.cacheControl != null) {
-						const match = /^max-age=([0-9]+)$/.exec(metadata.cacheControl);
-						if (match) {
-							let maxAge = parseInt(match[1], 10) || 86400;
-							if (maxAge < 300) maxAge = 300; // minimum: 5 minutes
-							if (maxAge > 8640000) maxAge = 8640000; // maximum: 100 days
-							responder.set('cache-control', 'max-age=' + maxAge);
-						}
-					}
+					metadata.setHeaders(responder);
 
 					void recompress(responder, file.createReadStream(), verbose ? `  #${requestNo}` : undefined);
 				}

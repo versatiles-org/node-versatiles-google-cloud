@@ -1,6 +1,6 @@
 import type { EncodingTools } from './encoding';
-import type { ResponderInterface } from './responder';
-import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
+import type { Responder } from './responder';
+import { ENCODINGS } from './encoding';
 import { Writable, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
@@ -13,7 +13,7 @@ const maxBufferSize = 10 * 1024 * 1024; // Define the maximum buffer size for st
 export class BufferStream extends Writable {
 	// Private members and constructor
 
-	readonly #responder: ResponderInterface;
+	readonly #responder: Responder;
 
 	readonly #logPrefix: string | undefined;
 
@@ -27,7 +27,7 @@ export class BufferStream extends Writable {
 	 * Class constructor will receive the injections as parameters.
 	 */
 	public constructor(
-		responder: ResponderInterface,
+		responder: Responder,
 		logPrefix?: string,
 	) {
 		super();
@@ -60,22 +60,19 @@ export class BufferStream extends Writable {
 
 				this.#bufferMode = false;
 				this.#prepareStreamMode();
+				this.#responder.sendHeaders(200);
 
 				const buffer = Buffer.concat(this.#buffers);
 				this.#buffers.length = 0;
 
 				// Write the buffer to the responder stream
-				this.#responder.response.write(buffer, encoding, () => {
-					callback();
-				});
+				this.#responder.write(buffer, callback);
 			} else {
 				callback();
 			}
 		} else {
 			// Write directly to the responder stream in stream mode
-			this.#responder.response.write(chunk, encoding, () => {
-				callback();
-			});
+			this.#responder.write(chunk, callback);
 		}
 	}
 
@@ -98,44 +95,33 @@ export class BufferStream extends Writable {
 			}
 
 			this.#prepareBufferMode(buffer.length);
-			this.#responder.response.end(buffer, (): void => {
-				callback();
-			});
+			this.#responder.sendHeaders(200);
+			this.#responder.end(buffer, callback);
 		} else {
 			// End the responder stream in stream mode
-			this.#responder.response.end((): void => {
-				callback();
-			});
+			this.#responder.end(false, callback);
 		}
 	}
 
 	// Prepare the response headers for buffer mode, setting content-length and removing transfer-encoding
 	#prepareBufferMode(bufferLength: number): void {
-		this.#responder.del('transfer-encoding');
-		this.#responder.responseHeaders['content-length'] ??= '' + bufferLength;
+		this.#responder.delHeader('transfer-encoding');
+		this.#responder.addHeader('content-length', bufferLength);
 
 		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for buffer:', this.#responder.responseHeaders);
+			console.log(this.#logPrefix, 'response header for buffer:', this.#responder.getHeadersAsString());
 			console.log(this.#logPrefix, 'response buffer length:', bufferLength);
 		}
-
-		this.#responder.response
-			.status(200)
-			.set(this.#responder.responseHeaders);
 	}
 
 	// Prepare the response headers for stream mode, setting transfer-encoding to chunked and removing content-length
 	#prepareStreamMode(): void {
-		this.#responder.set('transfer-encoding', 'chunked');
-		this.#responder.del('content-length');
+		this.#responder.addHeader('transfer-encoding', 'chunked');
+		this.#responder.delHeader('content-length');
 
 		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for stream:', this.#responder.responseHeaders);
+			console.log(this.#logPrefix, 'response header for stream:', this.#responder.getHeadersAsString());
 		}
-
-		this.#responder.response
-			.status(200)
-			.set(this.#responder.responseHeaders);
 	}
 }
 
@@ -147,44 +133,41 @@ export class BufferStream extends Writable {
  * @returns A promise that resolves when recompression is complete.
  */
 export async function recompress(
-	responder: ResponderInterface,
+	responder: Responder,
 	body: Buffer | Readable,
 	logPrefix?: string,
 ): Promise<void> {
 	// Detect and set the incoming and outgoing encodings
-	const encodingIn: EncodingTools | null = parseContentEncoding(responder.responseHeaders);
-	let encodingOut: EncodingTools | null = encodingIn;
-
-	// Extract the media type from content-type header and avoid recompressing certain types
-	const mediaType = String(responder.responseHeaders['content-type']).replace(/\/.*/, '').toLowerCase();
+	const encodingIn: EncodingTools = responder.getContentEncoding();
+	let encodingOut: EncodingTools = encodingIn;
 
 	// do not recompress images, videos, ...
-	switch (mediaType) {
+	switch (responder.getMediaType()) {
 		case 'audio':
 		case 'image':
 		case 'video':
-			if (!acceptEncoding(responder.requestHeaders, encodingOut)) {
+			if (!responder.acceptEncoding(encodingOut)) {
 				// decompress it
 				encodingOut = ENCODINGS.raw;
 			}
 			break;
 		default:
 			if (responder.fastRecompression) {
-				if (!acceptEncoding(responder.requestHeaders, encodingOut)) {
+				if (!responder.acceptEncoding(encodingOut)) {
 					// decompress it
 					encodingOut = ENCODINGS.raw;
 				}
 			} else {
 				// find best accepted encoding
-				encodingOut = findBestEncoding(responder.requestHeaders);
+				encodingOut = responder.findBestEncoding();
 			}
 	}
 
 	// Set vary header for proper handling of different encodings by clients
-	responder.set('vary', 'accept-encoding');
+	responder.addHeader('vary', 'accept-encoding');
 
 	// Set the appropriate encoding header based on the selected encoding
-	encodingOut.setEncodingHeader(responder.responseHeaders);
+	encodingOut.setEncodingHeader(responder);
 
 	// Prepare the streams for the pipeline
 	const streams: (Readable | Writable)[] = [];
@@ -210,7 +193,7 @@ export async function recompress(
 			streams.push(encodingOut.compressStream(responder.fastRecompression));
 		}
 
-		responder.del('content-length');
+		responder.delHeader('content-length');
 	}
 
 	// Add the BufferStream to the pipeline and execute the pipeline
