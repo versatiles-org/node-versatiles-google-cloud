@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { lookup } from 'mrmime';
-import type { Responder } from '../responder';
+import type { ResponseHeaders } from '../response_headers';
 
 export class BucketFileMetadata {
 	readonly #header: {
@@ -33,9 +33,8 @@ export class BucketFileMetadata {
 		};
 	}
 
-	public setHeaders(responder: Responder): void {
+	public setHeaders(headers: ResponseHeaders): void {
 		const header = this.#header;
-		const { headers } = responder;
 
 		if (header.size != null) headers.set('content-length', header.size);
 		if (header.cacheControl != null) headers.set('cache-control', header.cacheControl);
