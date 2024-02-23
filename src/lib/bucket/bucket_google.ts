@@ -4,7 +4,7 @@ import { AbstractBucket, AbstractBucketFile } from './types';
 import { Storage } from '@google-cloud/storage';
 import { BucketFileMetadata } from './metadata';
 
-class BucketFileGoogle extends AbstractBucketFile {
+export class BucketFileGoogle extends AbstractBucketFile {
 	readonly #file: File;
 
 	public constructor(file: File) {
