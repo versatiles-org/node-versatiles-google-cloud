@@ -105,22 +105,24 @@ export class BufferStream extends Writable {
 
 	// Prepare the response headers for buffer mode, setting content-length and removing transfer-encoding
 	#prepareBufferMode(bufferLength: number): void {
-		this.#responder.delHeader('transfer-encoding');
-		this.#responder.addHeader('content-length', bufferLength);
+		const { headers } = this.#responder;
+		headers.remove('transfer-encoding');
+		headers.set('content-length', bufferLength);
 
 		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for buffer:', this.#responder.getHeadersAsString());
+			console.log(this.#logPrefix, 'response header for buffer:', headers.toString());
 			console.log(this.#logPrefix, 'response buffer length:', bufferLength);
 		}
 	}
 
 	// Prepare the response headers for stream mode, setting transfer-encoding to chunked and removing content-length
 	#prepareStreamMode(): void {
-		this.#responder.addHeader('transfer-encoding', 'chunked');
-		this.#responder.delHeader('content-length');
+		const { headers } = this.#responder;
+		headers.set('transfer-encoding', 'chunked');
+		headers.remove('content-length');
 
 		if (this.#logPrefix != null) {
-			console.log(this.#logPrefix, 'response header for stream:', this.#responder.getHeadersAsString());
+			console.log(this.#logPrefix, 'response header for stream:', headers.toString());
 		}
 	}
 }
@@ -164,7 +166,7 @@ export async function recompress(
 	}
 
 	// Set vary header for proper handling of different encodings by clients
-	responder.addHeader('vary', 'accept-encoding');
+	responder.headers.set('vary', 'accept-encoding');
 
 	// Set the appropriate encoding header based on the selected encoding
 	encodingOut.setEncodingHeader(responder);
@@ -193,7 +195,7 @@ export async function recompress(
 			streams.push(encodingOut.compressStream(responder.fastRecompression));
 		}
 
-		responder.delHeader('content-length');
+		responder.headers.remove('content-length');
 	}
 
 	// Add the BufferStream to the pipeline and execute the pipeline
