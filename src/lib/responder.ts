@@ -1,99 +1,141 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
-import { ENCODINGS, type EncodingType } from './encoding';
+import type { EncodingTools, EncodingType } from './encoding';
 import type { Response } from 'express';
+import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
 import { recompress } from './recompress';
 
 /**
  * Interface defining the structure and methods of a Responder.
  */
-export interface ResponderInterface {
-	del: (key: string) => void; // Function to delete a header from the response
-	error: (code: number, message: string) => void; // Function to send an error response
+export interface ResponderOptions {
 	fastRecompression: boolean; // Flag for fast recompression mode
-	requestNo: number; // The current request number for logging
-	requestHeaders: IncomingHttpHeaders; // Headers of the incoming request
-	respond: (content: Buffer | string, contentMIME: string, contentEncoding: EncodingType) => Promise<void>; // Function to send a response
 	response: Response; // The Express response object
-	responseHeaders: OutgoingHttpHeaders; // Headers to be sent in the response
-	set: (key: string, value: string) => ResponderInterface; // Function to set a header in the response
+	requestHeaders: IncomingHttpHeaders;
+	requestNo: number; // The current request number for logging
 	verbose: boolean; // Flag for verbose logging
 }
 
-/**
- * Factory function to create a Responder instance.
- * @param options - Configuration options for the Responder.
- * @returns A new Responder instance.
- */
-export function Responder(options: {
-	fastRecompression: boolean;
-	requestHeaders: IncomingHttpHeaders;
-	response: Response;
-	requestNo: number;
-	verbose: boolean;
-}): ResponderInterface {
-	const { fastRecompression, response, requestHeaders, requestNo, verbose } = options;
+enum ResponderState {
+	Initialised = 0,
+	HeaderSend = 1,
+	Finished = 2,
+}
 
-	// Initialize default response headers
-	const responseHeaders: OutgoingHttpHeaders = {
+/**
+ * Class defining the structure and methods of a Responder.
+ */
+export class Responder {
+	readonly #options: ResponderOptions;
+
+	#responderState: ResponderState;
+
+	readonly #time: number;
+
+	readonly #responseHeaders: OutgoingHttpHeaders = {
 		'cache-control': 'max-age=86400', // Set default cache control header (1 day)
 	};
 
-	// Define the responder object with its methods
-	const responder: ResponderInterface = {
-		error,
-		del,
-		get fastRecompression(): boolean {
-			return fastRecompression;
-		},
-		get requestHeaders(): IncomingHttpHeaders {
-			return requestHeaders;
-		},
-		get requestNo(): number {
-			return requestNo;
-		},
-		respond,
-		get response(): Response {
-			return response;
-		},
-		get responseHeaders(): OutgoingHttpHeaders {
-			return responseHeaders;
-		},
-		set,
-		get verbose(): boolean {
-			return verbose;
-		},
-	};
-
-	return responder;
-
-	// Implementation of respond method
-	async function respond(body: Buffer | string, contentType: string, encoding: EncodingType): Promise<void> {
-		set('content-type', contentType);
-		ENCODINGS[encoding].setEncodingHeader(responseHeaders);
-		if (typeof body === 'string') body = Buffer.from(body);
-		if (verbose) console.log(`  #${requestNo} respond`);
-		await recompress(responder, body);
+	public constructor(options: ResponderOptions) {
+		this.#options = options;
+		this.#responderState = ResponderState.Initialised;
+		this.#time = Date.now();
 	}
 
-	// Implementation of error method
-	function error(code: number, message: string): void {
-		if (verbose) console.log(`  #${requestNo} error ${code}: ${message}`);
-		response
+	public get fastRecompression(): boolean {
+		return this.#options.fastRecompression;
+	}
+
+	public async respond(content: Buffer | string, contentMIME: string, contentEncoding: EncodingType): Promise<void> {
+		this.addHeader('content-type', contentMIME);
+		ENCODINGS[contentEncoding].setEncodingHeader(this);
+		if (typeof content === 'string') content = Buffer.from(content);
+		if (this.#options.verbose) console.log(`  #${this.#options.requestNo} respond`);
+		await recompress(this, content);
+	}
+
+	public error(code: number, message: string): void {
+		if (this.#options.verbose) console.log(`  #${this.#options.requestNo} error ${code}: ${message}`);
+		this.#options.response
 			.status(code)
 			.type('text')
 			.send(message);
 	}
 
-	// Implementation of set method
-	function set(key: string, value: string): ResponderInterface {
-		responseHeaders[key] = value;
-		return responder;
+	public addHeader(key: string, value: number | string): this {
+		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
+		this.#responseHeaders[key] = value;
+		return this;
 	}
 
-	// Implementation of del method
-	function del(key: string): void {
+	public setHeaders(header: Map<string, string>): this {
+		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
+		for (const [key, value] of header.entries()) {
+			this.#responseHeaders[key] = value;
+		}
+		return this;
+	}
+
+	public delHeader(key: string): void {
+		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
 		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-		delete responseHeaders[key];
+		delete this.#responseHeaders[key];
+	}
+
+	public getHeadersAsString(): string {
+		return JSON.stringify(this.#responseHeaders);
+	}
+
+	public write(buffer: Buffer, callback: () => void): void {
+		if (this.#responderState <= ResponderState.HeaderSend) throw Error('Headers not send yet');
+
+		this.#options.response.write(buffer, error => {
+			if (error) throw Error();
+			callback();
+		});
+	}
+
+	public end(buffer: Buffer | false, callback: () => void): void {
+		if (this.#responderState <= ResponderState.HeaderSend) throw Error('Headers not send yet');
+
+		if (buffer !== false) {
+			this.#options.response.end(buffer, () => {
+				this.#responderState = ResponderState.Finished;
+				callback();
+			});
+		} else {
+			this.#options.response.end(() => {
+				this.#responderState = ResponderState.Finished;
+				callback();
+			});
+		}
+	}
+
+	public sendHeaders(status: number): void {
+		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
+		this.#options.response.writeHead(status, this.#responseHeaders);
+		this.#responderState = ResponderState.HeaderSend;
+	}
+
+	public getContentEncoding(): EncodingTools {
+		return parseContentEncoding(this.#responseHeaders);
+	}
+
+	public getMediaType(): string {
+		return String(this.#responseHeaders['content-type']).replace(/\/.*/, '').toLowerCase();
+	}
+
+	public acceptEncoding(encoding: EncodingTools): boolean {
+		return acceptEncoding(this.#options.requestHeaders, encoding);
+	}
+
+	public findBestEncoding(): EncodingTools {
+		return findBestEncoding(this.#options.requestHeaders);
+	}
+
+	public log(message: string): void {
+		if (!this.#options.verbose) return;
+		const time = Date.now() - this.#time;
+		console.log(`  #${this.#options.requestNo} (${time}ms) ${message}`);
 	}
 }

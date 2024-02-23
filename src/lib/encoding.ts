@@ -2,6 +2,7 @@ import type { BrotliOptions, ZlibOptions } from 'node:zlib';
 import type { OutgoingHttpHeaders, IncomingHttpHeaders } from 'node:http';
 import type { Transform } from 'node:stream';
 import zlib from 'node:zlib';
+import type { Responder } from './responder';
 
 export type EncodingType = 'br' | 'gzip' | 'raw';
 
@@ -15,7 +16,7 @@ export interface EncodingTools {
 	decompressStream?: () => Transform; // Create a stream for decompressing data
 	compressBuffer?: (buffer: Buffer, fast: boolean) => Buffer | Promise<Buffer>; // Compress a buffer
 	decompressBuffer?: (buffer: Buffer) => Buffer | Promise<Buffer>; // Decompress a buffer
-	setEncodingHeader: (headers: OutgoingHttpHeaders) => void; // Set appropriate encoding headers
+	setEncodingHeader: (responder: Responder) => void; // Set appropriate encoding headers
 }
 
 /**
@@ -46,8 +47,8 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 					resolve(b);
 				});
 			}),
-			setEncodingHeader: (headers: OutgoingHttpHeaders): void => {
-				headers['content-encoding'] = 'br';
+			setEncodingHeader: (responder: Responder): void => {
+				responder.addHeader('content-encoding', 'br');
 				return;
 			},
 		};
@@ -73,16 +74,17 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 					resolve(b);
 				});
 			}),
-			setEncodingHeader: (headers: OutgoingHttpHeaders): void => {
-				headers['content-encoding'] = 'gzip';
+			setEncodingHeader: (responder: Responder): void => {
+				responder.addHeader('content-encoding', 'gzip');
 				return;
 			},
 		};
 	})(),
 	'raw': {
 		name: 'raw',
-		setEncodingHeader: (headers: OutgoingHttpHeaders): void => {
-			delete headers['content-encoding'];
+		setEncodingHeader: (responder: Responder): void => {
+			responder.delHeader('content-encoding');
+			return;
 		},
 	},
 };
