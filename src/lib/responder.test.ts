@@ -7,17 +7,6 @@ import { getMockedResponder } from './responder.mock.test';
 
 
 describe('Responder', () => {
-
-	it('should set and get response headers correctly', () => {
-		const responder = getMockedResponder();
-
-		responder.set('test-header', 'test-value');
-		expect(responder.responseHeaders['test-header']).toBe('test-value');
-
-		responder.del('test-header');
-		expect(responder.responseHeaders['test-header']).toBeUndefined();
-	});
-
 	it('should get request number', () => {
 		const responder1 = getMockedResponder({ requestNo: 13 });
 		expect(responder1.requestNo).toBe(13);
@@ -40,9 +29,11 @@ describe('Responder', () => {
 		const errorMessage = 'Not Found';
 		responder.error(errorCode, errorMessage);
 
-		expect(responder.response.status).toHaveBeenCalledWith(errorCode);
-		expect(responder.response.type).toHaveBeenCalledWith('text');
-		expect(responder.response.send).toHaveBeenCalledWith(errorMessage);
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead(errorCode, { 'content-type': 'text/plaine' }));
+
+		expect(responder.response.end).toHaveBeenCalledTimes(1);
+		expect(responder.response.end).toHaveBeenCalledWith(errorMessage);
 	});
 
 	it('should respond correctly with raw text content', async () => {
@@ -50,8 +41,8 @@ describe('Responder', () => {
 
 		await responder.respond('content42', 'text/plain', 'raw');
 
-		expect(responder.response.set).toHaveBeenCalledTimes(1);
-		expect(responder.response.set).toHaveBeenCalledWith({
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-length': '9',
 			'content-type': 'text/plain',
@@ -65,8 +56,8 @@ describe('Responder', () => {
 
 		await responder.respond('prettyimagedata', 'image/png', 'raw');
 
-		expect(responder.response.set).toHaveBeenCalledTimes(1);
-		expect(responder.response.set).toHaveBeenCalledWith({
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-length': '15',
 			'content-type': 'image/png',
@@ -82,11 +73,11 @@ describe('Responder', () => {
 		const contentCompressed = gzipSync(content);
 		await responder.respond(contentCompressed, 'text/plain', 'gzip');
 
-		expect(responder.response.set).toHaveBeenCalledTimes(1);
-		expect(responder.response.set).toHaveBeenCalledWith({
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-encoding': 'gzip',
-			'content-length': '' + contentCompressed.length,
+			'content-length': String(contentCompressed.length),
 			'content-type': 'text/plain',
 			'vary': 'accept-encoding',
 		});
@@ -105,11 +96,11 @@ describe('Responder', () => {
 		const contentCompressed = brotliCompressSync(content);
 		await responder.respond(contentCompressed, 'text/plain', 'br');
 
-		expect(responder.response.set).toHaveBeenCalledTimes(1);
-		expect(responder.response.set).toHaveBeenCalledWith({
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
 			'cache-control': 'max-age=86400',
 			'content-encoding': 'br',
-			'content-length': '' + contentCompressed.length,
+			'content-length': String(contentCompressed.length),
 			'content-type': 'text/plain',
 			'vary': 'accept-encoding',
 		});

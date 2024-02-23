@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
 
-import type { EnhancedResponder } from './responder.mock.test';
+import type { MockedResponder } from './responder.mock.test';
 import type { OutgoingHttpHeaders } from 'node:http';
 import type { Response } from 'express';
 import { getMockedResponder } from './responder.mock.test';
@@ -149,7 +149,7 @@ describe('recompress', () => {
 						const body = isStream ? Readable.from(buffer) : buffer;
 						await recompress(responder, body);
 
-						const contentEncoding = responder.responseHeaders['content-encoding'];
+						const contentEncoding = responder.headers.get('content-encoding');
 						switch (encodingOut) {
 							case 'raw': expect(contentEncoding).toBeUndefined(); break;
 							default: expect(contentEncoding).toBe(encodingOut); break;
@@ -169,8 +169,8 @@ describe('recompress', () => {
 		}
 	});
 
-	function checkResponseHeaders(responder: EnhancedResponder, responseHeaders: OutgoingHttpHeaders): void {
-		expect(responder.responseHeaders).toStrictEqual(responseHeaders);
+	function checkResponseHeaders(responder: MockedResponder, responseHeaders: OutgoingHttpHeaders): void {
+		expect(responder.headers).toStrictEqual(responseHeaders);
 		expect(responder.response.set).toHaveBeenCalledTimes(1);
 		expect(responder.response.set).toHaveBeenCalledWith(responseHeaders);
 	}

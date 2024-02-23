@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { File } from '@google-cloud/storage';
-import type { Response } from 'express';
-import { serveVersatiles } from './versatiles';
-import { jest } from '@jest/globals';
-import { Readable } from 'stream';
-import { openSync, readFileSync, readSync } from 'fs';
-import { createHash } from 'crypto';
-import type { EnhancedResponder, EnhancedResponse } from './responder.mock.test';
-import { getMockedResponder } from './responder.mock.test';
+import type { AbstractBucketFile } from './bucket';
 import type { Format, Header } from '@versatiles/container';
+import type { MockedResponder, MockedResponse } from './responder.mock.test';
+import type { Response } from 'express';
 import { Container } from '@versatiles/container';
+import { createHash } from 'crypto';
+import { getMockedResponder } from './responder.mock.test';
+import { jest } from '@jest/globals';
+import { MockedBucketFile } from './bucket/bucket.mock.test';
+import { readFileSync } from 'fs';
+import { serveVersatiles } from './versatiles';
 
 jest.mock('@google-cloud/storage');
 jest.mock('@versatiles/container');
@@ -18,21 +18,12 @@ jest.mock('node:fs/promises');
 jest.mock('@versatiles/style');
 
 describe('serve VersaTiles', () => {
-	const fd = openSync(new URL('../../testdata/island.versatiles', import.meta.url).pathname, 'r');
-	let mockFile: File;
-	let mockResponder: EnhancedResponder;
+	const filename = new URL('../../testdata/island.versatiles', import.meta.url).pathname;
+	let mockFile: AbstractBucketFile;
+	let mockResponder: MockedResponder;
 
 	beforeEach(() => {
-		mockFile = {
-			name: 'osm.versatiles',
-			createReadStream: (opt: { start: number; end: number }): Readable => {
-				const { start, end } = opt;
-				const length = end - start + 1;
-				const buffer = Buffer.allocUnsafe(length);
-				readSync(fd, buffer, { position: start, length });
-				return Readable.from(buffer);
-			},
-		} as unknown as File;
+		mockFile = new MockedBucketFile(['osm.versatiles', filename]);
 
 		mockResponder = getMockedResponder({
 			fastRecompression: true,
@@ -100,13 +91,10 @@ describe('serve VersaTiles', () => {
 	});
 
 	function checkResponse(status: number, content: string, headers: unknown): void {
-		const response: EnhancedResponse = mockResponder.response;
+		const response: MockedResponse = mockResponder.response;
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(status);
-
-		expect(response.set).toHaveBeenCalledTimes(1);
-		expect(response.set).toHaveBeenCalledWith(expect.objectContaining(headers));
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(status, expect.objectContaining(headers));
 
 		expect(response.end).toHaveBeenCalledTimes(1);
 		const buffer = response.getBuffer();
@@ -122,24 +110,19 @@ describe('serve VersaTiles', () => {
 	function checkError(status: number, message: string): void {
 		const response: Response = mockResponder.response;
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(status);
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(status, { 'content-type': 'text/plain' });
 
-		expect(response.type).toHaveBeenCalledTimes(1);
-		expect(response.type).toHaveBeenCalledWith('text');
-
-		expect(response.send).toHaveBeenCalledTimes(1);
-		expect(response.send).toHaveBeenCalledWith(message);
+		expect(response.end).toHaveBeenCalledTimes(1);
+		expect(response.end).toHaveBeenCalledWith(message);
 	}
 });
 
 describe('test style generation', () => {
-	let mockFile: File;
+	let mockFile: AbstractBucketFile;
 
 	beforeEach(() => {
-		mockFile = {
-			name: Date.now() + '.versatiles',
-		} as unknown as File;
+		mockFile = new MockedBucketFile([Date.now() + '.versatiles', '?']);
 	});
 
 	it('handles jpeg', async () => {
@@ -244,20 +227,17 @@ describe('test style generation', () => {
 
 
 
-	function checkResponse(responder: EnhancedResponder, content: string, length: number): void {
+	function checkResponse(responder: MockedResponder, content: string, length: number): void {
 		const headers: unknown = {
 			'cache-control': 'max-age=86400',
 			'content-length': String(length),
 			'content-type': 'application/json',
 			'vary': 'accept-encoding',
 		};
-		const response: EnhancedResponse = responder.response;
+		const response: MockedResponse = responder.response;
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(200);
-
-		expect(response.set).toHaveBeenCalledTimes(1);
-		expect(response.set).toHaveBeenCalledWith(headers);
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(200, headers);
 
 		expect(response.end).toHaveBeenCalledTimes(1);
 		const buffer = response.getBuffer();
@@ -270,20 +250,19 @@ describe('test style generation', () => {
 		}
 	}
 
-	async function checkError(responder: EnhancedResponder, content: string): Promise<void> {
-		const response: EnhancedResponse = responder.response;
+	async function checkError(responder: MockedResponder, content: string): Promise<void> {
+		const response: MockedResponse = responder.response;
 
-		expect(response.status).toHaveBeenCalledTimes(1);
-		expect(response.status).toHaveBeenCalledWith(500);
+		expect(response.writeHead).toHaveBeenCalledTimes(1);
+		expect(response.writeHead).toHaveBeenCalledWith(500, { 'content-type': 'text/plain' });
 
-		expect(response.end).toHaveBeenCalledTimes(0);
-		expect(response.send).toHaveBeenCalledTimes(1);
-		expect(response.send).toHaveBeenCalledWith(content);
+		expect(response.end).toHaveBeenCalledTimes(1);
+		expect(response.end).toHaveBeenCalledWith(content);
 
 		await new Promise(res => setTimeout(res, 10));
 	}
 
-	function prepareTest(tileFormat: Format, metadata?: string): EnhancedResponder {
+	function prepareTest(tileFormat: Format, metadata?: string): MockedResponder {
 		// eslint-disable-next-line @typescript-eslint/require-await
 		jest.spyOn(Container.prototype, 'getHeader').mockImplementation(async (): Promise<Header> => ({
 			magic: 'string',

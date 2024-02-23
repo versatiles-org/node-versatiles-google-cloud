@@ -99,7 +99,7 @@ export class BufferStream extends Writable {
 			this.#responder.end(buffer, callback);
 		} else {
 			// End the responder stream in stream mode
-			this.#responder.end(false, callback);
+			this.#responder.end(callback);
 		}
 	}
 
@@ -107,7 +107,7 @@ export class BufferStream extends Writable {
 	#prepareBufferMode(bufferLength: number): void {
 		const { headers } = this.#responder;
 		headers.remove('transfer-encoding');
-		headers.set('content-length', bufferLength);
+		headers.set('content-length', String(bufferLength));
 
 		if (this.#logPrefix != null) {
 			console.log(this.#logPrefix, 'response header for buffer:', headers.toString());
@@ -140,7 +140,7 @@ export async function recompress(
 	logPrefix?: string,
 ): Promise<void> {
 	// Detect and set the incoming and outgoing encodings
-	const encodingIn: EncodingTools = responder.getContentEncoding();
+	const encodingIn: EncodingTools = responder.headers.getContentEncoding();
 	let encodingOut: EncodingTools = encodingIn;
 
 	// do not recompress images, videos, ...
@@ -169,7 +169,7 @@ export async function recompress(
 	responder.headers.set('vary', 'accept-encoding');
 
 	// Set the appropriate encoding header based on the selected encoding
-	encodingOut.setEncodingHeader(responder);
+	encodingOut.setEncodingHeader(responder.headers);
 
 	// Prepare the streams for the pipeline
 	const streams: (Readable | Writable)[] = [];

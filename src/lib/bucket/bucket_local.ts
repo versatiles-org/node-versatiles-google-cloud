@@ -1,5 +1,5 @@
-import { AbstractBucket, AbstractBucketFile } from './index';
-import { BucketFileMetadata } from './index';
+import { AbstractBucket, AbstractBucketFile } from './types';
+import { BucketFileMetadata } from './types';
 import type { Readable } from 'stream';
 import { access, constants, stat } from 'fs/promises';
 import { createReadStream } from 'fs';

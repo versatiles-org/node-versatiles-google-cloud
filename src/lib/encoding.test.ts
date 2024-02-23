@@ -4,6 +4,7 @@ import type { IncomingHttpHeaders } from 'node:http';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
 import { Readable } from 'node:stream';
+import { ResponseHeaders } from './response_headers';
 
 describe('Encoding Tools', () => {
 	const encodings: EncodingType[] = ['br', 'gzip', 'raw'];
@@ -22,7 +23,7 @@ describe('Encoding Tools', () => {
 			expect(typeof encoding.setEncodingHeader).toBe('function');
 
 			if (encoding.name === 'raw') return;
-			
+
 			expect(typeof encoding.compressStream).toBe('function');
 			expect(typeof encoding.decompressStream).toBe('function');
 			expect(typeof encoding.compressBuffer).toBe('function');
@@ -62,7 +63,7 @@ describe('Encoding Tools', () => {
 				const encoding = ENCODINGS[name];
 
 				if (!encoding.decompressBuffer) return;
-				
+
 				expect(await encoding.decompressBuffer(buffers[name])).toStrictEqual(buffer);
 			});
 		});
@@ -110,37 +111,37 @@ describe('Encoding Tools', () => {
 
 	describe('setEncodingHeader', () => {
 		it('brotli', () => {
-			const header = { 'content-encoding': 'unknown' };
+			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.br.setEncodingHeader(header);
-			expect(header).toEqual({ 'content-encoding': 'br' });
+			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400', 'content-encoding': 'br' });
 		});
 
 		it('gzip', () => {
-			const header = { 'content-encoding': 'unknown' };
+			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.gzip.setEncodingHeader(header);
-			expect(header).toEqual({ 'content-encoding': 'gzip' });
+			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400', 'content-encoding': 'gzip' });
 		});
 
 		it('raw', () => {
-			const header = { 'content-encoding': 'unknown' };
+			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.raw.setEncodingHeader(header);
-			expect(header).toEqual({});
+			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400' });
 		});
 	});
 });
 
 describe('parseContentEncoding', () => {
 	it('parses correct encodings', () => {
-		expect(parseContentEncoding({}).name).toBe('raw');
-		expect(parseContentEncoding({ 'content-encoding': '' }).name).toBe('raw');
-		expect(parseContentEncoding({ 'content-encoding': 'br' }).name).toBe('br');
-		expect(parseContentEncoding({ 'content-encoding': 'BR' }).name).toBe('br');
-		expect(parseContentEncoding({ 'content-encoding': 'gzip' }).name).toBe('gzip');
-		expect(parseContentEncoding({ 'content-encoding': 'GZIP' }).name).toBe('gzip');
+		expect(parseContentEncoding(undefined).name).toBe('raw');
+		expect(parseContentEncoding('').name).toBe('raw');
+		expect(parseContentEncoding('br').name).toBe('br');
+		expect(parseContentEncoding('BR').name).toBe('br');
+		expect(parseContentEncoding('gzip').name).toBe('gzip');
+		expect(parseContentEncoding('GZIP').name).toBe('gzip');
 	});
 	it('throws errors on icorrect encodings', () => {
-		expect(() => parseContentEncoding({ 'content-encoding': 'deflate' })).toThrow();
-		expect(() => parseContentEncoding({ 'content-encoding': 'br, gzip' })).toThrow();
+		expect(() => parseContentEncoding('deflate')).toThrow();
+		expect(() => parseContentEncoding('br, gzip')).toThrow();
 	});
 });
 
