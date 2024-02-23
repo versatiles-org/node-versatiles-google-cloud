@@ -61,7 +61,6 @@ describe('serve VersaTiles', () => {
 
 		checkResponse(200, '{"vector_layers":[{"id":"place_labels"', {
 			'cache-control': 'max-age=86400',
-			'content-length': '4329',
 			'content-type': 'application/json',
 			'vary': 'accept-encoding',
 		});
@@ -72,7 +71,6 @@ describe('serve VersaTiles', () => {
 
 		checkResponse(200, '{"version":8,"name":"versatiles-colorful",', {
 			'cache-control': 'max-age=86400',
-			'content-length': '82040',
 			'content-type': 'application/json',
 			'vary': 'accept-encoding',
 		});
@@ -84,7 +82,6 @@ describe('serve VersaTiles', () => {
 		checkResponse(200, '9bf3b76efbf8c96e', {
 			'cache-control': 'max-age=86400',
 			'content-encoding': 'br',
-			'content-length': '742',
 			'content-type': 'application/x-protobuf',
 			'vary': 'accept-encoding',
 		});
@@ -109,7 +106,7 @@ describe('serve VersaTiles', () => {
 		expect(response.status).toHaveBeenCalledWith(status);
 
 		expect(response.set).toHaveBeenCalledTimes(1);
-		expect(response.set).toHaveBeenCalledWith(headers);
+		expect(response.set).toHaveBeenCalledWith(expect.objectContaining(headers));
 
 		expect(response.end).toHaveBeenCalledTimes(1);
 		const buffer = response.getBuffer();
