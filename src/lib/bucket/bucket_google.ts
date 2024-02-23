@@ -1,7 +1,7 @@
-import { BucketFileMetadata } from './index';
+import { BucketFileMetadata } from './types';
 import type { Readable } from 'stream';
 import type { Bucket, File } from '@google-cloud/storage';
-import { AbstractBucket, AbstractBucketFile } from './index';
+import { AbstractBucket, AbstractBucketFile } from './types';
 import { Storage } from '@google-cloud/storage';
 
 class BucketFileGoogle extends AbstractBucketFile {

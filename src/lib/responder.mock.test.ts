@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
-import type { ResponderInterface } from './responder';
 import type { Response } from 'express';
 import { Writable } from 'stream';
 import { Responder } from './responder';
 import { jest } from '@jest/globals';
 
-export type EnhancedResponse = Response & { getBuffer: () => Buffer };
-export type EnhancedResponder = ResponderInterface & { response: EnhancedResponse };
+export type MockedResponse = Response & { getBuffer: () => Buffer };
+export type MockedResponder = Responder & { response: MockedResponse };
 
-export function getResponseSink(): EnhancedResponse {
+export function getResponseSink(): MockedResponse {
 	class ResponseSink extends Writable {
 		readonly #buffers = Array<Buffer>();
 
@@ -27,13 +26,14 @@ export function getResponseSink(): EnhancedResponse {
 		}
 	}
 
-	const response = new ResponseSink() as unknown as EnhancedResponse;
+	const response = new ResponseSink() as unknown as MockedResponse;
 
 	jest.spyOn(response, 'end');
-	response.set = jest.fn<EnhancedResponse['set']>().mockReturnThis();
-	response.send = jest.fn<EnhancedResponse['send']>().mockReturnThis();
-	response.status = jest.fn<EnhancedResponse['status']>().mockReturnThis();
-	response.type = jest.fn<EnhancedResponse['type']>().mockReturnThis();
+	//response.send = jest.fn<MockedResponse['send']>().mockReturnThis();
+	//response.status = jest.fn<MockedResponse['status']>().mockReturnThis();
+	//response.type = jest.fn<MockedResponse['type']>().mockReturnThis();
+	// @ts-expect-error too lazy
+	response.writeHead = jest.fn<MockedResponse['writeHead']>().mockReturnThis();
 
 	return response;
 }
@@ -46,19 +46,23 @@ export function getMockedResponder(
 		requestNo?: number;
 		verbose?: boolean;
 	},
-): EnhancedResponder {
+): MockedResponder {
 	options ??= {};
 
-	const responder = Responder({
+	const response = getResponseSink();
+
+	const responder = new Responder({
 		fastRecompression: options.fastRecompression ?? false,
 		requestHeaders: options.requestHeaders ?? { 'accept-encoding': 'gzip, br' },
 		requestNo: options.requestNo ?? 5,
-		response: getResponseSink(),
+		response,
 		verbose: options.verbose ?? false,
-	}) as EnhancedResponder;
+	}) as MockedResponder;
+
+	responder.response = response;
 
 	const responseHeaders = options.responseHeaders ?? { 'content-type': 'text/plain' };
-	for (const key in responseHeaders) responder.set(key, responseHeaders[key] as string);
+	for (const key in responseHeaders) responder.headers.set(key, responseHeaders[key] as string);
 
 	return responder;
 }

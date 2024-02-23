@@ -1,14 +1,12 @@
-/* eslint-disable @typescript-eslint/require-await */
-
-import type { Bucket, File, FileMetadata } from '@google-cloud/storage';
 import Request from 'supertest';
 import express from 'express';
 import { startServer } from './server';
 import { jest } from '@jest/globals';
-import { Readable } from 'stream';
-import { openSync, readFileSync, readSync } from 'fs';
+import {  readFileSync  } from 'fs';
 import type Test from 'supertest/lib/test';
 import { resolve } from 'path';
+import { MockedBucket } from './bucket/bucket.mock.test';
+import type { AbstractBucket } from './bucket';
 
 
 jest.spyOn(console, 'log').mockReturnValue();
@@ -32,44 +30,15 @@ async function getMockedServer(opt?: MockedServerOptions): Promise<MockedServer>
 	opt ??= {};
 	opt.port ??= 8089;
 
-	let bucket: Bucket | string;
+	let bucket: AbstractBucket | string;
 
 	if (opt.bucket != null) {
 		({ bucket } = opt);
 	} else {
-		const fd = openSync(resolve(basePath, 'testdata/island.versatiles'), 'r');
-
-		const files = new Map<string, { meta: FileMetadata; content: (options?: { start: number; end: number }) => Buffer }>([
-			['static/file', { meta: {}, content: (): Buffer => Buffer.from('static file') }],
-			['geodata/test.versatiles', {
-				meta: {}, content: (range?: { start: number; end: number }): Buffer => {
-					if (!range) throw Error();
-					const { start, end } = range;
-					const length = end - start + 1;
-					const buffer = Buffer.allocUnsafe(length);
-					readSync(fd, buffer, { position: start, length });
-					return buffer;
-				},
-			}],
+		bucket = new MockedBucket([
+			['static/package.json', resolve(basePath, 'package.json')],
+			['geodata/test.versatiles', resolve(basePath, 'testdata/island.versatiles')],
 		]);
-
-		bucket = {
-			file: (path: string): File => {
-				return {
-					exists: async (): Promise<[boolean]> => [files.has(path)],
-					getMetadata: async (): Promise<[FileMetadata]> => {
-						const file = files.get(path);
-						if (file == null) throw Error();
-						return [file.meta];
-					},
-					createReadStream: (options?: { start: number; end: number }): Readable => {
-						const file = files.get(path);
-						if (file == null) throw Error();
-						return Readable.from(file.content(options));
-					},
-				} as unknown as File;
-			},
-		} as unknown as Bucket;
 	}
 
 	const server = await startServer({

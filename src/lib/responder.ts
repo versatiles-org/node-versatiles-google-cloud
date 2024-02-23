@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/unified-signatures */
+
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { IncomingHttpHeaders } from 'http';
 import type { EncodingTools, EncodingType } from './encoding';
 import type { Response } from 'express';
-import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
+import { ENCODINGS, acceptEncoding, findBestEncoding } from './encoding';
 import { recompress } from './recompress';
 import { ResponseHeaders } from './response_headers';
 
@@ -47,24 +49,32 @@ export class Responder {
 	}
 
 	public get headers(): ResponseHeaders {
-		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
 		return this.#responseHeaders;
 	}
 
+	public get verbose(): boolean {
+		return this.#options.verbose;
+	}
+
+	public get requestNo(): number {
+		return this.#options.requestNo;
+	}
+
 	public async respond(content: Buffer | string, contentMIME: string, contentEncoding: EncodingType): Promise<void> {
-		this.#responseHeaders.set('content-type', contentMIME);
-		ENCODINGS[contentEncoding].setEncodingHeader(this);
+		this.headers.set('content-type', contentMIME);
+		ENCODINGS[contentEncoding].setEncodingHeader(this.#responseHeaders);
+
 		if (typeof content === 'string') content = Buffer.from(content);
-		if (this.#options.verbose) console.log(`  #${this.#options.requestNo} respond`);
+		this.log('respond');
+
 		await recompress(this, content);
 	}
 
 	public error(code: number, message: string): void {
-		if (this.#options.verbose) console.log(`  #${this.#options.requestNo} error ${code}: ${message}`);
+		this.log(`error ${code}: ${message}`);
 		this.#options.response
-			.status(code)
-			.type('text')
-			.send(message);
+			.writeHead(code, { 'content-type': 'text/plain' })
+			.end(message);
 	}
 
 	public write(buffer: Buffer, callback: () => void): void {
@@ -76,30 +86,51 @@ export class Responder {
 		});
 	}
 
-	public end(buffer: Buffer | false, callback: () => void): void {
-		if (this.#responderState <= ResponderState.HeaderSend) throw Error('Headers not send yet');
+	public end(): Promise<void>;
+	public end(callback: () => void): void;
+	public end(buffer: Buffer): Promise<void>;
+	public end(buffer: Buffer, callback: () => void): void;
+	// eslint-disable-next-line @typescript-eslint/promise-function-async
+	public end(bufferOrCallback?: Buffer | (() => void), maybeCallback?: () => void): Promise<void> | void {
+		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
+		if (this.#responderState >= ResponderState.Finished) throw Error('already ended');
 
-		if (buffer !== false) {
-			this.#options.response.end(buffer, () => {
-				this.#responderState = ResponderState.Finished;
-				callback();
-			});
+		if (Buffer.isBuffer(bufferOrCallback)) {
+			const buffer = bufferOrCallback;
+			const callback = maybeCallback;
+			if (callback !== undefined) {
+				this.#options.response.end(buffer, () => {
+					this.#responderState = ResponderState.Finished;
+					callback();
+				});
+			} else {
+				return new Promise(resolve => this.#options.response.end(buffer, () => {
+					this.#responderState = ResponderState.Finished;
+					resolve();
+				}));
+			}
 		} else {
-			this.#options.response.end(() => {
-				this.#responderState = ResponderState.Finished;
-				callback();
-			});
+			const callback = bufferOrCallback;
+			if (callback !== undefined) {
+				this.#options.response.end(() => {
+					this.#responderState = ResponderState.Finished;
+					callback();
+				});
+			} else {
+				return new Promise(resolve => this.#options.response.end(() => {
+					this.#responderState = ResponderState.Finished;
+					resolve();
+				}));
+			}
 		}
 	}
 
 	public sendHeaders(status: number): void {
 		if (this.#responderState >= ResponderState.HeaderSend) throw Error('Headers already send');
-		this.#options.response.writeHead(status, this.#responseHeaders.getHeaders());
+		const headers = this.#responseHeaders.getHeaders();
+		this.#responseHeaders.lock();
+		this.#options.response.writeHead(status, headers);
 		this.#responderState = ResponderState.HeaderSend;
-	}
-
-	public getContentEncoding(): EncodingTools {
-		return parseContentEncoding(this.#responseHeaders.get('content-encoding'));
 	}
 
 	public getMediaType(): string {
