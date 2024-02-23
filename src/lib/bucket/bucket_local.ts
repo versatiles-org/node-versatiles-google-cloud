@@ -1,9 +1,9 @@
 import { AbstractBucket, AbstractBucketFile } from './types';
-import { BucketFileMetadata } from './types';
 import type { Readable } from 'stream';
 import { access, constants, stat } from 'fs/promises';
 import { createReadStream } from 'fs';
 import { resolve } from 'path';
+import { BucketFileMetadata } from './metadata';
 
 class BucketFileLocal extends AbstractBucketFile {
 	readonly #filename: string;
