@@ -1,7 +1,6 @@
 import { Readable } from 'stream';
-import { BucketFileMetadata } from './types';
-import { AbstractBucket, AbstractBucketFile } from './types';
-import { openSync, readFileSync, readSync } from 'fs';
+import { BucketFileMetadata, AbstractBucket, AbstractBucketFile } from './types';
+import { openSync, readFileSync, readSync, statSync } from 'fs';
 
 export type MocketBucketFileInterface = [string, string];
 
@@ -20,20 +19,23 @@ export class MockedBucketFile extends AbstractBucketFile {
 
 	// eslint-disable-next-line @typescript-eslint/require-await
 	public async exists(): Promise<boolean> {
-		return Boolean(!this.#file);
+		return Boolean(this.#file);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/require-await
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		if (!this.#file) throw new Error('no file');
-		return new BucketFileMetadata();
+		return new BucketFileMetadata({
+			filename: this.#file[1],
+			size: statSync(this.#file[1]).size,
+		});
 	}
 
 	public createReadStream(range?: { start: number; end: number }): Readable {
 		if (!this.#file) throw new Error('no file');
 
 		let buffer: Buffer;
-		
+
 		if (range) {
 			const { start, end } = range;
 			const length = end - start + 1;
