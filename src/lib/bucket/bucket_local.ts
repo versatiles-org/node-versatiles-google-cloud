@@ -5,7 +5,7 @@ import { createReadStream } from 'fs';
 import { resolve } from 'path';
 import { BucketFileMetadata } from './metadata';
 
-class BucketFileLocal extends AbstractBucketFile {
+export class BucketFileLocal extends AbstractBucketFile {
 	readonly #filename: string;
 
 	public constructor(filename: string) {
