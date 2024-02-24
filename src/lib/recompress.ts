@@ -122,7 +122,7 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 	let encodingOut: EncodingTools = encodingIn;
 
 	// do not recompress images, videos, ...
-	switch (responder.getMediaType()) {
+	switch (responder.headers.getMediaType()) {
 		case 'audio':
 		case 'image':
 		case 'video':

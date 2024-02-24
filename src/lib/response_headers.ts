@@ -50,4 +50,8 @@ export class ResponseHeaders {
 		this.#locked = true;
 		return this;
 	}
+
+	public getMediaType(): string {
+		return String(this.#headers['content-type'] ?? '').replace(/\/.*/, '').toLowerCase();
+	}
 }
