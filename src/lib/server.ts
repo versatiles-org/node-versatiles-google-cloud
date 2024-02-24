@@ -2,7 +2,6 @@ import type { Server } from 'http';
 import type { AbstractBucket } from './bucket';
 import express from 'express';
 import { Responder } from './responder';
-import { recompress } from './recompress';
 import { serveVersatiles } from './versatiles';
 import { BucketGoogle, BucketLocal } from './bucket';
 
@@ -73,14 +72,15 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			try {
 				const filename = decodeURI(String(request.path)).trim().replace(/^\/+/, '');
 
-				// Handle file requests
 				responder.log(`public filename: ${filename}`);
 
 				if (filename === '') {
-					responder.error(404, `file "${filename}" not found`); return;
+					responder.error(404, `file "${filename}" not found`);
+					return;
 				}
 
 				responder.log(`request filename: ${bucketPrefix + filename}`);
+
 				const file = bucket.getFile(bucketPrefix + filename);
 
 				if (!await file.exists()) {
@@ -91,18 +91,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				if (filename.endsWith('.versatiles')) {
 					void serveVersatiles(file, baseUrl + filename, String(request.query), responder);
 				} else {
-					void serveFile();
-				}
-
-				async function serveFile(): Promise<void> {
-					responder.log('serve file');
-
-					const metadata = await file.getMetadata();
-					responder.log(`metadata: ${metadata.toString()}`);
-
-					metadata.setHeaders(responder.headers);
-
-					void recompress(responder, file.createReadStream());
+					void file.serve(responder);
 				}
 
 			} catch (error) {
