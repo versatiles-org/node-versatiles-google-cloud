@@ -133,11 +133,6 @@ export class Responder {
 		this.#responderState = ResponderState.HeaderSend;
 	}
 
-	public getMediaType(): string {
-		const contentType: string = this.#responseHeaders.get('content-type') ?? '';
-		return contentType.replace(/\/.*/, '').toLowerCase();
-	}
-
 	public acceptEncoding(encoding: EncodingTools): boolean {
 		return acceptEncoding(this.#options.requestHeaders, encoding);
 	}
