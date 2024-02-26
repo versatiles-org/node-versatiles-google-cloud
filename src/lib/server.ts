@@ -2,8 +2,8 @@ import type { Server } from 'http';
 import type { AbstractBucket } from './bucket';
 import express from 'express';
 import { Responder } from './responder';
-import { serveVersatiles } from './versatiles';
 import { BucketGoogle, BucketLocal } from './bucket';
+import { getVersatiles } from './versatiles';
 
 /**
  * Interface defining the options for starting the server.
@@ -89,7 +89,8 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				}
 
 				if (filename.endsWith('.versatiles')) {
-					void serveVersatiles(file, baseUrl + filename, String(request.query), responder);
+					const container = await getVersatiles(file, baseUrl + filename);
+					await container.serve(String(request.query), responder);
 				} else {
 					void file.serve(responder);
 				}
