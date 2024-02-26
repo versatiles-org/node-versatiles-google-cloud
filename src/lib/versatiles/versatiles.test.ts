@@ -26,7 +26,7 @@ describe('VersaTiles', () => {
 	let versatiles: Versatiles;
 
 	beforeEach(async () => {
-		mockFile = new MockedBucketFile(['osm.versatiles', filename]);
+		mockFile = new MockedBucketFile({ name: 'osm.versatiles', filename });
 
 		versatiles = await getVersatiles(mockFile, 'https://example.org/data/map.versatiles');
 
@@ -239,7 +239,7 @@ describe('VersaTiles', () => {
 			expect(response.end).toHaveBeenCalledTimes(1);
 			const buffer = response.getBuffer();
 			expect(buffer.length).toBe(length);
-			
+
 			if (content.length === 16) {
 				const hasher = createHash('sha256');
 				hasher.update(buffer);
