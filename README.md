@@ -43,6 +43,7 @@ versatiles-google-cloud -f -l local/data/
 ```
 
 Or clone and run the repo:
+
 ```bash
 git clone https://github.com/versatiles-org/node-versatiles-google-cloud.git
 cd node-versatiles-google-cloud
@@ -51,42 +52,15 @@ npm start -f -l local/data/
 ```
 
 The arguments used:
-- `-f` or `--fast-recompression` disables recompression, so it's faster if you're developing locally.
-- `-l` or `--local-directory` uses a local directory instead of a Google Bucket.
+
+* `-f` or `--fast-recompression` disables recompression, so it's faster if you're developing locally.
+* `-l` or `--local-directory` uses a local directory instead of a Google Bucket.
 
 Note that for security and performance reasons no file listing is implemented. If you have a file such as `local/data/app/index.html` you will need to open the correct URL in your browser to view the file: `http://localhost:8080/app/index.html`
 
 ## Options
 
 <!--- This chapter is generated automatically --->
-
-```console
-$ versatiles-google-cloud
-Usage: versatiles-google-cloud [options] <bucket-name>
-
-Initialises a server to serve files from a specified Google Bucket to a Google
-Load Balancer with CDN, handles HTTP headers and compression, and provides a
-RESTful API for VersaTiles containers.
-For more details, visit:
-https://github.com/versatiles-org/node-versatiles-google-cloud/
-
-Arguments:
-  bucket-name                   Name of the Google Cloud Storage bucket.
-
-Options:
-  -b, --base-url <url>          Set the public base URL. Defaults to
-                                "http://localhost:<port>/".
-  -d, --directory <prefix>      Set the bucket directory (prefix), e.g.,
-                                "/public/".
-  -f, --fast-recompression      Enable faster server responses by avoiding
-                                recompression.
-  -l, --local-directory <path>  Ignore bucket and use a local directory
-                                instead. Useful for local development.
-  -p, --port <port>             Set the server port. Default: 8080
-  -v, --verbose                 Enable verbose mode for detailed operational
-                                logs.
-  -h, --help                    display help for command
-```
 
 ## License
 
