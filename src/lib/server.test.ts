@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import Request from 'supertest';
 import express from 'express';
 import { startServer } from './server';
@@ -7,6 +8,8 @@ import type Test from 'supertest/lib/test';
 import { resolve } from 'path';
 import { MockedBucket } from './bucket/bucket.mock.test';
 import type { AbstractBucket } from './bucket';
+import type TestAgent from 'supertest/lib/agent';
+import type { Server } from 'http';
 
 jest.spyOn(console, 'log').mockReturnValue();
 jest.mock('express', () => express); // Mock express
@@ -14,59 +17,74 @@ jest.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
 const basePath = new URL('../../', import.meta.url).pathname;
 
-interface MockedServer {
-	get: (url: string) => Promise<Test>;
-	close: () => Promise<void>;
-}
+class MockedServer {
+	readonly #opt: MockedServerOptions;
 
-interface MockedServerOptions {
-	bucket?: string;
-	localDirectory?: string;
-	port?: number;
-}
+	readonly #bucket: AbstractBucket | string;
 
-async function getMockedServer(opt?: MockedServerOptions): Promise<MockedServer> {
-	opt ??= {};
-	opt.port ??= 8089;
+	#request?: TestAgent<Request.Test>;
 
-	let bucket: AbstractBucket | string;
+	#server?: Server;
 
-	if (opt.bucket != null) {
-		({ bucket } = opt);
+	private constructor(opt?: MockedServerOptions) {
+		this.#opt = opt ?? {};
+
+		if (this.#opt.bucket != null) {
+			this.#bucket = this.#opt.bucket;
 	} else {
-		bucket = new MockedBucket([
-			['static/package.json', resolve(basePath, 'package.json')],
-			['geodata/test.versatiles', resolve(basePath, 'testdata/island.versatiles')],
+			this.#bucket = new MockedBucket([
+				{ name: 'static/package.json', filename: resolve(basePath, 'package.json') },
+				{ name: 'geodata/test.versatiles', filename: resolve(basePath, 'testdata/island.versatiles') },
 		]);
 	}
+	}
 
+	public static async create(opt?: MockedServerOptions): Promise<MockedServer> {
+		const me = new MockedServer(opt);
+
+		const port = me.#opt.port ?? 0;
 	const server = await startServer({
-		baseUrl: 'http://localhost:' + opt.port,
-		bucket,
+			baseUrl: 'http://localhost:' + port,
+			bucket: me.#bucket,
 		bucketPrefix: '',
 		fastRecompression: false,
 		verbose: false,
-		localDirectory: opt.localDirectory,
-		port: opt.port,
+			localDirectory: me.#opt.localDirectory,
+			port,
 	});
 
 	if (server == null) throw Error();
 
-	const request = Request(server);
+		me.#request = Request(server);
+		me.#server = server;
 
-	return {
-		get: async (url: string): Promise<Test> => {
-			return request.get(url);
-		},
+		return me;
+	}
 
-		close: async (): Promise<void> => {
-			return new Promise(res => server.close(() => {
+	public async get(url: string, header?: Record<string, string>): Promise<Test> {
+		if (this.#request === undefined) throw Error();
+		if (header) {
+			return this.#request.get(url).set(header);
+		} else {
+			return this.#request.get(url);
+		}
+	}
+
+	public async close(): Promise<void> {
+		const server = this.#server;
+		if (server === undefined) throw Error();
+		await new Promise<void>(res => server.close(() => {
 				res();
 			}));
-		},
-	};
+		return;
+	}
 }
 
+interface MockedServerOptions {
+	bucket?: MockedBucket | string;
+	localDirectory?: string;
+	port?: number;
+}
 
 
 describe('Server Tests', () => {
@@ -75,7 +93,7 @@ describe('Server Tests', () => {
 		let server: MockedServer;
 
 		beforeAll(async () => {
-			server = await getMockedServer();
+			server = await MockedServer.create();
 		});
 
 		afterAll(async () => {
@@ -150,7 +168,7 @@ describe('Server Tests', () => {
 		let server: MockedServer;
 
 		beforeAll(async () => {
-			server = await getMockedServer({ bucket: 'test-bucket', localDirectory: basePath });
+			server = await MockedServer.create({ bucket: 'test-bucket', localDirectory: basePath });
 		});
 
 		afterAll(async () => {
