@@ -1,28 +1,37 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-import Request from 'supertest';
-import express from 'express';
-import { startServer } from './server';
 import { jest } from '@jest/globals';
-import { readFileSync } from 'fs';
-import type Test from 'supertest/lib/test';
-import { resolve } from 'path';
 import { MockedBucket } from './bucket/bucket.mock.test';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { startServer } from './server';
+import express from 'express';
+import request from 'supertest';
 import type { AbstractBucket } from './bucket';
+import type { Server, ServerResponse } from 'http';
+import type Test from 'supertest/lib/test';
 import type TestAgent from 'supertest/lib/agent';
-import type { Server } from 'http';
+import { brotliDecompressSync, gunzipSync } from 'zlib';
 
-jest.spyOn(console, 'log').mockReturnValue();
+//jest.spyOn(console, 'log').mockReturnValue();
 jest.mock('express', () => express); // Mock express
 jest.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
 const basePath = new URL('../../', import.meta.url).pathname;
+
+
+
+interface MockedServerOptions {
+	bucket?: MockedBucket | string;
+	localDirectory?: string;
+	port?: number;
+	returnRawBuffer?: boolean;
+}
 
 class MockedServer {
 	readonly #opt: MockedServerOptions;
 
 	readonly #bucket: AbstractBucket | string;
 
-	#request?: TestAgent<Request.Test>;
+	#request?: TestAgent<request.Test>;
 
 	#server?: Server;
 
@@ -31,31 +40,44 @@ class MockedServer {
 
 		if (this.#opt.bucket != null) {
 			this.#bucket = this.#opt.bucket;
-	} else {
+		} else {
 			this.#bucket = new MockedBucket([
 				{ name: 'static/package.json', filename: resolve(basePath, 'package.json') },
 				{ name: 'geodata/test.versatiles', filename: resolve(basePath, 'testdata/island.versatiles') },
-		]);
-	}
+			]);
+		}
 	}
 
 	public static async create(opt?: MockedServerOptions): Promise<MockedServer> {
 		const me = new MockedServer(opt);
 
 		const port = me.#opt.port ?? 0;
-	const server = await startServer({
+		const server = await startServer({
 			baseUrl: 'http://localhost:' + port,
 			bucket: me.#bucket,
-		bucketPrefix: '',
-		fastRecompression: false,
-		verbose: false,
+			bucketPrefix: '',
+			fastRecompression: false,
+			verbose: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
-	});
+		});
 
-	if (server == null) throw Error();
+		if (server == null) throw Error();
 
-		me.#request = Request(server);
+		const agent = request.agent(server);
+		if (me.#opt.returnRawBuffer === true) {
+			agent.buffer(true);
+			agent.parse((res: ServerResponse, next: (error: null, result: Buffer) => void) => {
+				const data: Buffer[] = [];
+				res.on('data', (chunk: Buffer) => {
+					data.push(chunk);
+				});
+				res.on('end', () => {
+					next(null, Buffer.concat(data));
+				});
+			});
+		}
+		me.#request = agent;
 		me.#server = server;
 
 		return me;
@@ -74,22 +96,17 @@ class MockedServer {
 		const server = this.#server;
 		if (server === undefined) throw Error();
 		await new Promise<void>(res => server.close(() => {
-				res();
-			}));
+			res();
+		}));
 		return;
 	}
 }
 
-interface MockedServerOptions {
-	bucket?: MockedBucket | string;
-	localDirectory?: string;
-	port?: number;
-}
 
 
-describe('Server Tests', () => {
+describe('Server', () => {
 
-	describe('simple server tests', () => {
+	describe('simple requests', () => {
 		let server: MockedServer;
 
 		beforeAll(async () => {
@@ -162,6 +179,58 @@ describe('Server Tests', () => {
 			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?tile/{z}/{x}/{y}"');
 			expect(response.type).toBe('text/plain');
 		});
+	});
+
+	describe('compressed responses', () => {
+		const content = Buffer.from('Look again at that dot. That\'s here. That\'s home. That\'s us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.');
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			const bucket = new MockedBucket([
+				{ name: 'test.txt', content },
+			]);
+			server = await MockedServer.create({ bucket, returnRawBuffer: true });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('returns correct raw data', async () => {
+			await check(undefined);
+		});
+
+		it('returns correct gzip data', async () => {
+			await check('gzip');
+		});
+
+		it('returns correct br data', async () => {
+			await check('br');
+		});
+
+		async function check(encoding: 'br' | 'gzip' | undefined): Promise<void> {
+			// eslint-disable-next-line @typescript-eslint/naming-convention
+			const headers = { 'Accept-Encoding': encoding ?? 'identity' };
+
+			const response = await server.get('/test.txt', headers);
+
+			expect(response.status).toBe(200);
+			expect(response.type).toBe('text/plain');
+			expect(response.headers['content-encoding']).toStrictEqual(encoding);
+
+			let buffer = response.body as Buffer;
+			const contentLength = String(buffer.length);
+
+			switch (encoding) {
+				case undefined: break;
+				case 'br': buffer = brotliDecompressSync(buffer); break;
+				case 'gzip': buffer = gunzipSync(buffer); break;
+				default: throw Error();
+			}
+			expect(buffer).toStrictEqual(content);
+
+			expect(response.headers['content-length']).toStrictEqual(contentLength);
+		}
 	});
 
 	describe('local directory mode', () => {
