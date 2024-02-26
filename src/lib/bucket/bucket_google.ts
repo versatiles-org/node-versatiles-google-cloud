@@ -1,8 +1,8 @@
 import type { Readable } from 'stream';
 import type { Bucket, File } from '@google-cloud/storage';
-import { AbstractBucket, AbstractBucketFile } from './types';
+import { AbstractBucket, AbstractBucketFile } from './types.js';
 import { Storage } from '@google-cloud/storage';
-import { BucketFileMetadata } from './metadata';
+import { BucketFileMetadata } from './metadata.js';
 
 export class BucketFileGoogle extends AbstractBucketFile {
 	readonly #file: File;

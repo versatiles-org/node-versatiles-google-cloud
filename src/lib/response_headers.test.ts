@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { ResponseHeaders } from './response_headers';
+import { ResponseHeaders } from './response_headers.js';
 
 describe('ResponseHeaders', () => {
 	let headers: ResponseHeaders;

@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Response } from 'express';
-import type { MockedResponder } from './responder.mock.test';
+import type { MockedResponder } from './responder.mock.test.js';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
-import { getMockedResponder } from './responder.mock.test';
+import { getMockedResponder } from './responder.mock.test.js';
 import { jest } from '@jest/globals';
 
 

@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { AbstractBucketFile } from '../bucket';
+import type { AbstractBucketFile } from '../bucket/index.js';
 import type { Format, Header } from '@versatiles/container';
-import type { MockedResponder, MockedResponse } from '../responder.mock.test';
+import type { MockedResponder, MockedResponse } from '../responder.mock.test.js';
 import type { Response } from 'express';
 import { Container } from '@versatiles/container';
 import { createHash } from 'crypto';
-import { getMockedResponder } from '../responder.mock.test';
+import { getMockedResponder } from '../responder.mock.test.js';
 import { jest } from '@jest/globals';
-import { MockedBucketFile } from '../bucket/bucket.mock.test';
+import { MockedBucketFile } from '../bucket/bucket.mock.test.js';
 import { readFileSync } from 'fs';
-import { getVersatiles } from './';
-import type { Versatiles } from './versatiles';
+import { getVersatiles } from './cache.js';
+import type { Versatiles } from './versatiles.js';
 
 jest.mock('@google-cloud/storage');
 jest.mock('@versatiles/container');

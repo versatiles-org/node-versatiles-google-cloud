@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { lookup } from 'mrmime';
-import type { ResponseHeaders } from '../response_headers';
+import type { ResponseHeaders } from '../response_headers.js';
 
 export class BucketFileMetadata {
 	readonly #header: {

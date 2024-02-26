@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { OutgoingHttpHeaders } from 'http';
-import type { EncodingTools } from './encoding';
-import { parseContentEncoding } from './encoding';
+import type { EncodingTools } from './encoding.js';
+import { parseContentEncoding } from './encoding.js';
 
 export class ResponseHeaders {
 	#locked = false;

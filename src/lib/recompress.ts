@@ -1,6 +1,6 @@
-import type { EncodingTools } from './encoding';
-import type { Responder } from './responder';
-import { ENCODINGS } from './encoding';
+import type { EncodingTools } from './encoding.js';
+import type { Responder } from './responder.js';
+import { ENCODINGS } from './encoding.js';
 import { Writable, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 

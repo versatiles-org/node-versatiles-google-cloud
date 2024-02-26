@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import type { EncodingType } from './encoding';
+import type { EncodingType } from './encoding.js';
 import type { IncomingHttpHeaders } from 'node:http';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
-import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding';
+import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
 import { Readable } from 'node:stream';
-import { ResponseHeaders } from './response_headers';
+import { ResponseHeaders } from './response_headers.js';
 
 describe('Encoding Tools', () => {
 	const encodings: EncodingType[] = ['br', 'gzip', 'raw'];

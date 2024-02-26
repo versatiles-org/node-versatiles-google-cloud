@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { jest } from '@jest/globals';
-import { BucketFileMetadata } from './metadata';
-import { ResponseHeaders } from '../response_headers';
+import { BucketFileMetadata } from './metadata.js';
+import { ResponseHeaders } from '../response_headers.js';
 
 describe('BucketFileMetadata', () => {
 	test('constructor defaults and hash generation', () => {
