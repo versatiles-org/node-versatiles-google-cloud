@@ -4,14 +4,13 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { startServer } from './server';
 import express from 'express';
-import request from 'supertest';
 import type { AbstractBucket } from './bucket';
-import type { Server, ServerResponse } from 'http';
-import type Test from 'supertest/lib/test';
-import type TestAgent from 'supertest/lib/agent';
+import type { Server } from 'http';
 import { brotliDecompressSync, gunzipSync } from 'zlib';
+import type { AddressInfo } from 'net';
+import http from 'http';
 
-//jest.spyOn(console, 'log').mockReturnValue();
+jest.spyOn(console, 'log').mockReturnValue();
 jest.mock('express', () => express); // Mock express
 jest.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
@@ -26,12 +25,20 @@ interface MockedServerOptions {
 	returnRawBuffer?: boolean;
 }
 
+interface MockedResponse {
+	contentEncoding?: string;
+	contentLength: number;
+	contentType?: string;
+	rawBuffer: Buffer;
+	buffer: Buffer;
+	status: number;
+	text: string;
+}
+
 class MockedServer {
 	readonly #opt: MockedServerOptions;
 
 	readonly #bucket: AbstractBucket | string;
-
-	#request?: TestAgent<request.Test>;
 
 	#server?: Server;
 
@@ -64,32 +71,64 @@ class MockedServer {
 
 		if (server == null) throw Error();
 
-		const agent = request.agent(server);
-		if (me.#opt.returnRawBuffer === true) {
-			agent.buffer(true);
-			agent.parse((res: ServerResponse, next: (error: null, result: Buffer) => void) => {
-				const data: Buffer[] = [];
-				res.on('data', (chunk: Buffer) => {
-					data.push(chunk);
-				});
-				res.on('end', () => {
-					next(null, Buffer.concat(data));
-				});
+
+		/*
+		agent.parse((res: ServerResponse, next: (error: null, result: Buffer) => void) => {
+			const data: Buffer[] = [];
+			res.on('data', (chunk: Buffer) => {
+				data.push(chunk);
 			});
-		}
-		me.#request = agent;
+			res.on('end', () => {
+				next(null, Buffer.concat(data));
+			});
+		});
+		*/
+
 		me.#server = server;
 
 		return me;
 	}
 
-	public async get(url: string, header?: Record<string, string>): Promise<Test> {
-		if (this.#request === undefined) throw Error();
-		if (header) {
-			return this.#request.get(url).set(header);
-		} else {
-			return this.#request.get(url);
-		}
+	public async get(urlString: string, headers?: Record<string, string>): Promise<MockedResponse> {
+		const { port } = this.#server?.address() as AddressInfo;
+		const url = new URL(urlString, new URL(`http://localhost:${port}`));
+
+		return new Promise((resolvePromise, rejectPromise) => {
+			http.get(url, { headers }, (response) => {
+				const data: Buffer[] = [];
+				response.on('data', (chunk: Buffer) => {
+					data.push(chunk);
+				});
+				response.on('end', () => {
+					const rawBuffer = Buffer.concat(data);
+					const contentEncoding = response.headers['content-encoding'];
+					const contentType = (response.headers['content-type'] ?? '').replace(/;.*/, '');
+
+					let buffer: Buffer;
+					switch (contentEncoding) {
+						case undefined: buffer = rawBuffer.subarray(); break;
+						case 'gzip': buffer = gunzipSync(rawBuffer); break;
+						case 'br': buffer = brotliDecompressSync(rawBuffer); break;
+						default:
+							console.log('ERROR:', { contentEncoding });
+							rejectPromise('unknown encoding: ' + contentEncoding);
+							return;
+					}
+
+					resolvePromise({
+						contentEncoding,
+						contentLength: Number(response.headers['content-length']),
+						contentType,
+						rawBuffer,
+						buffer,
+						status: response.statusCode ?? 0,
+						text: buffer.toString(),
+					});
+				});
+			}).on('error', err => {
+				rejectPromise(`Got error: ${err.message}`);
+			}).end();
+		});
 	}
 
 	public async close(): Promise<void> {
@@ -121,63 +160,63 @@ describe('Server', () => {
 			const response = await server.get('/healthcheck');
 			expect(response.status).toBe(200);
 			expect(response.text).toBe('ok');
-			expect(response.type).toBe('text/plain');
+			expect(response.contentType).toBe('text/plain');
 		});
 
 		it('serve static file', async () => {
 			const response = await server.get('/static/package.json');
 			expect(response.status).toBe(200);
-			expect(response.body).toMatchObject({ name: '@versatiles/google-cloud' });
-			expect(response.type).toBe('application/json');
+			expect(JSON.parse(response.text)).toMatchObject({ name: '@versatiles/google-cloud' });
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve versatiles meta', async () => {
 			const response = await server.get('/geodata/test.versatiles?meta.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
-			expect(response.type).toBe('application/json');
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve versatiles style', async () => {
 			const response = await server.get('/geodata/test.versatiles?style.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"version":8/);
-			expect(response.type).toBe('application/json');
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve versatiles preview', async () => {
 			const response = await server.get('/geodata/test.versatiles?preview');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^<!DOCTYPE html>/);
-			expect(response.type).toBe('text/html');
+			expect(response.contentType).toBe('text/html');
 		});
 
 		it('serve versatiles tile', async () => {
 			const response = await server.get('/geodata/test.versatiles?tiles/14/3740/4505');
 			expect(response.status).toBe(200);
 			expect(response.text).toContain('water_lines');
-			expect(response.type).toBe('application/x-protobuf');
+			expect(response.contentType).toBe('application/x-protobuf');
 		});
 
 		it('handle missing versatiles tile', async () => {
 			const response = await server.get('/geodata/test.versatiles?tiles/10/0/0');
 			expect(response.status).toBe(204);
 			expect(response.text).toBe('');
-			expect(response.type).toBe('text/plain');
+			expect(response.contentType).toBe('text/plain');
 		});
 
 		it('handle missing static file', async () => {
 			const response = await server.get('/static/missing/file');
 			expect(response.status).toBe(404);
 			expect(response.text).toBe('file "static/missing/file" not found');
-			expect(response.type).toBe('text/plain');
+			expect(response.contentType).toBe('text/plain');
 		});
 
 		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
 			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?tile/{z}/{x}/{y}"');
-			expect(response.type).toBe('text/plain');
+			expect(response.contentType).toBe('text/plain');
 		});
 	});
 
@@ -214,22 +253,17 @@ describe('Server', () => {
 
 			const response = await server.get('/test.txt', headers);
 
+
 			expect(response.status).toBe(200);
-			expect(response.type).toBe('text/plain');
-			expect(response.headers['content-encoding']).toStrictEqual(encoding);
+			expect(response.contentType).toBe('text/plain');
+			expect(response.contentEncoding).toStrictEqual(encoding);
 
-			let buffer = response.body as Buffer;
-			const contentLength = String(buffer.length);
+			expect(response.buffer).toStrictEqual(content);
+			expect(response.contentLength).toStrictEqual(response.rawBuffer.length);
 
-			switch (encoding) {
-				case undefined: break;
-				case 'br': buffer = brotliDecompressSync(buffer); break;
-				case 'gzip': buffer = gunzipSync(buffer); break;
-				default: throw Error();
+			if (encoding) {
+				expect(response.buffer.length).not.toStrictEqual(response.rawBuffer.length);
 			}
-			expect(buffer).toStrictEqual(content);
-
-			expect(response.headers['content-length']).toStrictEqual(contentLength);
 		}
 	});
 
@@ -248,35 +282,35 @@ describe('Server', () => {
 			const response = await server.get('/README.md');
 			expect(response.status).toBe(200);
 			expect(response.text).toBe(readFileSync(resolve(basePath, 'README.md'), 'utf8'));
-			expect(response.type).toBe('text/markdown');
+			expect(response.contentType).toBe('text/markdown');
 		});
 
 		it('handle missing static file', async () => {
 			const response = await server.get('/static/file');
 			expect(response.status).toBe(404);
 			expect(response.text).toBe('file "static/file" not found');
-			expect(response.type).toBe('text/plain');
+			expect(response.contentType).toBe('text/plain');
 		});
 
 		it('serve versatiles meta', async () => {
 			const response = await server.get('/testdata/island.versatiles?meta.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
-			expect(response.type).toBe('application/json');
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve versatiles style', async () => {
 			const response = await server.get('/testdata/island.versatiles?style.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"version":8/);
-			expect(response.type).toBe('application/json');
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve versatiles preview', async () => {
 			const response = await server.get('/testdata/island.versatiles?preview');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^<!DOCTYPE html>/);
-			expect(response.type).toBe('text/html');
+			expect(response.contentType).toBe('text/html');
 		});
 	});
 });
