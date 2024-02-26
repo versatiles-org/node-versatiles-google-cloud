@@ -141,7 +141,7 @@ describe('Server Tests', () => {
 		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
-			expect(response.text).toBe('get parameter must be "meta.json", "style.json", or "tile/{z}/{x}/{y}"');
+			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?tile/{z}/{x}/{y}"');
 			expect(response.type).toBe('text/plain');
 		});
 	});
