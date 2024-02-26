@@ -103,11 +103,14 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	});
 
 	// Start the server and return the server instance
-	return new Promise(res => {
+	return new Promise((res, rej) => {
 		const server = app.listen(port, () => {
 			console.log(`listening on port ${port}`);
 			console.log(`you can find me at ${baseUrl}`);
 			res(server);
+		}).on('error', error => {
+			console.log(`server error: ${error.message}`);
+			rej(error);
 		});
 	});
 }
