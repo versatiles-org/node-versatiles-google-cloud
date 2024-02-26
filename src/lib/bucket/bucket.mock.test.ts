@@ -1,7 +1,7 @@
 import { Readable } from 'stream';
-import { AbstractBucket, AbstractBucketFile } from './types';
+import { AbstractBucket, AbstractBucketFile } from './types.js';
 import { openSync, readFileSync, readSync, statSync } from 'fs';
-import { BucketFileMetadata } from './metadata';
+import { BucketFileMetadata } from './metadata.js';
 
 export type MocketBucketFileInterface = {
 	name: string;

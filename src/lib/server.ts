@@ -1,9 +1,9 @@
 import type { Server } from 'http';
-import type { AbstractBucket } from './bucket';
+import type { AbstractBucket } from './bucket/index.js';
 import express from 'express';
-import { Responder } from './responder';
-import { BucketGoogle, BucketLocal } from './bucket';
-import { getVersatiles } from './versatiles';
+import { Responder } from './responder.js';
+import { BucketGoogle, BucketLocal } from './bucket/index.js';
+import { getVersatiles } from './versatiles/index.js';
 
 /**
  * Interface defining the options for starting the server.

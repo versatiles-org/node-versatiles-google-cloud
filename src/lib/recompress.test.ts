@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/naming-convention */
 
-import type { MockedResponder } from './responder.mock.test';
+import type { MockedResponder } from './responder.mock.test.js';
 import type { OutgoingHttpHeaders } from 'node:http';
 import type { Response } from 'express';
-import { getMockedResponder } from './responder.mock.test';
+import { getMockedResponder } from './responder.mock.test.js';
 import { Readable } from 'node:stream';
-import { recompress, BufferStream } from './recompress';
-import { ENCODINGS } from './encoding';
+import { recompress, BufferStream } from './recompress.js';
+import { ENCODINGS } from './encoding.js';
 import zlib from 'node:zlib';
 import { finished } from 'node:stream/promises';
 

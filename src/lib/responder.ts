@@ -2,11 +2,11 @@
 
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { IncomingHttpHeaders } from 'http';
-import type { EncodingTools, EncodingType } from './encoding';
+import type { EncodingTools, EncodingType } from './encoding.js';
 import type { Response } from 'express';
-import { ENCODINGS, acceptEncoding, findBestEncoding } from './encoding';
-import { recompress } from './recompress';
-import { ResponseHeaders } from './response_headers';
+import { ENCODINGS, acceptEncoding, findBestEncoding } from './encoding.js';
+import { recompress } from './recompress.js';
+import { ResponseHeaders } from './response_headers.js';
 
 /**
  * Interface defining the structure and methods of a Responder.

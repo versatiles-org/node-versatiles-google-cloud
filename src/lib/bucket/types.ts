@@ -1,7 +1,7 @@
 import type { Readable } from 'stream';
-import type { BucketFileMetadata } from './metadata';
-import type { Responder } from '../responder';
-import { recompress } from '../recompress';
+import type { BucketFileMetadata } from './metadata.js';
+import type { Responder } from '../responder.js';
+import { recompress } from '../recompress.js';
 
 export abstract class AbstractBucketFile {
 	public abstract get name(): string;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { startServer } from './lib/server';
+import { startServer } from './lib/server.js';
 
 /**
  * Entry point for the VersaTiles Google Cloud CLI application.

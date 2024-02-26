@@ -3,7 +3,7 @@
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
 import type { Response } from 'express';
 import { Writable } from 'stream';
-import { Responder } from './responder';
+import { Responder } from './responder.js';
 import { jest } from '@jest/globals';
 
 export type MockedResponse = Response & { getBuffer: () => Buffer };

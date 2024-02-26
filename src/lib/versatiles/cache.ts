@@ -1,6 +1,6 @@
 import type { Reader as VersatilesReader } from '@versatiles/container';
-import type { AbstractBucketFile } from '../bucket';
-import { Versatiles } from './versatiles';
+import type { AbstractBucketFile } from '../bucket/index.js';
+import { Versatiles } from './versatiles.js';
 
 const containerCache = new Map<string, Versatiles>();
 

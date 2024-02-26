@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { jest } from '@jest/globals';
 import { resolve } from 'path';
-import { BucketFileMetadata } from './metadata';
-import type { BucketFileLocal as BucketFileLocalType, BucketLocal as BucketLocalType } from './bucket_local';
+import { BucketFileMetadata } from './metadata.js';
+import type { BucketFileLocal as BucketFileLocalType, BucketLocal as BucketLocalType } from './bucket_local.js';
 import type { Stats } from 'fs';
 
 const { constants } = await import('fs/promises');
@@ -18,7 +18,7 @@ jest.unstable_mockModule('fs', () => ({
 
 const { access, stat } = await import('fs/promises');
 const { createReadStream } = await import('fs');
-const { BucketLocal, BucketFileLocal } = await import('./bucket_local');
+const { BucketLocal, BucketFileLocal } = await import('./bucket_local.js');
 
 const projectPath = new URL('../../../', import.meta.url).pathname;
 

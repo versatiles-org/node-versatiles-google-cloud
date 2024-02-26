@@ -24,7 +24,7 @@ jest.unstable_mockModule('@google-cloud/storage', () => {
 });
 
 const { } = await import('@google-cloud/storage');
-const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google');
+const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 
 describe('BucketFileGoogle', () => {
 	beforeEach(() => {

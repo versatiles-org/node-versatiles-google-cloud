@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import type { Command } from 'commander';
-import type { startServer } from './lib/server';
+import type { startServer } from './lib/server.js';
 import { jest } from '@jest/globals';
 
 const mockedStartServer = jest.fn<typeof startServer>().mockResolvedValue(null);

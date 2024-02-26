@@ -3,7 +3,7 @@ import { guessStyleFromContainer } from '@versatiles/style';
 import { readFileSync } from 'fs';
 import type { GuessContainerOptions } from '@versatiles/style';
 import type { Header as VersatilesHeader, Reader as VersatilesReader } from '@versatiles/container';
-import type { Responder } from '../responder';
+import type { Responder } from '../responder.js';
 
 const filenamePreview = new URL('../../../static/preview.html', import.meta.url).pathname;
 const bufferPreview = readFileSync(filenamePreview);

@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
-import { MockedBucket } from './bucket/bucket.mock.test';
+import { MockedBucket } from './bucket/bucket.mock.test.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { startServer } from './server';
+import { startServer } from './server.js';
 import express from 'express';
-import type { AbstractBucket } from './bucket';
+import type { AbstractBucket } from './bucket/index.js';
 import type { Server } from 'http';
 import { brotliDecompressSync, gunzipSync } from 'zlib';
 import type { AddressInfo } from 'net';
