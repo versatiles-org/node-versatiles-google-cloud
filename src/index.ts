@@ -16,6 +16,11 @@ import { startServer } from './lib/server.js';
  */
 export const program = new Command();
 
+function collect(v: string, m: string[]): string[] {
+	m.push(v);
+	return m;
+}
+
 program
 	.showHelpAfterError()
 	.name('versatiles-google-cloud')
@@ -28,15 +33,23 @@ program
 	.option('-f, --fast-recompression', 'Enable faster server responses by avoiding recompression.')
 	.option('-l, --local-directory <path>', 'Ignore bucket and use a local directory instead. Useful for local development.')
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
+	.option('-r, --rewrite-rule <path:path>', 'Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/:/folder/osm.versatiles?"', collect, [])
 	.option('-v, --verbose', 'Enable verbose mode for detailed operational logs.')
 	.action((bucketName: string, cmdOptions: Record<string, unknown>) => {
 		// Parse and set command line options
 		const port = Number(cmdOptions.port ?? 8080);
+
 		const baseUrl = String(cmdOptions.baseUrl ?? `http://localhost:${port}/`);
 		const bucketPrefix = String(cmdOptions.directory ?? '');
 		const fastRecompression = Boolean(cmdOptions.fastRecompression ?? false);
 		const localDirectory: string | undefined = Boolean(cmdOptions.localDirectory) ? String(cmdOptions.localDirectory) : undefined;
 		const verbose = Boolean(cmdOptions.verbose ?? false);
+
+		const rewriteRules: [string, string][] = Array.from(cmdOptions.rewriteRule as Iterable<unknown>).map(r => {
+			const parts = String(r).split(':');
+			if (parts.length !== 2) throw Error('a rewrite rule must be formatted as "$request:$origin"');
+			return parts as [string, string];
+		});
 
 		if (verbose) {
 			// Log parameters for verbose mode
@@ -47,6 +60,7 @@ program
 				localDirectory,
 				port,
 				verbose,
+				...Object.fromEntries(rewriteRules.map((r, i) => ['rewriteRule ' + (i + 1), r.join(' => ')])),
 			});
 		}
 
@@ -59,6 +73,7 @@ program
 				fastRecompression,
 				localDirectory,
 				port,
+				rewriteRules,
 				verbose,
 			});
 		} catch (error: unknown) {

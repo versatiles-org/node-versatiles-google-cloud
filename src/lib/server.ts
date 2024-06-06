@@ -14,6 +14,7 @@ export interface ServerOptions {
 	bucketPrefix: string; // Prefix for objects in the bucket
 	fastRecompression: boolean; // Flag for fast recompression
 	localDirectory?: string; // Local directory path to use instead of GCS bucket
+	rewriteRules: [string, string][];
 	port: number; // Port number for the server
 	verbose: boolean; // Flag for verbose logging
 }
@@ -24,7 +25,7 @@ export interface ServerOptions {
  * @returns A promise resolving to the Express server instance.
  */
 export async function startServer(opt: ServerOptions): Promise<Server | null> {
-	const { port, fastRecompression, verbose } = opt;
+	const { port, fastRecompression, rewriteRules, verbose } = opt;
 	let bucketPrefix = opt.bucketPrefix.replace(/^\/+|\/+$/g, '');
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
@@ -69,10 +70,22 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
-			responder.log('new request');
-
 			try {
-				const filename = decodeURI(String(request.path)).trim().replace(/^\/+/, '');
+				let { url } = request;
+
+				responder.log('new request: ' + url);
+
+				// handle rewrite rules
+				for (const rewriteRule of rewriteRules) {
+					if (url.startsWith(rewriteRule[0])) {
+						responder.log('use rewrite rule: ' + rewriteRule.join(' => '));
+						url = url.replace(...rewriteRule);
+						responder.log('new url: ' + url);
+					}
+				}
+
+				const { pathname, search } = new URL(url, 'http://a.b');
+				const filename = pathname.replace(/^\/+|:/g, '');
 
 				responder.log(`public filename: ${filename}`);
 
@@ -92,7 +105,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 				if (filename.endsWith('.versatiles')) {
 					const container = await getVersatiles(file, baseUrl + filename);
-					await container.serve(String(request.query), responder);
+					await container.serve(search, responder);
 				} else {
 					void file.serve(responder);
 				}

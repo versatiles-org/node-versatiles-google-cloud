@@ -38,13 +38,13 @@ export class Versatiles {
 
 		// Handle different queries: preview, meta.json, style.json, or tile queries
 		switch (query) {
-			case 'preview': await this.sendPreview(responder); return;
-			case 'meta.json': await this.sendMeta(responder); return;
-			case 'style.json': await this.sendStyle(responder); return;
+			case '?preview': await this.sendPreview(responder); return;
+			case '?meta.json': await this.sendMeta(responder); return;
+			case '?style.json': await this.sendStyle(responder); return;
 		}
 
 		// Extract tile coordinates from the query and serve the requested tile
-		const match = /tiles\/(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/.exec(query);
+		const match = /^\?(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/.exec(query);
 
 		if (match != null) {
 			const { z, x, y } = match.groups as { x: string; y: string; z: string };
@@ -53,7 +53,7 @@ export class Versatiles {
 			return;
 		}
 
-		responder.error(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tiles/{z}/{x}/{y}"');
+		responder.error(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
 		return;
 	}
 

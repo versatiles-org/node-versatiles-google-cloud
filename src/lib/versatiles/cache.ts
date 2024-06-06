@@ -6,11 +6,13 @@ const containerCache = new Map<string, Versatiles>();
 
 export async function getVersatiles(file: AbstractBucketFile, url: string): Promise<Versatiles> {
 	let container = containerCache.get(file.name);
-	if (container != null) return container;
 
-	const reader = buildReader(file);
-	container = await Versatiles.fromReader(reader, url);
-	containerCache.set(file.name, container);
+	if (container == null) {
+		const reader = buildReader(file);
+		container = await Versatiles.fromReader(reader, url);
+		containerCache.set(file.name, container);
+	}
+
 	return container;
 }
 

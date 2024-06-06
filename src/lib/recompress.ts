@@ -36,9 +36,6 @@ export class BufferStream extends Writable {
 	 * @param callback - Callback to signal completion or error.
 	 */
 	public _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
-		// Log the new chunk if log prefix is provided
-		this.#responder.log(`bufferstream - new chunk: ${chunk.length}`);
-
 		// Buffer the chunks until the maximum buffer size is reached
 		if (this.#bufferMode) {
 			this.#buffers.push(chunk);
