@@ -92,7 +92,7 @@ describe('VersaTiles', () => {
 		it('should handle wrong requests correctly', async () => {
 			await versatiles.serve('bathtub', mockResponder);
 
-			checkError(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tile/{z}/{x}/{y}"');
+			checkError(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tiles/{z}/{x}/{y}"');
 		});
 
 		function checkResponse(status: number, content: string, headers: unknown): void {

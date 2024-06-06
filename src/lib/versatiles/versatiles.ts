@@ -57,7 +57,7 @@ export class Versatiles {
 			return;
 		}
 
-		responder.error(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tile/{z}/{x}/{y}"');
+		responder.error(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tiles/{z}/{x}/{y}"');
 		return;
 	}
 
