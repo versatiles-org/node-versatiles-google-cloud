@@ -33,6 +33,10 @@ export class BucketFileMetadata {
 		};
 	}
 
+	public get etag(): string {
+		return this.#header.etag;
+	}
+
 	public setHeaders(headers: ResponseHeaders): void {
 		const header = this.#header;
 

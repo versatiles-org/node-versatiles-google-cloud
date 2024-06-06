@@ -5,11 +5,17 @@ import { Versatiles } from './versatiles.js';
 const containerCache = new Map<string, Versatiles>();
 
 export async function getVersatiles(file: AbstractBucketFile, url: string): Promise<Versatiles> {
+	const metadata = await file.getMetadata();
+
 	let container = containerCache.get(file.name);
+
+	if (container != null) {
+		if (container.etag !== metadata.etag) container = undefined;
+	}
 
 	if (container == null) {
 		const reader = buildReader(file);
-		container = await Versatiles.fromReader(reader, url);
+		container = await Versatiles.fromReader(reader, url, metadata.etag);
 		containerCache.set(file.name, container);
 	}
 

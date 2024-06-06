@@ -9,6 +9,8 @@ const filenamePreview = new URL('../../../static/preview.html', import.meta.url)
 const bufferPreview = readFileSync(filenamePreview);
 
 export class Versatiles {
+	public readonly etag: string;
+
 	readonly #container: VersatilesContainer;
 
 	readonly #header: VersatilesHeader;
@@ -18,18 +20,19 @@ export class Versatiles {
 	readonly #url: string;
 
 	// eslint-disable-next-line @typescript-eslint/max-params
-	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string) {
+	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string, etag: string) {
 		this.#container = container;
 		this.#header = header;
 		this.#metadata = metadata;
 		this.#url = url;
+		this.etag = etag;
 	}
 
-	public static async fromReader(reader: VersatilesReader, url: string): Promise<Versatiles> {
+	public static async fromReader(reader: VersatilesReader, url: string, etag: string): Promise<Versatiles> {
 		const container = new VersatilesContainer(reader);
 		const header = await container.getHeader();
 		const metadata = await container.getMetadata() ?? '';
-		return new Versatiles(container, header, metadata, url);
+		return new Versatiles(container, header, metadata, url, etag);
 	}
 
 	public async serve(query: string, responder: Responder): Promise<void> {
