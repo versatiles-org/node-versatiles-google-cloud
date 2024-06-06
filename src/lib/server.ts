@@ -41,6 +41,8 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 		bucket = opt.bucket;
 	}
 
+	await bucket.check();
+
 	let requestNo = 0;
 
 	const app = express();

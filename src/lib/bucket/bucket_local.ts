@@ -1,4 +1,4 @@
-import { AbstractBucket, AbstractBucketFile } from './types.js';
+import { AbstractBucket, AbstractBucketFile } from './abstract.js';
 import type { Readable } from 'stream';
 import { access, constants, stat } from 'fs/promises';
 import { createReadStream } from 'fs';
@@ -53,6 +53,10 @@ export class BucketLocal extends AbstractBucket {
 	public constructor(basePath: string) {
 		super();
 		this.#basePath = basePath;
+	}
+
+	public async check(): Promise<void> {
+		await access(this.#basePath);
 	}
 
 	public getFile(relativePath: string): BucketFileLocal {

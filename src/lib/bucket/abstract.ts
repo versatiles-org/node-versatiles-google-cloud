@@ -26,4 +26,5 @@ export abstract class AbstractBucketFile {
 
 export abstract class AbstractBucket {
 	public abstract getFile(relativePath: string): AbstractBucketFile;
+	public abstract check(): Promise<void>;
 }

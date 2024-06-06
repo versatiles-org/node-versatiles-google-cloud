@@ -1,5 +1,5 @@
 import { Readable } from 'stream';
-import { AbstractBucket, AbstractBucketFile } from './types.js';
+import { AbstractBucket, AbstractBucketFile } from './abstract.js';
 import { openSync, readFileSync, readSync, statSync } from 'fs';
 import { BucketFileMetadata } from './metadata.js';
 
@@ -73,6 +73,10 @@ export class MockedBucket extends AbstractBucket {
 	public constructor(files: MocketBucketFileInterface[]) {
 		super();
 		this.#files = new Map(files.map(f => [f.name, f]));
+	}
+
+	public async check(): Promise<void> {
+		await Promise.resolve();
 	}
 
 	public getFile(path: string): AbstractBucketFile {
