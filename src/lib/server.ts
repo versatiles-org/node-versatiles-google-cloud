@@ -98,7 +98,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				}
 
 			} catch (error) {
-				console.error({ error });
+				console.error(error);
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));
 			}
 		})();

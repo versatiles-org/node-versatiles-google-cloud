@@ -5,7 +5,6 @@ import { Versatiles } from './versatiles.js';
 const containerCache = new Map<string, Versatiles>();
 
 export async function getVersatiles(file: AbstractBucketFile, url: string): Promise<Versatiles> {
-	console.log(file);
 	let container = containerCache.get(file.name);
 	if (container != null) return container;
 
