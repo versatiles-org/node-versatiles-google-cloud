@@ -159,13 +159,13 @@ describe('VersaTiles', () => {
 		it('error on pbf corrupt metadata 1', async () => {
 			const responder = prepareTest('pbf', ':');
 			await versatiles.serve('style.json', responder);
-			await checkError(responder, 'server side error: Unexpected token \':\', ":" is not valid JSON');
+			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf corrupt metadata 2', async () => {
 			const responder = prepareTest('pbf', '2');
 			await versatiles.serve('style.json', responder);
-			await checkError(responder, 'server side error: Cannot use \'in\' operator to search for \'vector_layers\' in 2');
+			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf with empty metadata', async () => {

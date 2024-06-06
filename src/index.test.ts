@@ -7,7 +7,6 @@ import { jest } from '@jest/globals';
 const mockedStartServer = jest.fn<typeof startServer>().mockResolvedValue(null);
 jest.unstable_mockModule('./lib/server.js', () => ({ startServer: mockedStartServer }));
 
-jest.mock('node:process');
 jest.spyOn(process, 'exit').mockImplementation(jest.fn<typeof process.exit>());
 
 jest.spyOn(console, 'log').mockReturnValue();
