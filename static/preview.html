@@ -23,7 +23,8 @@
 	<div id="map"></div>
 	<script>
 		(async () => {
-			const style = await (await fetch('?style.json')).json();
+			const origin = location.href.replace(/#.*$/, '').replace(/preview$/, '');
+			const style = await (await fetch(origin + 'style.json')).json();
 
 			const mapOptions = {
 				container: 'map',

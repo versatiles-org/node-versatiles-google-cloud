@@ -18,9 +18,10 @@ describe('index.ts', () => {
 		bucket: 'test-bucket',
 		bucketPrefix: '',
 		fastRecompression: false,
-		port: 8080,
-		verbose: false,
 		localDirectory: undefined,
+		port: 8080,
+		rewriteRules: [],
+		verbose: false,
 	};
 
 	beforeEach(() => {

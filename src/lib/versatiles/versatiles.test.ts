@@ -42,7 +42,7 @@ describe('VersaTiles', () => {
 	describe('serve', () => {
 		it('should handle preview request correctly', async () => {
 			const html = readFileSync(new URL('../../../static/preview.html', import.meta.url).pathname, 'utf8');
-			await versatiles.serve('preview', mockResponder);
+			await versatiles.serve('?preview', mockResponder);
 
 			checkResponse(200, html, {
 				'cache-control': 'max-age=86400',
@@ -53,7 +53,7 @@ describe('VersaTiles', () => {
 		});
 
 		it('should handle meta.json request correctly', async () => {
-			await versatiles.serve('meta.json', mockResponder);
+			await versatiles.serve('?meta.json', mockResponder);
 
 			checkResponse(200, '{"vector_layers":[{"id":"place_labels"', {
 				'cache-control': 'max-age=86400',
@@ -63,7 +63,7 @@ describe('VersaTiles', () => {
 		});
 
 		it('should handle style.json request correctly', async () => {
-			await versatiles.serve('style.json', mockResponder);
+			await versatiles.serve('?style.json', mockResponder);
 
 			checkResponse(200, '{"version":8,"name":"versatiles-colorful",', {
 				'cache-control': 'max-age=86400',
@@ -73,7 +73,7 @@ describe('VersaTiles', () => {
 		});
 
 		it('should handle tile data request correctly', async () => {
-			await versatiles.serve('tiles/13/1870/2252', mockResponder);
+			await versatiles.serve('?13/1870/2252', mockResponder);
 
 			checkResponse(200, '9bf3b76efbf8c96e', {
 				'cache-control': 'max-age=86400',
@@ -84,15 +84,15 @@ describe('VersaTiles', () => {
 		});
 
 		it('should handle missing tiles correctly', async () => {
-			await versatiles.serve('tiles/13/2870/2252', mockResponder);
+			await versatiles.serve('?13/2870/2252', mockResponder);
 
 			checkError(204, 'no map tile at 13/2870/2252');
 		});
 
 		it('should handle wrong requests correctly', async () => {
-			await versatiles.serve('bathtub', mockResponder);
+			await versatiles.serve('?bathtub', mockResponder);
 
-			checkError(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?tiles/{z}/{x}/{y}"');
+			checkError(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
 		});
 
 		function checkResponse(status: number, content: string, headers: unknown): void {
@@ -126,101 +126,101 @@ describe('VersaTiles', () => {
 	describe('test style generation', () => {
 		it('handles jpeg', async () => {
 			const responder = prepareTest('jpg');
-			await versatiles.serve('style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"jpg"', 287);
+			await versatiles.serve('?style.json', responder);
+			checkResponse(responder, '"type":"raster","format":"jpg"', 281);
 		});
 
 		it('handles webp', async () => {
 			const responder = prepareTest('webp');
-			await versatiles.serve('style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"webp"', 288);
+			await versatiles.serve('?style.json', responder);
+			checkResponse(responder, '"type":"raster","format":"webp"', 282);
 		});
 
 		it('handles png', async () => {
 			const responder = prepareTest('png');
-			await versatiles.serve('style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"png"', 287);
+			await versatiles.serve('?style.json', responder);
+			checkResponse(responder, '"type":"raster","format":"png"', 281);
 		});
 
 		it('handles avif', async () => {
 			const responder = prepareTest('avif');
-			await versatiles.serve('style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"avif"', 288);
+			await versatiles.serve('?style.json', responder);
+			checkResponse(responder, '"type":"raster","format":"avif"', 282);
 		});
 
 
 
 		it('error on pbf without metadata', async () => {
 			const responder = prepareTest('pbf', undefined);
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf corrupt metadata 1', async () => {
 			const responder = prepareTest('pbf', ':');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf corrupt metadata 2', async () => {
 			const responder = prepareTest('pbf', '2');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf with empty metadata', async () => {
 			const responder = prepareTest('pbf', '{}');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf with wrong vector_layers', async () => {
 			const responder = prepareTest('pbf', '{"vector_layers":2}');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Expected an array of layers');
 		});
 
 		it('error on pbf with empty vector_layers', async () => {
 			const responder = prepareTest('pbf', '{"vector_layers":[]}');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: Array of layers cannot be empty');
 		});
 
 		it('handles pbf with correct metadata', async () => {
 			const responder = prepareTest('pbf', JSON.stringify({ vector_layers: [{ id: 'geometry', fields: { label: 'String', height: 'Number' } }] }));
-			await versatiles.serve('style.json', responder);
-			checkResponse(responder, '"type":"vector","format":"pbf"', 1085);
+			await versatiles.serve('?style.json', responder);
+			checkResponse(responder, '"type":"vector","format":"pbf"', 1079);
 		});
 
 
 
 		it('error on bin', async () => {
 			const responder = prepareTest('bin');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: format "bin" is not supported');
 		});
 
 		it('error on geojson', async () => {
 			const responder = prepareTest('geojson');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: format "geojson" is not supported');
 		});
 
 		it('error on json', async () => {
 			const responder = prepareTest('json');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: format "json" is not supported');
 		});
 
 		it('error on svg', async () => {
 			const responder = prepareTest('svg');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: format "svg" is not supported');
 		});
 
 		it('error on topojson', async () => {
 			const responder = prepareTest('topojson');
-			await versatiles.serve('style.json', responder);
+			await versatiles.serve('?style.json', responder);
 			await checkError(responder, 'server side error: format "topojson" is not supported');
 		});
 

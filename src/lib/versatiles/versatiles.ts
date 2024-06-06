@@ -70,7 +70,7 @@ export class Versatiles {
 		responder.log('respond with style.json');
 
 		const options: GuessContainerOptions = {
-			tiles: [`${this.#url}?tiles/{z}/{x}/{y}`],
+			tiles: [`${this.#url}?{z}/{x}/{y}`],
 		};
 		try {
 			const style = await guessStyleFromContainer(this.#container, options);

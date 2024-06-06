@@ -64,25 +64,13 @@ class MockedServer {
 			bucket: me.#bucket,
 			bucketPrefix: '',
 			fastRecompression: false,
-			verbose: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
+			rewriteRules: [],
+			verbose: false,
 		});
 
 		if (server == null) throw Error();
-
-
-		/*
-		agent.parse((res: ServerResponse, next: (error: null, result: Buffer) => void) => {
-			const data: Buffer[] = [];
-			res.on('data', (chunk: Buffer) => {
-				data.push(chunk);
-			});
-			res.on('end', () => {
-				next(null, Buffer.concat(data));
-			});
-		});
-		*/
 
 		me.#server = server;
 
@@ -192,14 +180,14 @@ describe('Server', () => {
 		});
 
 		it('serve versatiles tile', async () => {
-			const response = await server.get('/geodata/test.versatiles?tiles/14/3740/4505');
+			const response = await server.get('/geodata/test.versatiles?14/3740/4505');
 			expect(response.status).toBe(200);
 			expect(response.text).toContain('water_lines');
 			expect(response.contentType).toBe('application/x-protobuf');
 		});
 
 		it('handle missing versatiles tile', async () => {
-			const response = await server.get('/geodata/test.versatiles?tiles/10/0/0');
+			const response = await server.get('/geodata/test.versatiles?10/0/0');
 			expect(response.status).toBe(204);
 			expect(response.text).toBe('');
 			expect(response.contentType).toBe('text/plain');
@@ -215,7 +203,7 @@ describe('Server', () => {
 		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
-			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?tiles/{z}/{x}/{y}"');
+			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
 			expect(response.contentType).toBe('text/plain');
 		});
 	});
