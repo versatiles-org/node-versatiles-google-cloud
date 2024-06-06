@@ -70,11 +70,10 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
+			let { url } = request;
+			responder.log('new request: ' + url);
+
 			try {
-				let { url } = request;
-
-				responder.log('new request: ' + url);
-
 				// handle rewrite rules
 				for (const rewriteRule of rewriteRules) {
 					if (url.startsWith(rewriteRule[0])) {
@@ -87,30 +86,25 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				const { pathname, search } = new URL(url, 'http://a.b');
 				const filename = pathname.replace(/^\/+|:/g, '');
 
-				responder.log(`public filename: ${filename}`);
-
-				if (filename === '') {
-					responder.error(404, `file "${filename}" not found`);
-					return;
-				}
-
-				responder.log(`request filename: ${bucketPrefix + filename}`);
+				responder.log(`request file: ${bucketPrefix + filename}`);
 
 				const file = bucket.getFile(bucketPrefix + filename);
-
-				if (!await file.exists()) {
-					responder.error(404, `file "${filename}" not found`);
-					return;
-				}
 
 				if (filename.endsWith('.versatiles')) {
 					const container = await getVersatiles(file, baseUrl + filename);
 					await container.serve(search, responder);
 				} else {
-					void file.serve(responder);
+					await file.serve(responder);
 				}
 
+
 			} catch (error) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+				switch ((error as any).code) {
+					case 'ENOENT':
+					case 404:
+						responder.error(404, `file "${url}" not found`); return;
+				}
 				console.error(error);
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));
 			}

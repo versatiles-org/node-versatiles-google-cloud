@@ -11,6 +11,14 @@ export type MocketBucketFileInterface = {
 	filename: string;
 };
 
+class FileNotFoundError extends Error {
+	public code = 404;
+
+	public constructor() {
+		super('file not found');
+	}
+}
+
 export class MockedBucketFile extends AbstractBucketFile {
 	readonly #file?: MocketBucketFileInterface;
 
@@ -20,7 +28,7 @@ export class MockedBucketFile extends AbstractBucketFile {
 	}
 
 	public get name(): string {
-		if (!this.#file) throw new Error('no file');
+		if (!this.#file) throw new FileNotFoundError();
 		return this.#file.name;
 	}
 
@@ -31,7 +39,7 @@ export class MockedBucketFile extends AbstractBucketFile {
 
 	// eslint-disable-next-line @typescript-eslint/require-await
 	public async getMetadata(): Promise<BucketFileMetadata> {
-		if (!this.#file) throw new Error('no file');
+		if (!this.#file) throw new FileNotFoundError();
 		return new BucketFileMetadata({
 			filename: this.#file.name,
 			size: ('filename' in this.#file) ? statSync(this.#file.filename).size : this.#file.content.length,
@@ -39,12 +47,11 @@ export class MockedBucketFile extends AbstractBucketFile {
 	}
 
 	public createReadStream(range?: { start: number; end: number }): Readable {
-		if (!this.#file) throw new Error('no file');
+		if (!this.#file) throw new FileNotFoundError();
 
 		let buffer: Buffer;
 
 		if ('filename' in this.#file) {
-
 			if (range) {
 				const { start, end } = range;
 				const length = end - start + 1;
@@ -60,7 +67,6 @@ export class MockedBucketFile extends AbstractBucketFile {
 			} else {
 				buffer = this.#file.content.subarray();
 			}
-
 		}
 
 		return Readable.from(buffer);

@@ -196,7 +196,7 @@ describe('Server', () => {
 		it('handle missing static file', async () => {
 			const response = await server.get('/static/missing/file');
 			expect(response.status).toBe(404);
-			expect(response.text).toBe('file "static/missing/file" not found');
+			expect(response.text).toBe('file "/static/missing/file" not found');
 			expect(response.contentType).toBe('text/plain');
 		});
 
@@ -276,7 +276,7 @@ describe('Server', () => {
 		it('handle missing static file', async () => {
 			const response = await server.get('/static/file');
 			expect(response.status).toBe(404);
-			expect(response.text).toBe('file "static/file" not found');
+			expect(response.text).toBe('file "/static/file" not found');
 			expect(response.contentType).toBe('text/plain');
 		});
 
