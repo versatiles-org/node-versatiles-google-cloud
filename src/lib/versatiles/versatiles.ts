@@ -13,12 +13,12 @@ export class Versatiles {
 
 	readonly #header: VersatilesHeader;
 
-	readonly #metadata: unknown;
+	readonly #metadata: string;
 
 	readonly #url: string;
 
 	// eslint-disable-next-line @typescript-eslint/max-params
-	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: unknown, url: string) {
+	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string) {
 		this.#container = container;
 		this.#header = header;
 		this.#metadata = metadata;
@@ -28,11 +28,7 @@ export class Versatiles {
 	public static async fromReader(reader: VersatilesReader, url: string): Promise<Versatiles> {
 		const container = new VersatilesContainer(reader);
 		const header = await container.getHeader();
-		let metadata: unknown;
-		try {
-			metadata = JSON.parse(await container.getMetadata() ?? '');
-		} catch (e) { }
-
+		const metadata = await container.getMetadata() ?? '';
 		return new Versatiles(container, header, metadata, url);
 	}
 
@@ -66,7 +62,7 @@ export class Versatiles {
 	}
 
 	private async sendMeta(responder: Responder): Promise<void> {
-		await responder.respond(JSON.stringify(this.#metadata), 'application/json', 'raw');
+		await responder.respond(this.#metadata, 'application/json', 'raw');
 	}
 
 	private async sendStyle(responder: Responder): Promise<void> {
