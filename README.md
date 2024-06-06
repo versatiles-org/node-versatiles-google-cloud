@@ -62,8 +62,14 @@ Note that for security and performance reasons no file listing is implemented. I
 
 <!--- This chapter is generated automatically --->
 
+> @versatiles/google-cloud@0.2.7 npx
+> vrt cmd2md versatiles-google-cloud
+
 ```console
 $ versatiles-google-cloud
+> @versatiles/google-cloud@0.2.7 npx
+> versatiles-google-cloud --help
+
 Usage: versatiles-google-cloud [options] <bucket-name>
 
 Initialises a server to serve files from a specified Google Bucket to a Google
