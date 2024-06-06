@@ -57,28 +57,28 @@
     "versatiles"
   ],
   "dependencies": {
-    "@google-cloud/storage": "^7.7.0",
+    "@google-cloud/storage": "^7.11.1",
     "@versatiles/container": "^1.2.1",
-    "@versatiles/style": "^4.2.2",
-    "commander": "^12.0.0",
-    "express": "^4.18.2",
+    "@versatiles/style": "^4.4.1",
+    "commander": "^12.1.0",
+    "express": "^4.19.2",
     "mrmime": "^2.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.20",
+    "@types/node": "^20.14.2",
     "@types/supertest": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
-    "@versatiles/release-tool": "^1.2.2",
+    "@typescript-eslint/eslint-plugin": "^7.12.0",
+    "@typescript-eslint/parser": "^7.12.0",
+    "@versatiles/release-tool": "^1.2.3",
     "eslint": "^8.57.0",
     "jest": "^29.7.0",
-    "npm-check-updates": "^16.14.15",
-    "ts-jest": "^29.1.2",
+    "npm-check-updates": "^16.14.20",
+    "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
-    "tsx": "^4.7.1",
-    "typescript": "^5.3.3"
+    "tsx": "^4.12.0",
+    "typescript": "^5.4.5"
   }
 }
