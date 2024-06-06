@@ -62,12 +62,12 @@ Note that for security and performance reasons no file listing is implemented. I
 
 <!--- This chapter is generated automatically --->
 
-> @versatiles/google-cloud@0.2.7 npx
+> @versatiles/google-cloud@0.3.0 npx
 > vrt cmd2md versatiles-google-cloud
 
 ```console
 $ versatiles-google-cloud
-> @versatiles/google-cloud@0.2.7 npx
+> @versatiles/google-cloud@0.3.0 npx
 > versatiles-google-cloud --help
 
 Usage: versatiles-google-cloud [options] <bucket-name>
@@ -79,21 +79,24 @@ For more details, visit:
 https://github.com/versatiles-org/node-versatiles-google-cloud/
 
 Arguments:
-  bucket-name                   Name of the Google Cloud Storage bucket.
+  bucket-name                     Name of the Google Cloud Storage bucket.
 
 Options:
-  -b, --base-url <url>          Set the public base URL. Defaults to
-                                "http://localhost:<port>/".
-  -d, --directory <prefix>      Set the bucket directory (prefix), e.g.,
-                                "/public/".
-  -f, --fast-recompression      Enable faster server responses by avoiding
-                                recompression.
-  -l, --local-directory <path>  Ignore bucket and use a local directory
-                                instead. Useful for local development.
-  -p, --port <port>             Set the server port. Default: 8080
-  -v, --verbose                 Enable verbose mode for detailed operational
-                                logs.
-  -h, --help                    display help for command
+  -b, --base-url <url>            Set the public base URL. Defaults to
+                                  "http://localhost:<port>/".
+  -d, --directory <prefix>        Set the bucket directory (prefix), e.g.,
+                                  "/public/".
+  -f, --fast-recompression        Enable faster server responses by avoiding
+                                  recompression.
+  -l, --local-directory <path>    Ignore bucket and use a local directory
+                                  instead. Useful for local development.
+  -p, --port <port>               Set the server port. Default: 8080
+  -r, --rewrite-rule <path:path>  Set a rewrite rule. Must start with a "/".
+                                  E.g. "/tiles/osm/:/folder/osm.versatiles?"
+                                  (default: [])
+  -v, --verbose                   Enable verbose mode for detailed operational
+                                  logs.
+  -h, --help                      display help for command
 ```
 
 ## License
