@@ -5,7 +5,7 @@ import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
 import { Readable } from 'node:stream';
 import { ResponseHeaders } from './response_headers.js';
-import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.ts';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.js';
 
 const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;

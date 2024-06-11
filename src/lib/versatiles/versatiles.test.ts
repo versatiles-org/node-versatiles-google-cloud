@@ -12,7 +12,7 @@ import { MockedBucketFile } from '../bucket/bucket.mock.test.js';
 import { readFileSync } from 'fs';
 import { getVersatiles } from './cache.js';
 import type { Versatiles } from './versatiles.js';
-import { defaultHeader } from '../response_headers.mock.test.ts';
+import { defaultHeader } from '../response_headers.mock.test.js';
 
 jest.mock('@google-cloud/storage');
 jest.mock('@versatiles/container');

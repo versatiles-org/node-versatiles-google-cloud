@@ -11,7 +11,7 @@ import { recompress, BufferStream } from './recompress.js';
 import { ENCODINGS } from './encoding.js';
 import zlib from 'node:zlib';
 import { finished } from 'node:stream/promises';
-import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.ts';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.js';
 
 const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;

@@ -7,7 +7,7 @@ import type { MockedResponder } from './responder.mock.test.js';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 import { getMockedResponder } from './responder.mock.test.js';
 import { jest } from '@jest/globals';
-import { defaultHeader } from './response_headers.mock.test.ts';
+import { defaultHeader } from './response_headers.mock.test.js';
 
 describe('Responder', () => {
 	it('should get request number', () => {
