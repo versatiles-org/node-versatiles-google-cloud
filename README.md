@@ -62,12 +62,12 @@ Note that for security and performance reasons no file listing is implemented. I
 
 <!--- This chapter is generated automatically --->
 
-> @versatiles/google-cloud@0.3.0 npx
+> @versatiles/google-cloud@0.4.0 npx
 > vrt cmd2md versatiles-google-cloud
 
 ```console
 $ versatiles-google-cloud
-> @versatiles/google-cloud@0.3.0 npx
+> @versatiles/google-cloud@0.4.0 npx
 > versatiles-google-cloud --help
 
 Usage: versatiles-google-cloud [options] <bucket-name>
@@ -89,7 +89,8 @@ Options:
   -f, --fast-recompression        Enable faster server responses by avoiding
                                   recompression.
   -l, --local-directory <path>    Ignore bucket and use a local directory
-                                  instead. Useful for local development.
+                                  instead. Useful for local development and
+                                  testing.
   -p, --port <port>               Set the server port. Default: 8080
   -r, --rewrite-rule <path:path>  Set a rewrite rule. Must start with a "/".
                                   E.g. "/tiles/osm/:/folder/osm.versatiles?"

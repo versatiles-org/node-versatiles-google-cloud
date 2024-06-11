@@ -1,6 +1,6 @@
 {
   "name": "@versatiles/google-cloud",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A server for VersaTiles in Google Cloud Run",
   "bin": {
     "versatiles-google-cloud": "dist/index.js"
