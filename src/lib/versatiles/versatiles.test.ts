@@ -12,6 +12,7 @@ import { MockedBucketFile } from '../bucket/bucket.mock.test.js';
 import { readFileSync } from 'fs';
 import { getVersatiles } from './cache.js';
 import type { Versatiles } from './versatiles.js';
+import { defaultHeader } from '../response_headers.mock.test.ts';
 
 jest.mock('@google-cloud/storage');
 jest.mock('@versatiles/container');
@@ -45,10 +46,9 @@ describe('VersaTiles', () => {
 			await versatiles.serve('?preview', mockResponder);
 
 			checkResponse(200, html, {
-				'cache-control': 'max-age=86400',
+				...defaultHeader,
 				'content-length': '' + html.length,
 				'content-type': 'text/html',
-				'vary': 'accept-encoding',
 			});
 		});
 
@@ -56,9 +56,8 @@ describe('VersaTiles', () => {
 			await versatiles.serve('?meta.json', mockResponder);
 
 			checkResponse(200, '{"vector_layers":[{"id":"place_labels"', {
-				'cache-control': 'max-age=86400',
+				...defaultHeader,
 				'content-type': 'application/json',
-				'vary': 'accept-encoding',
 			});
 		});
 
@@ -66,9 +65,8 @@ describe('VersaTiles', () => {
 			await versatiles.serve('?style.json', mockResponder);
 
 			checkResponse(200, '{"version":8,"name":"versatiles-colorful",', {
-				'cache-control': 'max-age=86400',
+				...defaultHeader,
 				'content-type': 'application/json',
-				'vary': 'accept-encoding',
 			});
 		});
 
@@ -76,10 +74,9 @@ describe('VersaTiles', () => {
 			await versatiles.serve('?13/1870/2252', mockResponder);
 
 			checkResponse(200, '9bf3b76efbf8c96e', {
-				'cache-control': 'max-age=86400',
+				...defaultHeader,
 				'content-encoding': 'br',
 				'content-type': 'application/x-protobuf',
-				'vary': 'accept-encoding',
 			});
 		});
 
@@ -226,10 +223,9 @@ describe('VersaTiles', () => {
 
 		function checkResponse(responder: MockedResponder, content: string, length: number): void {
 			const headers: unknown = {
-				'cache-control': 'max-age=86400',
+				...defaultHeader,
 				'content-length': String(length),
 				'content-type': 'application/json',
-				'vary': 'accept-encoding',
 			};
 			const response: MockedResponse = responder.response;
 

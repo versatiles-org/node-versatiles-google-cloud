@@ -31,7 +31,7 @@ program
 	.option('-b, --base-url <url>', 'Set the public base URL. Defaults to "http://localhost:<port>/".')
 	.option('-d, --directory <prefix>', 'Set the bucket directory (prefix), e.g., "/public/".')
 	.option('-f, --fast-recompression', 'Enable faster server responses by avoiding recompression.')
-	.option('-l, --local-directory <path>', 'Ignore bucket and use a local directory instead. Useful for local development.')
+	.option('-l, --local-directory <path>', 'Ignore bucket and use a local directory instead. Useful for local development and testing.')
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
 	.option('-r, --rewrite-rule <path:path>', 'Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/:/folder/osm.versatiles?"', collect, [])
 	.option('-v, --verbose', 'Enable verbose mode for detailed operational logs.')

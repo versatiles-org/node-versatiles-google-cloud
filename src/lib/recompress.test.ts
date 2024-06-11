@@ -11,7 +11,10 @@ import { recompress, BufferStream } from './recompress.js';
 import { ENCODINGS } from './encoding.js';
 import zlib from 'node:zlib';
 import { finished } from 'node:stream/promises';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.ts';
 
+const defaultHeader = { ...defaultHeader0, vary: undefined };
+delete defaultHeader.vary;
 
 
 const maxBufferSize = 10 * 1024 * 1024;
@@ -23,10 +26,9 @@ describe('recompress', () => {
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader0,
 			'content-length': '90',
 			'content-type': 'audio/mpeg',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.getBuffer()).toStrictEqual(testBuffer);
 	});
@@ -36,10 +38,9 @@ describe('recompress', () => {
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader0,
 			'content-length': '90',
 			'content-type': 'text/plain',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.getBuffer()).toStrictEqual(testBuffer);
 	});
@@ -49,11 +50,10 @@ describe('recompress', () => {
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader0,
 			'content-encoding': 'br',
 			'content-length': '86',
 			'content-type': 'text/plain',
-			'vary': 'accept-encoding',
 		});
 		expect(zlib.brotliDecompressSync(responder.response.getBuffer())).toStrictEqual(testBuffer);
 	});
@@ -63,10 +63,9 @@ describe('recompress', () => {
 		await recompress(responder, Readable.from(Buffer.allocUnsafe(11e6)));
 
 		checkResponseHeaders(responder, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader0,
 			'content-type': 'text/plain',
 			'transfer-encoding': 'chunked',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.end).toHaveBeenCalled();
 	});
@@ -76,10 +75,9 @@ describe('recompress', () => {
 		await recompress(responder, Readable.from(Buffer.allocUnsafe(11e6)));
 
 		checkResponseHeaders(responder, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader0,
 			'content-type': 'video/mp4',
 			'transfer-encoding': 'chunked',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.end).toHaveBeenCalled();
 	});
@@ -94,7 +92,7 @@ describe('recompress', () => {
 
 		expect(response.writeHead).toHaveBeenCalledTimes(1);
 		expect(response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-length': '90',
 			'content-type': 'audio/mpeg',
 		});
@@ -117,7 +115,7 @@ describe('recompress', () => {
 
 		expect(response.writeHead).toHaveBeenCalledTimes(1);
 		expect(response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-type': 'audio/mpeg',
 			'transfer-encoding': 'chunked',
 		});

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { ResponseHeaders } from './response_headers.js';
+import { defaultHeader } from './response_headers.mock.test.ts';
 
 describe('ResponseHeaders', () => {
 	let headers: ResponseHeaders;
@@ -10,6 +11,10 @@ describe('ResponseHeaders', () => {
 
 	test('should initialize with default cache-control header', () => {
 		expect(headers.get('cache-control')).toBe('max-age=86400');
+	});
+
+	test('should initialize with default server header', () => {
+		expect(headers.get('server')).toBe(defaultHeader.server);
 	});
 
 	test('should allow adding and retrieving custom headers', () => {
@@ -37,7 +42,8 @@ describe('ResponseHeaders', () => {
 	test('toString should return JSON string of headers', () => {
 		headers.set('x-another-header', 'value');
 		const expectedString = JSON.stringify({
-			'cache-control': 'max-age=86400',
+			server: defaultHeader.server,
+			'cache-control': defaultHeader['cache-control'],
 			'x-another-header': 'value',
 		});
 		expect(headers.toString()).toBe(expectedString);

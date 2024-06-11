@@ -7,8 +7,7 @@ import type { MockedResponder } from './responder.mock.test.js';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 import { getMockedResponder } from './responder.mock.test.js';
 import { jest } from '@jest/globals';
-
-
+import { defaultHeader } from './response_headers.mock.test.ts';
 
 describe('Responder', () => {
 	it('should get request number', () => {
@@ -47,10 +46,9 @@ describe('Responder', () => {
 
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
 		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-length': '9',
 			'content-type': 'text/plain',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.getBuffer().toString()).toBe('content42');
 	});
@@ -62,16 +60,18 @@ describe('Responder', () => {
 
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
 		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-length': '15',
 			'content-type': 'image/png',
-			'vary': 'accept-encoding',
 		});
 		expect(responder.response.getBuffer().toString()).toBe('prettyimagedata');
 	});
 
 	it('should respond correctly with gzip compressed text content', async () => {
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip, br', 'content-type': 'application/json' }, fastRecompression: true });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip, br', 'content-type': 'application/json' },
+			fastRecompression: true,
+		});
 
 		const content = Buffer.from('gzip compressed text content');
 		const contentCompressed = gzipSync(content);
@@ -79,11 +79,10 @@ describe('Responder', () => {
 
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
 		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-encoding': 'gzip',
 			'content-length': String(contentCompressed.length),
 			'content-type': 'text/plain',
-			'vary': 'accept-encoding',
 		});
 
 		expect(responder.response.end).toHaveBeenCalledTimes(1);
@@ -102,11 +101,10 @@ describe('Responder', () => {
 
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
 		expect(responder.response.writeHead).toHaveBeenCalledWith(200, {
-			'cache-control': 'max-age=86400',
+			...defaultHeader,
 			'content-encoding': 'br',
 			'content-length': String(contentCompressed.length),
 			'content-type': 'text/plain',
-			'vary': 'accept-encoding',
 		});
 
 		expect(responder.response.end).toHaveBeenCalledTimes(1);

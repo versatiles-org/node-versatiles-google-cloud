@@ -5,6 +5,10 @@ import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
 import { Readable } from 'node:stream';
 import { ResponseHeaders } from './response_headers.js';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.ts';
+
+const defaultHeader = { ...defaultHeader0, vary: undefined };
+delete defaultHeader.vary;
 
 describe('Encoding Tools', () => {
 	const encodings: EncodingType[] = ['br', 'gzip', 'raw'];
@@ -113,19 +117,19 @@ describe('Encoding Tools', () => {
 		it('brotli', () => {
 			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.br.setEncodingHeader(header);
-			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400', 'content-encoding': 'br' });
+			expect(header.getHeaders()).toEqual({ ...defaultHeader, 'content-encoding': 'br' });
 		});
 
 		it('gzip', () => {
 			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.gzip.setEncodingHeader(header);
-			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400', 'content-encoding': 'gzip' });
+			expect(header.getHeaders()).toEqual({ ...defaultHeader, 'content-encoding': 'gzip' });
 		});
 
 		it('raw', () => {
 			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.raw.setEncodingHeader(header);
-			expect(header.getHeaders()).toEqual({ 'cache-control': 'max-age=86400' });
+			expect(header.getHeaders()).toEqual({ ...defaultHeader });
 		});
 	});
 });
