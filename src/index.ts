@@ -48,6 +48,9 @@ program
 		const rewriteRules: [string, string][] = Array.from(cmdOptions.rewriteRule as Iterable<unknown>).map(r => {
 			const parts = String(r).split(':');
 			if (parts.length !== 2) throw Error('a rewrite rule must be formatted as "$request:$origin"');
+			if (!parts[0].startsWith('/') || !parts[1].startsWith('/')) {
+				throw Error(`each side of a rewrite rule must start with a "/", e.g. "/public:/origin", but this rule is formatted as "${String(r)}"`);
+			}
 			return parts as [string, string];
 		});
 
