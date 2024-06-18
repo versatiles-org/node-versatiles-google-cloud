@@ -4,6 +4,7 @@ import express from 'express';
 import { Responder } from './responder.js';
 import { BucketGoogle, BucketLocal } from './bucket/index.js';
 import { getVersatiles } from './versatiles/index.js';
+import { readFileSync } from 'fs';
 
 /**
  * Interface defining the options for starting the server.
@@ -114,6 +115,8 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	// Start the server and return the server instance
 	return new Promise((res, rej) => {
 		const server = app.listen(port, () => {
+			const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string };
+			console.log(`starting server @versatiles/google-cloud v${version}`);
 			console.log(`listening on port ${port}`);
 			console.log(`you can find me at ${baseUrl}`);
 			res(server);
