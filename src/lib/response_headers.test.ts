@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 import { ResponseHeaders } from './response_headers.js';
 import { defaultHeader } from './response_headers.mock.test.js';
 

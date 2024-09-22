@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/unified-signatures */
+ 
 
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 import type { IncomingHttpHeaders } from 'http';
 import type { EncodingTools, EncodingType } from './encoding.js';
 import type { Response } from 'express';
@@ -90,7 +90,7 @@ export class Responder {
 	public end(callback: () => void): void;
 	public end(buffer: Buffer): Promise<void>;
 	public end(buffer: Buffer, callback: () => void): void;
-	// eslint-disable-next-line @typescript-eslint/promise-function-async
+	 
 	public end(bufferOrCallback?: Buffer | (() => void), maybeCallback?: () => void): Promise<void> | void {
 		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
 		if (this.#responderState >= ResponderState.Finished) throw Error('already ended');

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 import { jest } from '@jest/globals';
 import { resolve } from 'path';
 import { BucketFileMetadata } from './metadata.js';
@@ -49,7 +49,7 @@ describe('BucketFileLocal', () => {
 			cacheControl: 'max-age=604800',
 			contentLength: '1024',
 			contentType: 'application/json',
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+			 
 			etag: expect.any(String),
 		});
 	});

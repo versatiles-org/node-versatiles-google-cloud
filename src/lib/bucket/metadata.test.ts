@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+ 
 import { jest } from '@jest/globals';
 import { BucketFileMetadata } from './metadata.js';
 import { ResponseHeaders } from '../response_headers.js';
@@ -33,7 +33,7 @@ describe('BucketFileMetadata', () => {
 
 		metadata.setHeaders(headers);
 
-		// eslint-disable-next-line @typescript-eslint/unbound-method
+		 
 		const mockedSet = jest.mocked(headers.set);
 		expect(mockedSet.mock.calls).toStrictEqual([
 			['content-length', '500'],

@@ -24,7 +24,6 @@ export abstract class AbstractBucketFile {
 	public abstract createReadStream(opt?: { start: number; end: number }): Readable;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export abstract class AbstractBucket {
 	public abstract getFile(relativePath: string): AbstractBucketFile;
 	public abstract check(): Promise<void>;

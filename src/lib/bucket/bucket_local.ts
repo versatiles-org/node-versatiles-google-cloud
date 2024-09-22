@@ -22,7 +22,7 @@ export class BucketFileLocal extends AbstractBucketFile {
 		try {
 			await access(this.#filename, constants.R_OK);
 			return true;
-		} catch (e) {
+		} catch (_) {
 			return false;
 		}
 	}

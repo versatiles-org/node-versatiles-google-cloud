@@ -22,7 +22,7 @@ export class BucketFileMetadata {
 		if (typeof options.size === 'number') {
 			size = String(options.size);
 		} else {
-			// eslint-disable-next-line @typescript-eslint/prefer-destructuring
+			 
 			size = options.size;
 		}
 		this.#header = {

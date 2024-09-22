@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
+ 
 import type { AbstractBucketFile } from '../bucket/index.js';
 import type { Format, Header } from '@versatiles/container';
 import type { MockedResponder, MockedResponse } from '../responder.mock.test.js';
@@ -258,7 +258,7 @@ describe('VersaTiles', () => {
 		}
 
 		function prepareTest(tileFormat: Format, metadata?: string): MockedResponder {
-			// eslint-disable-next-line @typescript-eslint/require-await
+			 
 			jest.spyOn(Container.prototype, 'getHeader').mockImplementation(async (): Promise<Header> => ({
 				magic: 'string',
 				version: 'string',
@@ -274,7 +274,7 @@ describe('VersaTiles', () => {
 				blockIndexLength: 0,
 			}));
 
-			// eslint-disable-next-line @typescript-eslint/require-await
+			 
 			jest.spyOn(Container.prototype, 'getMetadata').mockImplementation(async (): Promise<string | undefined> => metadata);
 
 			return getMockedResponder({

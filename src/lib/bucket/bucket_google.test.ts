@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
+ 
 import { jest } from '@jest/globals';
 import { Readable } from 'stream';
 import type { File } from '@google-cloud/storage';
@@ -23,7 +23,7 @@ jest.unstable_mockModule('@google-cloud/storage', () => {
 	return { Storage: jest.fn().mockReturnValue(mockStorage) };
 });
 
-const { } = await import('@google-cloud/storage');
+await import('@google-cloud/storage');
 const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 
 describe('BucketFileGoogle', () => {

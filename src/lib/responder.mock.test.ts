@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
 import type { Response } from 'express';

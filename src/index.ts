@@ -42,7 +42,7 @@ program
 		const baseUrl = String(cmdOptions.baseUrl ?? `http://localhost:${port}/`);
 		const bucketPrefix = String(cmdOptions.directory ?? '');
 		const fastRecompression = Boolean(cmdOptions.fastRecompression ?? false);
-		const localDirectory: string | undefined = Boolean(cmdOptions.localDirectory) ? String(cmdOptions.localDirectory) : undefined;
+		const localDirectory: string | undefined = cmdOptions.localDirectory ? String(cmdOptions.localDirectory) : undefined;
 		const verbose = Boolean(cmdOptions.verbose ?? false);
 
 		const rewriteRules: [string, string][] = Array.from(cmdOptions.rewriteRule as Iterable<unknown>).map(r => {

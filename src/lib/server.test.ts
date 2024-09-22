@@ -236,7 +236,7 @@ describe('Server', () => {
 		});
 
 		async function check(encoding: 'br' | 'gzip' | undefined): Promise<void> {
-			// eslint-disable-next-line @typescript-eslint/naming-convention
+			 
 			const headers = { 'Accept-Encoding': encoding ?? 'identity' };
 
 			const response = await server.get('/test.txt', headers);

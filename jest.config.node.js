@@ -1,7 +1,6 @@
-import { JestConfigWithTsJest } from 'ts-jest';
-import configOld from './jest.config.ts';
+import configOld from './jest.config.js';
 
-const config: JestConfigWithTsJest = {
+export default {
 	...configOld,
 	transform: {},
 	testMatch: [
@@ -11,5 +10,3 @@ const config: JestConfigWithTsJest = {
 	extensionsToTreatAsEsm: [],
 	moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
 }
-
-export default config;

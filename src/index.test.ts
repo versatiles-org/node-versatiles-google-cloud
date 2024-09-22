@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import type { Command } from 'commander';
 import type { startServer } from './lib/server.js';
 import { jest } from '@jest/globals';
@@ -79,7 +77,6 @@ describe('index.ts', () => {
 	async function run(...args: string[]): Promise<void> {
 		const moduleUrl = './index.js?t=' + Math.random();
 		const module = await import(moduleUrl);
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 		const program = (module.program) as Command;
 		program.parse(['./node', './index.ts', ...args]);
 	}

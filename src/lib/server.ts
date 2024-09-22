@@ -39,7 +39,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	} else if (typeof opt.bucket == 'string') {
 		bucket = new BucketGoogle(opt.bucket);
 	} else {
-		// eslint-disable-next-line @typescript-eslint/prefer-destructuring
+		 
 		bucket = opt.bucket;
 	}
 
@@ -100,7 +100,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 
 			} catch (error) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				switch ((error as any).code) {
 					case 'ENOENT':
 					case 404:

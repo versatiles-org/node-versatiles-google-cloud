@@ -32,12 +32,12 @@ export class MockedBucketFile extends AbstractBucketFile {
 		return this.#file.name;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/require-await
+	 
 	public async exists(): Promise<boolean> {
 		return Boolean(this.#file);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/require-await
+	 
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		if (!this.#file) throw new FileNotFoundError();
 		return new BucketFileMetadata({

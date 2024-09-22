@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 import type { OutgoingHttpHeaders } from 'http';
 import type { EncodingTools } from './encoding.js';
 import { parseContentEncoding } from './encoding.js';
@@ -33,7 +33,7 @@ export class ResponseHeaders {
 
 	public remove(key: string): this {
 		if (this.#locked) throw Error('Headers are locked. Probably because they have already been sent.');
-		// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+		 
 		delete this.#headers[key];
 		return this;
 	}

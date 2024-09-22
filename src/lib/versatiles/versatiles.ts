@@ -19,7 +19,7 @@ export class Versatiles {
 
 	readonly #url: string;
 
-	// eslint-disable-next-line @typescript-eslint/max-params
+	 
 	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string, etag: string) {
 		this.#container = container;
 		this.#header = header;

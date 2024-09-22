@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/naming-convention */
+ 
 import type { EncodingType } from './encoding.js';
 import type { IncomingHttpHeaders } from 'node:http';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
