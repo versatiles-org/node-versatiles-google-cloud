@@ -1,7 +1,6 @@
 import { Container as VersatilesContainer } from '@versatiles/container';
-import { guessStyleFromContainer } from '@versatiles/style';
+import { guessStyle } from '@versatiles/style';
 import { readFileSync } from 'fs';
-import type { GuessContainerOptions } from '@versatiles/style';
 import type { Header as VersatilesHeader, Reader as VersatilesReader } from '@versatiles/container';
 import type { Responder } from '../responder.js';
 
@@ -19,7 +18,7 @@ export class Versatiles {
 
 	readonly #url: string;
 
-	 
+
 	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string, etag: string) {
 		this.#container = container;
 		this.#header = header;
@@ -72,11 +71,10 @@ export class Versatiles {
 
 		responder.log('respond with style.json');
 
-		const options: GuessContainerOptions = {
-			tiles: [`${this.#url}?{z}/{x}/{y}`],
-		};
 		try {
-			const style = await guessStyleFromContainer(this.#container, options);
+			const tileJson = JSON.parse(this.#metadata);
+			tileJson.tiles = [`${this.#url}?{z}/{x}/{y}`];
+			const style = await guessStyle(tileJson, {});
 			await responder.respond(JSON.stringify(style), 'application/json', 'raw');
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);

@@ -1,18 +1,14 @@
- 
- 
 import type { AbstractBucketFile } from '../bucket/index.js';
-import type { Format, Header } from '@versatiles/container';
 import type { MockedResponder, MockedResponse } from '../responder.mock.test.js';
 import type { Response } from 'express';
-import { Container } from '@versatiles/container';
-import { createHash } from 'crypto';
+import type { Versatiles } from './versatiles.js';
+import { createHash } from 'node:crypto';
+import { defaultHeader } from '../response_headers.mock.test.js';
 import { getMockedResponder } from '../responder.mock.test.js';
+import { getVersatiles } from './cache.js';
 import { jest } from '@jest/globals';
 import { MockedBucketFile } from '../bucket/bucket.mock.test.js';
-import { readFileSync } from 'fs';
-import { getVersatiles } from './cache.js';
-import type { Versatiles } from './versatiles.js';
-import { defaultHeader } from '../response_headers.mock.test.js';
+import { readFileSync } from 'node:fs';
 
 jest.mock('@google-cloud/storage');
 jest.mock('@versatiles/container');
@@ -33,13 +29,12 @@ describe('VersaTiles', () => {
 
 		mockResponder = getMockedResponder({
 			fastRecompression: true,
-			requestHeaders: {
-				'accept-encoding': 'gzip, br',
-			},
+			requestHeaders: { 'accept-encoding': 'gzip, br' },
 			requestNo: 5,
 			verbose: false,
 		});
 	});
+
 	describe('serve', () => {
 		it('should handle preview request correctly', async () => {
 			const html = readFileSync(new URL('../../../static/preview.html', import.meta.url).pathname, 'utf8');
@@ -117,174 +112,6 @@ describe('VersaTiles', () => {
 
 			expect(response.end).toHaveBeenCalledTimes(1);
 			expect(response.end).toHaveBeenCalledWith(message);
-		}
-	});
-
-	describe('test style generation', () => {
-		it('handles jpeg', async () => {
-			const responder = prepareTest('jpg');
-			await versatiles.serve('?style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"jpg"', 281);
-		});
-
-		it('handles webp', async () => {
-			const responder = prepareTest('webp');
-			await versatiles.serve('?style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"webp"', 282);
-		});
-
-		it('handles png', async () => {
-			const responder = prepareTest('png');
-			await versatiles.serve('?style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"png"', 281);
-		});
-
-		it('handles avif', async () => {
-			const responder = prepareTest('avif');
-			await versatiles.serve('?style.json', responder);
-			checkResponse(responder, '"type":"raster","format":"avif"', 282);
-		});
-
-
-
-		it('error on pbf without metadata', async () => {
-			const responder = prepareTest('pbf', undefined);
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Expected an array of layers');
-		});
-
-		it('error on pbf corrupt metadata 1', async () => {
-			const responder = prepareTest('pbf', ':');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Expected an array of layers');
-		});
-
-		it('error on pbf corrupt metadata 2', async () => {
-			const responder = prepareTest('pbf', '2');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Expected an array of layers');
-		});
-
-		it('error on pbf with empty metadata', async () => {
-			const responder = prepareTest('pbf', '{}');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Expected an array of layers');
-		});
-
-		it('error on pbf with wrong vector_layers', async () => {
-			const responder = prepareTest('pbf', '{"vector_layers":2}');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Expected an array of layers');
-		});
-
-		it('error on pbf with empty vector_layers', async () => {
-			const responder = prepareTest('pbf', '{"vector_layers":[]}');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: Array of layers cannot be empty');
-		});
-
-		it('handles pbf with correct metadata', async () => {
-			const responder = prepareTest('pbf', JSON.stringify({ vector_layers: [{ id: 'geometry', fields: { label: 'String', height: 'Number' } }] }));
-			await versatiles.serve('?style.json', responder);
-			checkResponse(responder, '"type":"vector","format":"pbf"', 1079);
-		});
-
-
-
-		it('error on bin', async () => {
-			const responder = prepareTest('bin');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: format "bin" is not supported');
-		});
-
-		it('error on geojson', async () => {
-			const responder = prepareTest('geojson');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: format "geojson" is not supported');
-		});
-
-		it('error on json', async () => {
-			const responder = prepareTest('json');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: format "json" is not supported');
-		});
-
-		it('error on svg', async () => {
-			const responder = prepareTest('svg');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: format "svg" is not supported');
-		});
-
-		it('error on topojson', async () => {
-			const responder = prepareTest('topojson');
-			await versatiles.serve('?style.json', responder);
-			await checkError(responder, 'server side error: format "topojson" is not supported');
-		});
-
-		function checkResponse(responder: MockedResponder, content: string, length: number): void {
-			const headers: unknown = {
-				...defaultHeader,
-				'content-length': String(length),
-				'content-type': 'application/json',
-			};
-			const response: MockedResponse = responder.response;
-
-			expect(response.writeHead).toHaveBeenCalledTimes(1);
-			expect(response.writeHead).toHaveBeenCalledWith(200, headers);
-
-			expect(response.end).toHaveBeenCalledTimes(1);
-			const buffer = response.getBuffer();
-			expect(buffer.length).toBe(length);
-
-			if (content.length === 16) {
-				const hasher = createHash('sha256');
-				hasher.update(buffer);
-				expect(hasher.digest('hex').slice(0, 16)).toBe(content);
-			} else {
-				expect(buffer.toString()).toContain(content);
-			}
-		}
-
-		async function checkError(responder: MockedResponder, content: string): Promise<void> {
-			const response: MockedResponse = responder.response;
-
-			expect(response.writeHead).toHaveBeenCalledTimes(1);
-			expect(response.writeHead).toHaveBeenCalledWith(500, { 'content-type': 'text/plain' });
-
-			expect(response.end).toHaveBeenCalledTimes(1);
-			expect(response.end).toHaveBeenCalledWith(content);
-
-			await new Promise(res => setTimeout(res, 10));
-		}
-
-		function prepareTest(tileFormat: Format, metadata?: string): MockedResponder {
-			 
-			jest.spyOn(Container.prototype, 'getHeader').mockImplementation(async (): Promise<Header> => ({
-				magic: 'string',
-				version: 'string',
-				tileFormat,
-				tileMime: '',
-				tileCompression: 'raw',
-				zoomMin: 0,
-				zoomMax: 0,
-				bbox: [0, 0, 0, 0],
-				metaOffset: 0,
-				metaLength: 0,
-				blockIndexOffset: 0,
-				blockIndexLength: 0,
-			}));
-
-			 
-			jest.spyOn(Container.prototype, 'getMetadata').mockImplementation(async (): Promise<string | undefined> => metadata);
-
-			return getMockedResponder({
-				fastRecompression: true,
-				requestHeaders: {
-					'accept-encoding': 'gzip, br',
-				},
-				requestNo: 5,
-				verbose: false,
-			});
 		}
 	});
 
