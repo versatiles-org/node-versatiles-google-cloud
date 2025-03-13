@@ -25,7 +25,7 @@
     "test-coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test-node": "rm -rf temp && tsc -p tsconfig.test.json && chmod +x temp/index.js && NODE_OPTIONS=--experimental-vm-modules jest -c jest.config.node.js; rm -rf temp",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "upgrade": "npm-check-updates -u && rm -f package-lock.json; rm -rf node_modules; npm i && npm update"
+    "upgrade": "vrt deps-upgrade"
   },
   "repository": {
     "type": "git",
@@ -57,29 +57,28 @@
     "versatiles"
   ],
   "dependencies": {
-    "@google-cloud/storage": "^7.15.0",
-    "@versatiles/container": "^1.2.4",
-    "@versatiles/style": "^5.2.9",
+    "@google-cloud/storage": "^7.15.2",
+    "@versatiles/container": "^1.2.5",
+    "@versatiles/style": "^5.5.2",
     "commander": "^13.1.0",
     "express": "^4.21.2",
-    "mrmime": "^2.0.0"
+    "mrmime": "^2.0.1"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.13.0",
+    "@types/node": "^22.13.10",
     "@types/supertest": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.22.0",
-    "@typescript-eslint/parser": "^8.22.0",
-    "@versatiles/release-tool": "^1.2.7",
-    "eslint": "^9.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "@versatiles/release-tool": "^2.3.1",
+    "eslint": "^9.22.0",
     "jest": "^29.7.0",
-    "npm-check-updates": "^17.1.14",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0"
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1"
   }
 }
