@@ -9,8 +9,8 @@ E.g. for data journalists, academia, ...
 > \[!WARNING]
 > It is strongly recommended:
 >
-> * always use a CDN in front of this server and
-> * not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
+> - always use a CDN in front of this server and
+> - not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
 
 ## Outline:
 
@@ -18,9 +18,9 @@ E.g. for data journalists, academia, ...
 2. Run this Node.js server in Google Cloud Run using Bucket name/path as argument
 3. Put a Loadbalancer (with DNS and CDN) in front of the Google Cloud Run service.
 
-* Now you can serve the files in the Bucket publicly.
-* This server will make sure that every file will be compressed optimally according to "accept-encoding" header of the browser.
-* \*.versatiles files will not be served. Instead the server will provide a simple GET API to access every tile, and serve them with optimal compression. E.g. tile x=4, y=5, z=6 in file `gs://bucket/map/earth.versatiles` could be accessed via `https://public.domain.com/map/earth.versatiles?tiles/6/4/5`
+- Now you can serve the files in the Bucket publicly.
+- This server will make sure that every file will be compressed optimally according to "accept-encoding" header of the browser.
+- \*.versatiles files will not be served. Instead the server will provide a simple GET API to access every tile, and serve them with optimal compression. E.g. tile x=4, y=5, z=6 in file `gs://bucket/map/earth.versatiles` could be accessed via `https://public.domain.com/map/earth.versatiles?tiles/6/4/5`
 
 ## Run in Google Cloud Run
 
@@ -53,8 +53,8 @@ npm start -f -l local/data/
 
 The arguments used:
 
-* `-f` or `--fast-recompression` disables recompression, so it's faster if you're developing locally.
-* `-l` or `--local-directory` uses a local directory instead of a Google Bucket.
+- `-f` or `--fast-recompression` disables recompression, so it's faster if you're developing locally.
+- `-l` or `--local-directory` uses a local directory instead of a Google Bucket.
 
 Note that for security and performance reasons no file listing is implemented. If you have a file such as `local/data/app/index.html` you will need to open the correct URL in your browser to view the file: `http://localhost:8080/app/index.html`
 
@@ -92,6 +92,60 @@ Options:
   -v, --verbose                   Enable verbose mode for detailed operational
                                   logs.
   -h, --help                      display help for command
+```
+
+## Dependency Graph
+
+<!--- This chapter is generated automatically --->
+
+```mermaid
+flowchart TB
+
+subgraph 0["src"]
+1["index.ts"]
+subgraph 2["lib"]
+3["server.ts"]
+subgraph 4["bucket"]
+5["index.ts"]
+6["bucket_google.ts"]
+7["abstract.ts"]
+A["metadata.ts"]
+B["bucket_local.ts"]
+end
+8["recompress.ts"]
+9["encoding.ts"]
+C["responder.ts"]
+D["response_headers.ts"]
+subgraph E["versatiles"]
+F["index.ts"]
+G["cache.ts"]
+H["versatiles.ts"]
+end
+end
+end
+1-->3
+3-->5
+3-->C
+3-->F
+5-->6
+5-->B
+6-->7
+6-->A
+7-->8
+8-->9
+B-->7
+B-->A
+C-->9
+C-->8
+C-->D
+D-->9
+F-->G
+G-->H
+
+style 0 fill-opacity:0.2
+style 2 fill-opacity:0.2
+style 4 fill-opacity:0.2
+style E fill-opacity:0.2
 ```
 
 ## License
