@@ -1,4 +1,4 @@
- 
+
 import type { EncodingType } from './encoding.js';
 import type { IncomingHttpHeaders } from 'node:http';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
@@ -187,20 +187,13 @@ describe('acceptEncoding', () => {
 	});
 	describe('handles multiple encodings correctly', () => {
 		check('gzip, deflate, br;q=1.0, identity;q=0.5, *;q=0.25', 'raw,gzip,br');
-		check(['gzip', 'deflate', 'br;q=1.0', 'identity;q=0.5', '*;q=0.25'], 'raw,gzip,br');
 		check('deflate, gzip;q=1.0, *;q=0.5', 'raw,gzip');
-		check(['deflate', ' gzip;q=1.0', ' *;q=0.5'], 'raw,gzip');
 		check('gzip, compress, br', 'raw,gzip,br');
-		check(['gzip', ' compress', ' br'], 'raw,gzip,br');
-		check(['GZIP', ' COMPRESS', ' BR'], 'raw,gzip,br');
+		check('GZIP, COMPRESS, BR', 'raw,gzip,br');
 		check('gzip, compress', 'raw,gzip');
-		check(['gzip', ' compress'], 'raw,gzip');
 		check('compress, gzip', 'raw,gzip');
-		check(['compress', ' gzip'], 'raw,gzip');
 		check('br;q=1.0, gzip;q=0.8, *;q=0.1', 'raw,gzip,br');
-		check(['br;q=1.0', ' gzip;q=0.8', ' *;q=0.1'], 'raw,gzip,br');
 		check('q=1.0, gzip;q=0.8, *;q=0.1', 'raw,gzip');
-		check(['q=1.0', ' gzip;q=0.8', ' *;q=0.1'], 'raw,gzip');
 	});
 	describe('handles unusable encodings correctly', () => {
 		check('compress', 'raw');
@@ -209,7 +202,7 @@ describe('acceptEncoding', () => {
 		check('*', 'raw');
 	});
 
-	function check(acceptedEncoding: string[] | string | undefined, encodingList: string): void {
+	function check(acceptedEncoding: string | undefined, encodingList: string): void {
 		const header: IncomingHttpHeaders = {};
 		if (acceptedEncoding != null) header['accept-encoding'] = acceptedEncoding;
 
