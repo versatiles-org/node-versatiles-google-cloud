@@ -99,6 +99,10 @@ Options:
 <!--- This chapter is generated automatically --->
 
 ```mermaid
+---
+config:
+  layout: elk
+---
 flowchart TB
 
 subgraph 0["src"]
@@ -142,10 +146,8 @@ D-->9
 F-->G
 G-->H
 
-style 0 fill-opacity:0.2
-style 2 fill-opacity:0.2
-style 4 fill-opacity:0.2
-style E fill-opacity:0.2
+class 0,2,4,E subgraphs;
+classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 
 ## License
