@@ -61,27 +61,27 @@
   ],
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
-    "@versatiles/container": "^1.2.5",
+    "@versatiles/container": "^1.2.6",
     "@versatiles/style": "^5.7.0",
     "commander": "^14.0.0",
     "express": "^5.1.0",
     "mrmime": "^2.0.1"
   },
   "devDependencies": {
-    "@jest/globals": "^30.0.3",
+    "@jest/globals": "^30.0.4",
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.0.10",
+    "@types/node": "^24.0.15",
     "@types/supertest": "^6.0.3",
-    "@typescript-eslint/eslint-plugin": "^8.35.1",
-    "@typescript-eslint/parser": "^8.35.1",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
     "@versatiles/release-tool": "^2.4.2",
-    "eslint": "^9.30.1",
-    "jest": "^30.0.3",
+    "eslint": "^9.31.0",
+    "jest": "^30.0.4",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.35.1"
+    "typescript-eslint": "^8.37.0"
   }
 }
