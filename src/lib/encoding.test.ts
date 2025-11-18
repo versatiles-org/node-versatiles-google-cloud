@@ -1,11 +1,11 @@
-
 import type { EncodingType } from './encoding.js';
-import type { IncomingHttpHeaders } from 'node:http';
-import { brotliCompressSync, gzipSync } from 'node:zlib';
+import type { IncomingHttpHeaders } from 'http';
+import { brotliCompressSync, gzipSync } from 'zlib';
 import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
-import { Readable } from 'node:stream';
+import { Readable } from 'stream';
 import { ResponseHeaders } from './response_headers.js';
-import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.js';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.js';
+import { it, describe, expect } from 'vitest';
 
 const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;
@@ -21,17 +21,19 @@ describe('Encoding Tools', () => {
 
 	describe('ENCODINGS are completely defined', () => {
 		encodings.forEach(name => {
-			const encoding = ENCODINGS[name];
-			expect(encoding).toBeDefined();
-			expect(encoding.name).toBe(name);
-			expect(typeof encoding.setEncodingHeader).toBe('function');
+			it(name, () => {
+				const encoding = ENCODINGS[name];
+				expect(encoding).toBeDefined();
+				expect(encoding.name).toBe(name);
+				expect(typeof encoding.setEncodingHeader).toBe('function');
 
-			if (encoding.name === 'raw') return;
+				if (encoding.name === 'raw') return;
 
-			expect(typeof encoding.compressStream).toBe('function');
-			expect(typeof encoding.decompressStream).toBe('function');
-			expect(typeof encoding.compressBuffer).toBe('function');
-			expect(typeof encoding.decompressBuffer).toBe('function');
+				expect(typeof encoding.compressStream).toBe('function');
+				expect(typeof encoding.decompressStream).toBe('function');
+				expect(typeof encoding.compressBuffer).toBe('function');
+				expect(typeof encoding.decompressBuffer).toBe('function');
+			});
 		});
 		expect(Object.keys(ENCODINGS).sort()).toEqual(encodings.sort());
 	});

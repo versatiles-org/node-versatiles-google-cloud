@@ -115,6 +115,7 @@ subgraph 4["bucket"]
 7["abstract.ts"]
 A["metadata.ts"]
 B["bucket_local.ts"]
+I["bucket.mock.ts"]
 end
 8["recompress.ts"]
 9["encoding.ts"]
@@ -125,6 +126,8 @@ F["index.ts"]
 G["cache.ts"]
 H["versatiles.ts"]
 end
+J["responder.mock.ts"]
+K["response_headers.mock.ts"]
 end
 end
 1-->3
@@ -145,6 +148,9 @@ C-->D
 D-->9
 F-->G
 G-->H
+I-->7
+I-->A
+J-->C
 
 class 0,2,4,E subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;

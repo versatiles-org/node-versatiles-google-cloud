@@ -1,14 +1,14 @@
 import type { Command } from 'commander';
 import type { startServer } from './lib/server.js';
-import { jest } from '@jest/globals';
+import { vi, it, describe, beforeEach, expect } from 'vitest';
 
-const mockedStartServer = jest.fn<typeof startServer>().mockResolvedValue(null);
-jest.unstable_mockModule('./lib/server.js', () => ({ startServer: mockedStartServer }));
+const mockedStartServer = vi.fn<typeof startServer>().mockResolvedValue(null);
+vi.mock('./lib/server.js', () => ({ startServer: mockedStartServer }));
 
-jest.spyOn(process, 'exit').mockImplementation(jest.fn<typeof process.exit>());
+vi.spyOn(process, 'exit').mockImplementation(vi.fn<typeof process.exit>());
 
-jest.spyOn(console, 'log').mockReturnValue();
-jest.spyOn(console, 'table').mockReturnValue();
+vi.spyOn(console, 'log').mockReturnValue();
+vi.spyOn(console, 'table').mockReturnValue();
 
 describe('index.ts', () => {
 	const defaultResults = {
@@ -75,7 +75,7 @@ describe('index.ts', () => {
 	});
 
 	async function run(...args: string[]): Promise<void> {
-		const moduleUrl = './index.js?t=' + Math.random();
+		const moduleUrl = './index.js?t=' + Math.random().toString(16).slice(2);
 		const module = await import(moduleUrl);
 		const program = (module.program) as Command;
 		program.parse(['./node', './index.ts', ...args]);

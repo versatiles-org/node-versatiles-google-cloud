@@ -1,8 +1,8 @@
 import type { EncodingTools } from './encoding.js';
 import type { Responder } from './responder.js';
 import { ENCODINGS } from './encoding.js';
-import { Writable, Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { Writable, Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 
 const maxBufferSize = 10 * 1024 * 1024; // Define the maximum buffer size for streaming
 

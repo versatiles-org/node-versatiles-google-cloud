@@ -1,10 +1,9 @@
- 
-import { jest } from '@jest/globals';
+import { vi, it, describe, expect } from 'vitest';
 import { BucketFileMetadata } from './metadata.js';
 import { ResponseHeaders } from '../response_headers.js';
 
 describe('BucketFileMetadata', () => {
-	test('constructor defaults and hash generation', () => {
+	it('constructor defaults and hash generation', () => {
 		const metadata = new BucketFileMetadata({
 			filename: 'test.jpg',
 			size: 1024,
@@ -19,9 +18,9 @@ describe('BucketFileMetadata', () => {
 		});
 	});
 
-	test('setHeaders correctly sets headers on responder', () => {
+	it('setHeaders correctly sets headers on responder', () => {
 		const headers = new ResponseHeaders();
-		jest.spyOn(headers, 'set');
+		vi.spyOn(headers, 'set');
 
 		const metadata = new BucketFileMetadata({
 			filename: 'test.jpg',
@@ -33,8 +32,8 @@ describe('BucketFileMetadata', () => {
 
 		metadata.setHeaders(headers);
 
-		 
-		const mockedSet = jest.mocked(headers.set);
+
+		const mockedSet = vi.mocked(headers.set);
 		expect(mockedSet.mock.calls).toStrictEqual([
 			['content-length', '500'],
 			['cache-control', 'public, max-age=31536000'],
@@ -43,7 +42,7 @@ describe('BucketFileMetadata', () => {
 		]);
 	});
 
-	test('toString returns correct JSON representation', () => {
+	it('toString returns correct JSON representation', () => {
 		const metadata = new BucketFileMetadata({
 			filename: 'test.png',
 			size: 2048,

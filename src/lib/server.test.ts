@@ -1,18 +1,16 @@
-import { jest } from '@jest/globals';
-import { MockedBucket } from './bucket/bucket.mock.test.js';
+import { vi, it, describe, beforeAll, afterAll, expect } from 'vitest';
+import { MockedBucket } from './bucket/bucket.mock.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { startServer } from './server.js';
-import express from 'express';
 import type { AbstractBucket } from './bucket/index.js';
 import type { Server } from 'http';
 import { brotliDecompressSync, gunzipSync } from 'zlib';
 import type { AddressInfo } from 'net';
 import http from 'http';
 
-jest.spyOn(console, 'log').mockReturnValue();
-jest.mock('express', () => express); // Mock express
-jest.mock('@google-cloud/storage'); // Mock Google Cloud Storage
+vi.spyOn(console, 'log').mockReturnValue();
+vi.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
 const basePath = new URL('../../', import.meta.url).pathname;
 
@@ -236,7 +234,7 @@ describe('Server', () => {
 		});
 
 		async function check(encoding: 'br' | 'gzip' | undefined): Promise<void> {
-			 
+
 			const headers = { 'Accept-Encoding': encoding ?? 'identity' };
 
 			const response = await server.get('/test.txt', headers);

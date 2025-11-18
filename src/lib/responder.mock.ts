@@ -1,10 +1,8 @@
- 
-
 import type { IncomingHttpHeaders, OutgoingHttpHeaders } from 'http';
 import type { Response } from 'express';
 import { Writable } from 'stream';
 import { Responder } from './responder.js';
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 export type MockedResponse = Response & { getBuffer: () => Buffer };
 export type MockedResponder = Responder & { response: MockedResponse };
@@ -28,12 +26,8 @@ export function getResponseSink(): MockedResponse {
 
 	const response = new ResponseSink() as unknown as MockedResponse;
 
-	jest.spyOn(response, 'end');
-	//response.send = jest.fn<MockedResponse['send']>().mockReturnThis();
-	//response.status = jest.fn<MockedResponse['status']>().mockReturnThis();
-	//response.type = jest.fn<MockedResponse['type']>().mockReturnThis();
-	// @ts-expect-error too lazy
-	response.writeHead = jest.fn<MockedResponse['writeHead']>().mockReturnThis();
+	vi.spyOn(response, 'end');
+	response.writeHead = vi.fn(() => response);
 
 	return response;
 }

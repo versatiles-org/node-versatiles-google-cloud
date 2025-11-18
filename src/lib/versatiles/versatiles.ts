@@ -68,7 +68,6 @@ export class Versatiles {
 	}
 
 	private async sendStyle(responder: Responder): Promise<void> {
-
 		responder.log('respond with style.json');
 
 		try {

@@ -1,8 +1,8 @@
-import type { BrotliOptions, ZlibOptions } from 'node:zlib';
-import type { IncomingHttpHeaders } from 'node:http';
-import type { Transform } from 'node:stream';
+import type { BrotliOptions, ZlibOptions } from 'zlib';
+import type { IncomingHttpHeaders } from 'http';
+import type { Transform } from 'stream';
 import type { ResponseHeaders } from './response_headers.js';
-import zlib from 'node:zlib';
+import zlib from 'zlib';
 
 export type EncodingType = 'br' | 'gzip' | 'raw';
 

@@ -1,13 +1,8 @@
- 
- 
- 
- 
-import type { Response } from 'express';
-import type { MockedResponder } from './responder.mock.test.js';
+import type { MockedResponder } from './responder.mock.js';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
-import { getMockedResponder } from './responder.mock.test.js';
-import { jest } from '@jest/globals';
-import { defaultHeader } from './response_headers.mock.test.js';
+import { getMockedResponder } from './responder.mock.js';
+import { vi, it, describe, beforeEach, expect } from 'vitest';
+import { defaultHeader } from './response_headers.mock.js';
 
 describe('Responder', () => {
 	it('should get request number', () => {
@@ -86,7 +81,7 @@ describe('Responder', () => {
 		});
 
 		expect(responder.response.end).toHaveBeenCalledTimes(1);
-		const mockFunction = responder.response.end as unknown as jest.MockedFunction<(chunk: Buffer) => Response>;
+		const mockFunction = vi.mocked(responder.response.end);
 		const buffer = mockFunction.mock.calls.pop();
 		if (buffer == null) throw Error();
 		expect(gunzipSync(buffer[0])).toStrictEqual(content);
@@ -108,7 +103,7 @@ describe('Responder', () => {
 		});
 
 		expect(responder.response.end).toHaveBeenCalledTimes(1);
-		const mockFunction = responder.response.end as unknown as jest.MockedFunction<(chunk: Buffer) => Response>;
+		const mockFunction = vi.mocked(responder.response.end);
 		const buffer = mockFunction.mock.calls.pop();
 		if (buffer == null) throw Error();
 		expect(brotliDecompressSync(buffer[0])).toStrictEqual(content);
@@ -123,19 +118,19 @@ describe('Responder', () => {
 		});
 		it('async', async () => {
 			await responder.end();
-			expect(jest.mocked(responder.response.end).mock.calls).toStrictEqual([[expect.any(Function)]]);
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[expect.any(Function)]]);
 		});
 		it('async buffer', async () => {
 			await responder.end(buffer);
-			expect(jest.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
 		});
 		it('sync', async () => {
 			await new Promise<void>(r => responder.end(() => r()));
-			expect(jest.mocked(responder.response.end).mock.calls).toStrictEqual([[expect.any(Function)]]);
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[expect.any(Function)]]);
 		});
 		it('sync buffer', async () => {
 			await new Promise<void>(r => responder.end(buffer, () => r()));
-			expect(jest.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
 		});
 	});
 

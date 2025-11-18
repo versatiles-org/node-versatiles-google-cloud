@@ -1,26 +1,24 @@
- 
- 
-import { jest } from '@jest/globals';
+import { vi, it, describe, beforeEach, expect, Mocked } from 'vitest';
 import { Readable } from 'stream';
 import type { File } from '@google-cloud/storage';
 
-
 const mockFile = {
 	name: 'test.txt',
-	exists: jest.fn(),
-	getMetadata: jest.fn(),
-	createReadStream: jest.fn(),
-} as unknown as jest.Mocked<File>;
+	exists: vi.fn(),
+	getMetadata: vi.fn(),
+	createReadStream: vi.fn(),
+} as unknown as Mocked<File>;
 
 // Mocking Google Cloud Storage
-jest.unstable_mockModule('@google-cloud/storage', () => {
+vi.mock('@google-cloud/storage', () => {
 	const mockBucket = {
-		file: jest.fn().mockReturnValue(mockFile),
+		file: vi.fn().mockReturnValue(mockFile),
 	};
-	const mockStorage = {
-		bucket: jest.fn().mockReturnValue(mockBucket),
+	return {
+		Storage: vi.fn(class {
+			bucket = vi.fn().mockReturnValue(mockBucket);
+		})
 	};
-	return { Storage: jest.fn().mockReturnValue(mockStorage) };
 });
 
 await import('@google-cloud/storage');
@@ -28,10 +26,8 @@ const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 
 describe('BucketFileGoogle', () => {
 	beforeEach(() => {
-		// @ts-expect-error too lazy
-		jest.mocked(mockFile.exists).mockReturnValue(Promise.resolve([true]));
-		// @ts-expect-error too lazy
-		jest.mocked(mockFile.getMetadata).mockReturnValue(Promise.resolve([{
+		vi.mocked(mockFile.exists).mockImplementation(() => Promise.resolve([true]));
+		vi.mocked(mockFile.getMetadata).mockImplementation(() => Promise.resolve([{
 			cacheControl: 'no-cache',
 			contentType: 'text/plain',
 			etag: 'etag123',
@@ -42,12 +38,12 @@ describe('BucketFileGoogle', () => {
 		mockFile.createReadStream.mockReturnValue(new Readable());
 	});
 
-	test('exists should return true when file exists', async () => {
+	it('exists should return true when file exists', async () => {
 		const file = new BucketFileGoogle(mockFile);
 		await expect(file.exists()).resolves.toBe(true);
 	});
 
-	test('getMetadata should return BucketFileMetadata instance with correct properties', async () => {
+	it('getMetadata should return BucketFileMetadata instance with correct properties', async () => {
 		const file = new BucketFileGoogle(mockFile);
 		const metadata = await file.getMetadata();
 		expect(JSON.parse(metadata.toString())).toStrictEqual({
@@ -58,7 +54,7 @@ describe('BucketFileGoogle', () => {
 		});
 	});
 
-	test('createReadStream should return a Readable stream', () => {
+	it('createReadStream should return a Readable stream', () => {
 		const file = new BucketFileGoogle(mockFile);
 		const stream = file.createReadStream();
 		expect(stream).toBeInstanceOf(Readable);
@@ -68,7 +64,7 @@ describe('BucketFileGoogle', () => {
 describe('BucketGoogle', () => {
 	const bucketName = 'test-bucket';
 
-	test('getFile should return an instance of BucketFileGoogle', () => {
+	it('getFile should return an instance of BucketFileGoogle', () => {
 		const bucket = new BucketGoogle(bucketName);
 		const file = bucket.getFile('path/to/file.txt');
 		expect(file).toBeInstanceOf(BucketFileGoogle);

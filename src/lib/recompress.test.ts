@@ -1,17 +1,14 @@
- 
- 
- 
-
-import type { MockedResponder } from './responder.mock.test.js';
-import type { OutgoingHttpHeaders } from 'node:http';
+import { it, describe, expect } from 'vitest';
+import type { MockedResponder } from './responder.mock.js';
+import type { OutgoingHttpHeaders } from 'http';
 import type { Response } from 'express';
-import { getMockedResponder } from './responder.mock.test.js';
-import { Readable } from 'node:stream';
+import { getMockedResponder } from './responder.mock.js';
+import { Readable } from 'stream';
 import { recompress, BufferStream } from './recompress.js';
 import { ENCODINGS } from './encoding.js';
-import zlib from 'node:zlib';
-import { finished } from 'node:stream/promises';
-import { defaultHeader as defaultHeader0 } from './response_headers.mock.test.js';
+import zlib from 'zlib';
+import { finished } from 'stream/promises';
+import { defaultHeader as defaultHeader0 } from './response_headers.mock.js';
 
 const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;
