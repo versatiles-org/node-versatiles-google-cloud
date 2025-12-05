@@ -48,6 +48,7 @@ class MockedServer {
 		} else {
 			this.#bucket = new MockedBucket([
 				{ name: 'static/package.json', filename: resolve(basePath, 'package.json') },
+				{ name: 'static/has space/package.json', filename: resolve(basePath, 'package.json') },
 				{ name: 'geodata/test.versatiles', filename: resolve(basePath, 'testdata/island.versatiles') },
 			]);
 		}
@@ -151,6 +152,13 @@ describe('Server', () => {
 
 		it('serve static file', async () => {
 			const response = await server.get('/static/package.json');
+			expect(response.status).toBe(200);
+			expect(JSON.parse(response.text)).toMatchObject({ name: '@versatiles/google-cloud' });
+			expect(response.contentType).toBe('application/json');
+		});
+
+		it('serve static file with a space in the path', async () => {
+			const response = await server.get('/static/has space/package.json');
 			expect(response.status).toBe(200);
 			expect(JSON.parse(response.text)).toMatchObject({ name: '@versatiles/google-cloud' });
 			expect(response.contentType).toBe('application/json');

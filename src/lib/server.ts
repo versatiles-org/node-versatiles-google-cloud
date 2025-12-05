@@ -85,7 +85,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				}
 
 				const { pathname, search } = new URL(url, 'http://a.b');
-				const filename = pathname.replace(/^\/+|:/g, '');
+				const filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
 
 				responder.log(`request file: ${bucketPrefix + filename}`);
 
