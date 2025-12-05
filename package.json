@@ -60,7 +60,7 @@
     "versatiles"
   ],
   "dependencies": {
-    "@google-cloud/storage": "^7.17.3",
+    "@google-cloud/storage": "^7.18.0",
     "@versatiles/container": "^1.2.8",
     "@versatiles/style": "^5.8.0",
     "commander": "^14.0.2",
@@ -74,12 +74,12 @@
     "@typescript-eslint/eslint-plugin": "^8.48.1",
     "@typescript-eslint/parser": "^8.48.1",
     "@versatiles/release-tool": "^2.4.5",
-    "@vitest/coverage-v8": "^4.0.14",
+    "@vitest/coverage-v8": "^4.0.15",
     "eslint": "^9.39.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.15"
   }
 }
