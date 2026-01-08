@@ -1,7 +1,7 @@
 import type { EncodingTools } from './encoding.js';
 import type { Responder } from './responder.js';
 import { ENCODINGS } from './encoding.js';
-import { Writable, Readable } from 'stream';
+import { Writable, Readable, Transform } from 'stream';
 import { pipeline } from 'stream/promises';
 
 const maxBufferSize = 10 * 1024 * 1024; // Define the maximum buffer size for streaming
@@ -146,35 +146,36 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 	// Set the appropriate encoding header based on the selected encoding
 	encodingOut.setEncodingHeader(responder.headers);
 
-	// Prepare the streams for the pipeline
-	const streams: (Readable | Writable)[] = [];
+	let readStream: Readable;
 	if (Buffer.isBuffer(body)) {
-		streams.push(Readable.from(body));
+		readStream = Readable.from(body);
 	} else if (Readable.isReadable(body)) {
-		streams.push(body);
+		readStream = body;
 	} else {
 		throw Error('neither Readable nor Buffer');
 	}
 
+	// Prepare the streams for the pipeline
+	const transformStreams: (Transform)[] = [];
 	// Handle recompression if the input and output encodings are different
 	if (encodingIn !== encodingOut) {
 		responder.log(`recompress: ${encodingIn.name} to ${encodingOut.name}`);
 
 		if (encodingIn.decompressStream) {
-			streams.push(encodingIn.decompressStream());
+			transformStreams.push(encodingIn.decompressStream());
 		}
 
 		if (encodingOut.compressStream) {
-			streams.push(encodingOut.compressStream(responder.fastRecompression));
+			transformStreams.push(encodingOut.compressStream(responder.fastRecompression));
 		}
 
 		responder.headers.remove('content-length');
 	}
 
 	// Add the BufferStream to the pipeline and execute the pipeline
-	streams.push(new BufferStream(responder));
+	const writeStream = new BufferStream(responder);
 
-	await pipeline(streams);
+	await pipeline([readStream, ...transformStreams, writeStream]);
 
 	return;
 }
