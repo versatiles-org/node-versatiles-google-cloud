@@ -5,6 +5,7 @@ import { Responder } from './responder.js';
 import { BucketGoogle, BucketLocal } from './bucket/index.js';
 import { getVersatiles } from './versatiles/index.js';
 import { readFileSync } from 'fs';
+import { Rewrite } from './rewrite.ts';
 
 /**
  * Interface defining the options for starting the server.
@@ -30,6 +31,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	let bucketPrefix = opt.bucketPrefix.replace(/^\/+|\/+$/g, '');
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
+	const rewrite = new Rewrite(rewriteRules, { verbose, cache: true });
 	const baseUrl = new URL(opt.baseUrl).href;
 
 	// Initialize the bucket based on the provided options
@@ -39,7 +41,6 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	} else if (typeof opt.bucket == 'string') {
 		bucket = new BucketGoogle(opt.bucket);
 	} else {
-		 
 		bucket = opt.bucket;
 	}
 
@@ -71,20 +72,15 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
-			let { url } = request;
-			responder.log('new request: ' + url);
+			let pathname = request.path
+			responder.log('new request: ' + request.url);
 
 			try {
-				// handle rewrite rules
-				for (const rewriteRule of rewriteRules) {
-					if (url.startsWith(rewriteRule[0])) {
-						responder.log('use rewrite rule: ' + rewriteRule.join(' => '));
-						url = url.replace(...rewriteRule);
-						responder.log('new url: ' + url);
-					}
+				const maybeRewritten = rewrite.match(pathname);
+				if (maybeRewritten !== null) {
+					pathname = maybeRewritten;
 				}
 
-				const { pathname, search } = new URL(url, 'http://a.b');
 				const filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
 
 				responder.log(`request file: ${bucketPrefix + filename}`);
@@ -93,6 +89,8 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 				if (filename.endsWith('.versatiles')) {
 					const container = await getVersatiles(file, baseUrl + filename);
+
+					const { search } = new URL(request.url, 'http://a.b');
 					await container.serve(search, responder);
 				} else {
 					await file.serve(responder);
@@ -104,7 +102,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				switch ((error as any).code) {
 					case 'ENOENT':
 					case 404:
-						responder.error(404, `file "${url}" not found`); return;
+						responder.error(404, `file "${request.path}" not found`); return;
 				}
 				console.error(error);
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));

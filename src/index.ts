@@ -5,16 +5,18 @@ import { startServer } from './lib/server.js';
 
 /**
  * Entry point for the VersaTiles Google Cloud CLI application.
- * 
- * This script sets up a server to serve files from a specified Google Cloud Storage bucket 
- * through a Google Load Balancer and Content Delivery Network (CDN). It handles HTTP headers, 
- * optimizes content compression, and provides a RESTful API interface to serve tiles from 
+ *
+ * This script sets up a server to serve files from a specified Google Cloud Storage bucket
+ * through a Google Load Balancer and Content Delivery Network (CDN). It handles HTTP headers,
+ * optimizes content compression, and provides a RESTful API interface to serve tiles from
  * VersaTiles containers.
- * 
+ *
  * For more details, visit:
  * https://github.com/versatiles-org/node-versatiles-google-cloud/
  */
 export const program = new Command();
+
+const REWRITE_DELIMITER = '|';
 
 function collect(v: string, m: string[]): string[] {
 	m.push(v);
@@ -33,7 +35,7 @@ program
 	.option('-f, --fast-recompression', 'Enable faster server responses by avoiding recompression.')
 	.option('-l, --local-directory <path>', 'Ignore bucket and use a local directory instead. Useful for local development and testing.')
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
-	.option('-r, --rewrite-rule <path:path>', 'Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/:/folder/osm.versatiles?"', collect, [])
+	.option(`-r, --rewrite-rule <path${REWRITE_DELIMITER}path>`, `Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/${REWRITE_DELIMITER}/folder/osm.versatiles?"`, collect, [])
 	.option('-v, --verbose', 'Enable verbose mode for detailed operational logs.')
 	.action((bucketName: string, cmdOptions: Record<string, unknown>) => {
 		// Parse and set command line options
@@ -46,11 +48,9 @@ program
 		const verbose = Boolean(cmdOptions.verbose ?? false);
 
 		const rewriteRules: [string, string][] = Array.from(cmdOptions.rewriteRule as Iterable<unknown>).map(r => {
-			const parts = String(r).split(':');
-			if (parts.length !== 2) throw Error('a rewrite rule must be formatted as "$request:$origin"');
-			if (!parts[0].startsWith('/') || !parts[1].startsWith('/')) {
-				throw Error(`each side of a rewrite rule must start with a "/", e.g. "/public:/origin", but this rule is formatted as "${String(r)}"`);
-			}
+			const parts = String(r).split(REWRITE_DELIMITER);
+			if (parts.length !== 2) throw Error(`a rewrite rule must be formatted as "$request${REWRITE_DELIMITER}$origin"`);
+			if (!parts[0].startsWith('/') || !parts[1].startsWith('/')) throw Error(`each side of a rewrite rule must start with a "/", e.g. "/public:/origin", but this rule is formatted as "${String(r)}"`);
 			return parts as [string, string];
 		});
 
