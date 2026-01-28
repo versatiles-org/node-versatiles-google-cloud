@@ -65,7 +65,9 @@ class MockedServer {
 			fastRecompression: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
-			rewriteRules: [],
+			rewriteRules: [
+				['/g/:name.v', '/geodata/:name.versatiles'],
+			],
 			verbose: false,
 		});
 
@@ -148,6 +150,14 @@ describe('Server', () => {
 			expect(response.status).toBe(200);
 			expect(response.text).toBe('ok');
 			expect(response.contentType).toBe('text/plain');
+		});
+
+		it('rewrites path according to rules', async () => {
+			const response = await server.get('/g/test.v?meta.json');
+			console.log(response)
+			expect(response.status).toBe(200);
+			expect(response.text).toMatch(/^{"vector_layers"/);
+			expect(response.contentType).toBe('application/json');
 		});
 
 		it('serve static file', async () => {

@@ -86,8 +86,8 @@ Options:
                                   instead. Useful for local development and
                                   testing.
   -p, --port <port>               Set the server port. Default: 8080
-  -r, --rewrite-rule <path:path>  Set a rewrite rule. Must start with a "/".
-                                  E.g. "/tiles/osm/:/folder/osm.versatiles?"
+  -r, --rewrite-rule <path|path>  Set a rewrite rule. Must start with a "/".
+                                  E.g. "/tiles/osm/|/folder/osm.versatiles?"
                                   (default: [])
   -v, --verbose                   Enable verbose mode for detailed operational
                                   logs.
@@ -115,25 +115,27 @@ subgraph 4["bucket"]
 7["abstract.ts"]
 A["metadata.ts"]
 B["bucket_local.ts"]
-I["bucket.mock.ts"]
+J["bucket.mock.ts"]
 end
 8["recompress.ts"]
 9["encoding.ts"]
 C["responder.ts"]
 D["response_headers.ts"]
-subgraph E["versatiles"]
-F["index.ts"]
-G["cache.ts"]
-H["versatiles.ts"]
+E["rewrite.ts"]
+subgraph F["versatiles"]
+G["index.ts"]
+H["cache.ts"]
+I["versatiles.ts"]
 end
-J["responder.mock.ts"]
-K["response_headers.mock.ts"]
+K["responder.mock.ts"]
+L["response_headers.mock.ts"]
 end
 end
 1-->3
 3-->5
 3-->C
-3-->F
+3-->E
+3-->G
 5-->6
 5-->B
 6-->7
@@ -146,13 +148,13 @@ C-->9
 C-->8
 C-->D
 D-->9
-F-->G
 G-->H
-I-->7
-I-->A
-J-->C
+H-->I
+J-->7
+J-->A
+K-->C
 
-class 0,2,4,E subgraphs;
+class 0,2,4,F subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 

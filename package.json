@@ -2,6 +2,7 @@
   "name": "@versatiles/google-cloud",
   "version": "0.4.8",
   "description": "A server for VersaTiles in Google Cloud Run",
+  "repository": "https://github.com/digitalegarage/node-versatiles-google-cloud.git",
   "bin": {
     "versatiles-google-cloud": "dist/index.js"
   },
@@ -18,6 +19,7 @@
     "build": "npm run build-node && npm run doc",
     "build-node": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/index.js",
     "check": "npm run lint && npm run test-node && npm run build",
+    "dev": "tsx watch src/index.ts",
     "doc": "npm run doc-command && npm run doc-graph",
     "doc-command": "vrt doc-command versatiles-google-cloud | vrt doc-insert README.md '## Options'",
     "doc-graph": "vrt deps-graph | vrt doc-insert README.md '## Dependency Graph'",
@@ -30,11 +32,6 @@
     "test": "vitest run",
     "upgrade": "vrt deps-upgrade"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/versatiles-org/node-versatiles-google-cloud.git"
-  },
-  "homepage": "https://github.com/versatiles-org/node-versatiles-google-cloud#readme",
   "type": "module",
   "author": "yetzt <node@yetzt.me>, Michael Kreil <versatiles@michael-kreil.de>",
   "license": "Unlicense",
@@ -65,7 +62,8 @@
     "@versatiles/style": "^5.8.4",
     "commander": "^14.0.2",
     "express": "^5.2.1",
-    "mrmime": "^2.0.1"
+    "mrmime": "^2.0.1",
+    "path-to-regexp": "^6.3.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
