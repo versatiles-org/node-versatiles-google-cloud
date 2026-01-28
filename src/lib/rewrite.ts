@@ -37,7 +37,7 @@ export class Rewrite {
 	/**
 	 * Compiled rewrite rules.
 	 */
-	#rules: Rule[];
+	#rules: Rule[] = []
 
 	/**
 	 * Constructs a Rewrite manager.
@@ -46,16 +46,31 @@ export class Rewrite {
 	 * @param options
 	 */
 	constructor(rules: [string, string][], private readonly options: Options = DEFAULT_OPTIONS) {
-		this.#rules = rules.map(([search, replacement]) => ({
-			search: {
-				raw: search,
-				resolve: match(search),
-			},
-			replacement: {
-				raw: replacement,
-				compile: compile(replacement),
-			},
-		}));
+		for (const [_, [search, replacement]] of Object.entries(rules)) {
+			this.register(search, replacement);
+		}
+	}
+
+	register(search: string, replacement: string): Rewrite {
+		try {
+			const resolveSearch = match(search);
+			const compileReplacement = compile(replacement);
+
+			this.#rules.push({
+				search: {
+					raw: search,
+					resolve: resolveSearch,
+				},
+				replacement: {
+					raw: replacement,
+					compile: compileReplacement,
+				},
+			});
+
+			return this;
+		} catch (error) {
+			throw new Error(`unable to add search ("${search}") / replacement ("${replacement}") rule due to: ${error}`);
+		}
 	}
 
 	/**
