@@ -11,7 +11,7 @@ describe('Rewrite', () => {
 		it('should create an instance with rules', () => {
 			const rewrite = new Rewrite([
 				['/old/:id', '/new/:id'],
-				['/legacy{/*path}', '/modern{/*path}'],
+				['/legacy/:path+', '/modern/:path+'],
 			]);
 			expect(rewrite).toBeInstanceOf(Rewrite);
 		});
@@ -72,7 +72,7 @@ describe('Rewrite', () => {
 
 		it('should handle wildcard patterns', () => {
 			const rewrite = new Rewrite([
-				['/files{/*path}', '/static{/*path}'],
+				['/files/:path+', '/static/:path+'],
 			]);
 			expect(rewrite.match('/files/images/logo.png')).toBe('/static/images/logo.png');
 			expect(rewrite.match('/files/docs/readme.txt')).toBe('/static/docs/readme.txt');
@@ -80,7 +80,7 @@ describe('Rewrite', () => {
 
 		it('should handle optional parameters', () => {
 			const rewrite = new Rewrite([
-				['/api{/:version}/users', '/users{/:version}'],
+				['/api/:version?/users', '/users/:version?'],
 			]);
 			expect(rewrite.match('/api/v1/users')).toBe('/users/v1');
 			expect(rewrite.match('/api/users')).toBe('/users');
@@ -177,5 +177,17 @@ describe('Rewrite', () => {
 			expect(rewrite.match('/api/extra')).toBeNull();
 			expect(rewrite.match('/apix')).toBeNull();
 		});
+
+		it('should work with simlar prefixes', () => {
+			const rewrite = new Rewrite([
+				['/app:any(.*(?<!index.html)$)', '/app:any(.*(?<!index.html)$)/index.html'],
+			]);
+			expect(rewrite.match('/app')).toBe('/app/index.html');
+			expect(rewrite.match('/app/index.html')).toBeNull();
+			expect(rewrite.match('/app/some')).toBe('/app/some/index.html');
+			expect(rewrite.match('/app/some/index.html')).toBeNull();
+			expect(rewrite.match('/app/other/path')).toBe('/app/other/path/index.html');
+			expect(rewrite.match('/app/other/path/index.html')).toBeNull();
+		})
 	});
 });
