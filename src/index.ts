@@ -16,7 +16,7 @@ import { startServer } from './lib/server.js';
  */
 export const program = new Command();
 
-const REWRITE_DELIMITER = '|';
+const REWRITE_DELIMITER = ' ';
 
 function collect(v: string, m: string[]): string[] {
 	m.push(v);
