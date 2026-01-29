@@ -46,6 +46,47 @@ You can create more complex matching patterns using regular expressions. For ins
 > [!NOTE]
 > When using regular expressions in rewrite rules, ensure that white-space-matches are defined using thier specific form (`\s`) since standard white spaces (` `) are used to separate source and destination (`-r "<source> <destination>"`).
 
+## Configuration file
+
+Instead of passing all options via command line arguments, you can use a YAML configuration file with the `-c` or `--config` option:
+
+```bash
+versatiles-google-cloud --config ./config.yaml
+```
+
+CLI arguments always override values from the configuration file. This allows you to define defaults in the config file and override specific values as needed.
+
+### Example configuration file
+
+```yaml
+bucket: "my-tiles-bucket"
+baseUrl: "https://tiles.example.com/"
+directory: "/public/"
+port: 8080
+fastRecompression: false
+verbose: false
+
+rewriteRules:
+  - ["/tiles/:name", "/geodata/:name.versatiles"]
+  - ["/apps:any((?!.*\\.[^/]+$).*)?", "/apps:any/index.html"]
+```
+
+### Configuration options
+
+| Option              | Type    | Description                                   |
+|---------------------|---------|-----------------------------------------------|
+| `bucket`            | string  | Name of the Google Cloud Storage bucket       |
+| `baseUrl`           | string  | Public base URL                               |
+| `directory`         | string  | Bucket directory prefix                       |
+| `port`              | integer | Server port (default: 8080)                   |
+| `fastRecompression` | boolean | Enable fast recompression mode                |
+| `localDirectory`    | string  | Use local directory instead of bucket         |
+| `verbose`           | boolean | Enable verbose logging                        |
+| `rewriteRules`      | array   | List of `[source, target]` path rewrite rules |
+
+> [!NOTE]
+> When using `--config`, the bucket name can be omitted from the command line if it's specified in the config file. The bucket is only required if `localDirectory` is not set.
+
 ## Test locally
 
 Install `@versatiles/google-cloud` globally and run:
