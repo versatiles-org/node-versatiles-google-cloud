@@ -75,7 +75,7 @@
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
-    "@versatiles/release-tool": "^2.5.0",
+    "@versatiles/release-tool": "^2.6.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.39.2",
     "ts-node": "^10.9.2",
