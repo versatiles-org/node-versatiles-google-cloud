@@ -3,6 +3,7 @@ import type { startServer } from './lib/server.js';
 import { vi, it, describe, beforeEach, afterEach, expect } from 'vitest';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 const mockedStartServer = vi.fn<typeof startServer>().mockResolvedValue(null);
 vi.mock('./lib/server.js', () => ({ startServer: mockedStartServer }));
@@ -13,7 +14,7 @@ vi.spyOn(console, 'log').mockReturnValue();
 vi.spyOn(console, 'table').mockReturnValue();
 vi.spyOn(console, 'error').mockReturnValue();
 
-const testDir = join(process.cwd(), 'test-index-temp');
+const testDir = join(process.cwd(), `test-index-temp-${randomUUID()}`);
 
 describe('index.ts', () => {
 	const defaultResults = {
