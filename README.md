@@ -74,7 +74,7 @@ rewriteRules:
 ### Configuration options
 
 | Option              | Type    | Description                                   |
-|---------------------|---------|-----------------------------------------------|
+| ------------------- | ------- | --------------------------------------------- |
 | `bucket`            | string  | Name of the Google Cloud Storage bucket       |
 | `baseUrl`           | string  | Public base URL                               |
 | `directory`         | string  | Bucket directory prefix                       |
@@ -118,7 +118,7 @@ Note that for security and performance reasons no file listing is implemented. I
 
 ```console
 $ versatiles-google-cloud
-Usage: versatiles-google-cloud [options] <bucket-name>
+Usage: versatiles-google-cloud [options] [bucket-name]
 
 Initialises a server to serve files from a specified Google Bucket to a Google
 Load Balancer with CDN, handles HTTP headers and compression, and provides a
@@ -132,6 +132,8 @@ Arguments:
 Options:
   -b, --base-url <url>            Set the public base URL. Defaults to
                                   "http://localhost:<port>/".
+  -c, --config <path>             Load configuration from a YAML file. CLI
+                                  arguments override config file values.
   -d, --directory <prefix>        Set the bucket directory (prefix), e.g.,
                                   "/public/".
   -f, --fast-recompression        Enable faster server responses by avoiding
@@ -162,53 +164,55 @@ flowchart TB
 subgraph 0["src"]
 1["index.ts"]
 subgraph 2["lib"]
-3["server.ts"]
-subgraph 4["bucket"]
-5["index.ts"]
-6["bucket_google.ts"]
-7["abstract.ts"]
-A["metadata.ts"]
-B["bucket_local.ts"]
-J["bucket.mock.ts"]
+3["config.ts"]
+4["server.ts"]
+subgraph 5["bucket"]
+6["index.ts"]
+7["bucket_google.ts"]
+8["abstract.ts"]
+B["metadata.ts"]
+C["bucket_local.ts"]
+K["bucket.mock.ts"]
 end
-8["recompress.ts"]
-9["encoding.ts"]
-C["responder.ts"]
-D["response_headers.ts"]
-E["rewrite.ts"]
-subgraph F["versatiles"]
-G["index.ts"]
-H["cache.ts"]
-I["versatiles.ts"]
+9["recompress.ts"]
+A["encoding.ts"]
+D["responder.ts"]
+E["response_headers.ts"]
+F["rewrite.ts"]
+subgraph G["versatiles"]
+H["index.ts"]
+I["cache.ts"]
+J["versatiles.ts"]
 end
-K["responder.mock.ts"]
-L["response_headers.mock.ts"]
+L["responder.mock.ts"]
+M["response_headers.mock.ts"]
 end
 end
 1-->3
-3-->5
-3-->C
-3-->E
-3-->G
-5-->6
-5-->B
+1-->4
+4-->6
+4-->D
+4-->F
+4-->H
 6-->7
-6-->A
+6-->C
 7-->8
+7-->B
 8-->9
-B-->7
-B-->A
-C-->9
+9-->A
 C-->8
-C-->D
+C-->B
+D-->A
 D-->9
-G-->H
+D-->E
+E-->A
 H-->I
-J-->7
-J-->A
-K-->C
+I-->J
+K-->8
+K-->B
+L-->D
 
-class 0,2,4,F subgraphs;
+class 0,2,5,G subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 
