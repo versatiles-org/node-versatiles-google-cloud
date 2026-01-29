@@ -33,6 +33,19 @@ EXPOSE 8080
 CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
 ```
 
+## Path rewriting
+
+You can define path rewriting rules to map public URLs to different paths in the bucket. Use the `-r` or `--rewrite-rule` option to specify rules in the format `/public/path /bucket/path`.
+
+Rules can use custom pattern matching by utilizing [Custom Matching Parameters](https://github.com/pillarjs/path-to-regexp/tree/6.x?tab=readme-ov-file#custom-matching-parameters). For example, the rule `/tiles/:source.versatiles /data/:source.versatiles` will rewrite requests like `/tiles/osm.versatiles` to `/data/osm.versatiles`.
+
+### Complex matching
+
+You can create more complex matching patterns using regular expressions. For instance, the rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` will match any path under `/apps` that does not end with a file extension and rewrite it to serve the corresponding `index.html` file.
+
+> ![NOTE]
+> When using regular expressions in rewrite rules, ensure that white-space-matches are defined using thier specific form (`\s`) since standard white spaces (` `) are used to separate source and destination (`-r "<source> <destination>"`).
+
 ## Test locally
 
 Install `@versatiles/google-cloud` globally and run:
