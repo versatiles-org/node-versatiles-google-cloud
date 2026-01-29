@@ -6,7 +6,7 @@
 This tool solves perfectly the use cases, when you want to publish multiple map application using multiple versatiles tile sources in Google Cloud.
 E.g. for data journalists, academia, ...
 
-> \[!WARNING]
+> [!WARNING]
 > It is strongly recommended:
 >
 > - always use a CDN in front of this server and
@@ -43,7 +43,7 @@ Rules can use custom pattern matching by utilizing [Custom Matching Parameters](
 
 You can create more complex matching patterns using regular expressions. For instance, the rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` will match any path under `/apps` that does not end with a file extension and rewrite it to serve the corresponding `index.html` file.
 
-> ![NOTE]
+> [!NOTE]
 > When using regular expressions in rewrite rules, ensure that white-space-matches are defined using thier specific form (`\s`) since standard white spaces (` `) are used to separate source and destination (`-r "<source> <destination>"`).
 
 ## Test locally
