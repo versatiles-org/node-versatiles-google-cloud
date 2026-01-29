@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadConfig, type ConfigFile } from './config.js';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 
-const testDir = join(process.cwd(), 'test-config-temp');
+const testDir = join(process.cwd(), `test-config-temp-${randomUUID()}`);
 
 describe('config.ts', () => {
 	beforeEach(() => {
