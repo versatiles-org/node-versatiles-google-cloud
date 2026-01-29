@@ -52,32 +52,13 @@ program
 			}
 		}
 
-		// Parse and set command line options with merge precedence: CLI > config > defaults
-		const port = cmdOptions.port !== undefined
-			? Number(cmdOptions.port)
-			: (config.port ?? 8080);
-
-		const baseUrl = cmdOptions.baseUrl !== undefined
-			? String(cmdOptions.baseUrl)
-			: (config.baseUrl ?? `http://localhost:${port}/`);
-
-		const bucketPrefix = cmdOptions.directory !== undefined
-			? String(cmdOptions.directory)
-			: (config.directory ?? '');
-
-		const fastRecompression = cmdOptions.fastRecompression !== undefined
-			? Boolean(cmdOptions.fastRecompression)
-			: (config.fastRecompression ?? false);
-
-		const localDirectory: string | undefined = cmdOptions.localDirectory !== undefined
-			? String(cmdOptions.localDirectory)
-			: config.localDirectory;
-
-		const verbose = cmdOptions.verbose !== undefined
-			? Boolean(cmdOptions.verbose)
-			: (config.verbose ?? false);
-
-		// For bucket: CLI argument takes precedence, then config
+		// Merge options with precedence: CLI > config > defaults
+		const port = cmdOptions.port != null ? Number(cmdOptions.port) : config.port ?? 8080;
+		const baseUrl = (cmdOptions.baseUrl ?? config.baseUrl ?? `http://localhost:${port}/`) as string;
+		const bucketPrefix = (cmdOptions.directory ?? config.directory ?? '') as string;
+		const fastRecompression = (cmdOptions.fastRecompression ?? config.fastRecompression ?? false) as boolean;
+		const localDirectory = (cmdOptions.localDirectory ?? config.localDirectory) as string | undefined;
+		const verbose = (cmdOptions.verbose ?? config.verbose ?? false) as boolean;
 		const bucket = bucketName ?? config.bucket;
 
 		// Validate that bucket is provided (unless using local directory)
