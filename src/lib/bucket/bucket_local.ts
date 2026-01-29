@@ -7,10 +7,21 @@ import { BucketFileMetadata } from './metadata.js';
 
 export class BucketFileLocal extends AbstractBucketFile {
 	readonly #filename: string;
+	readonly #basePath: string;
 
-	public constructor(filename: string) {
+	public constructor(basePath: string, relativePath: string) {
 		super();
-		this.#filename = filename;
+		this.#basePath = resolve(basePath);
+		this.#filename = resolve(this.#basePath, relativePath);
+	}
+
+	#validatePath(): string {
+		const safePath = this.#filename;
+		// Prevent path traversal: ensure the resolved path is within the base directory
+		if (!safePath.startsWith(this.#basePath + sep) && safePath !== this.#basePath) {
+			throw new Error('Path traversal attempt detected');
+		}
+		return safePath;
 	}
 
 	public get name(): string {
@@ -19,8 +30,9 @@ export class BucketFileLocal extends AbstractBucketFile {
 
 	// Check if the file exists
 	public async exists(): Promise<boolean> {
+		const safePath = this.#validatePath();
 		try {
-			await access(this.#filename, constants.R_OK);
+			await access(safePath, constants.R_OK);
 			return true;
 		} catch (_) {
 			return false;
@@ -29,7 +41,8 @@ export class BucketFileLocal extends AbstractBucketFile {
 
 	// Get metadata for the file
 	public async getMetadata(): Promise<BucketFileMetadata> {
-		const statResult = await stat(this.#filename);
+		const safePath = this.#validatePath();
+		const statResult = await stat(safePath);
 
 		return new BucketFileMetadata({
 			cacheControl: undefined,
@@ -43,7 +56,8 @@ export class BucketFileLocal extends AbstractBucketFile {
 
 	// Create a readable stream for the file
 	public createReadStream(opt?: { start: number; end: number }): Readable {
-		return createReadStream(this.#filename, opt);
+		const safePath = this.#validatePath();
+		return createReadStream(safePath, opt);
 	}
 }
 
@@ -52,7 +66,6 @@ export class BucketLocal extends AbstractBucket {
 
 	public constructor(basePath: string) {
 		super();
-		// Normalize the base path to ensure consistent comparison
 		this.#basePath = resolve(basePath);
 	}
 
@@ -61,11 +74,6 @@ export class BucketLocal extends AbstractBucket {
 	}
 
 	public getFile(relativePath: string): BucketFileLocal {
-		const fullPath = resolve(this.#basePath, relativePath);
-		// Prevent path traversal: ensure the resolved path is within the base directory
-		if (!fullPath.startsWith(this.#basePath + sep) && fullPath !== this.#basePath) {
-			throw new Error('Path traversal attempt detected');
-		}
-		return new BucketFileLocal(fullPath);
+		return new BucketFileLocal(this.#basePath, relativePath);
 	}
 }

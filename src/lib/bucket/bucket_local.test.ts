@@ -25,11 +25,13 @@ const { BucketLocal, BucketFileLocal } = await import('./bucket_local.js');
 const projectPath = new URL('../../../', import.meta.url).pathname;
 
 describe('BucketFileLocal', () => {
-	const filename = resolve(projectPath, 'package.json');
+	const basePath = projectPath;
+	const relativePath = 'package.json';
+	const filename = resolve(basePath, relativePath);
 	let file: BucketFileLocalType;
 
 	beforeEach(() => {
-		file = new BucketFileLocal(filename);
+		file = new BucketFileLocal(basePath, relativePath);
 	});
 
 	it('exists should return true when file is accessible', async () => {
@@ -78,14 +80,21 @@ describe('BucketLocal', () => {
 		expect(file.name).toBe(resolve(bucketPath, relativePath));
 	});
 
-	it('getFile should throw on path traversal attempts', () => {
-		expect(() => bucket.getFile('../package.json')).toThrow('Path traversal attempt detected');
-		expect(() => bucket.getFile('../../etc/passwd')).toThrow('Path traversal attempt detected');
-		expect(() => bucket.getFile('/etc/passwd')).toThrow('Path traversal attempt detected');
+	it('getFile should throw on path traversal attempts when accessing file', async () => {
+		const file1 = bucket.getFile('../package.json');
+		await expect(file1.exists()).rejects.toThrow('Path traversal attempt detected');
+
+		const file2 = bucket.getFile('../../etc/passwd');
+		expect(() => file2.createReadStream()).toThrow('Path traversal attempt detected');
+
+		const file3 = bucket.getFile('/etc/passwd');
+		await expect(file3.getMetadata()).rejects.toThrow('Path traversal attempt detected');
 	});
 
-	it('getFile should allow valid nested paths', () => {
+	it('getFile should allow valid nested paths', async () => {
+		vi.mocked(access).mockResolvedValue(undefined);
 		const file = bucket.getFile('subdir/../other/file.txt');
 		expect(file.name).toBe(resolve(bucketPath, 'other/file.txt'));
+		await expect(file.exists()).resolves.toBe(true);
 	});
 });
