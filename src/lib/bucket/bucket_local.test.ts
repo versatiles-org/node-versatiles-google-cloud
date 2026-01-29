@@ -77,4 +77,15 @@ describe('BucketLocal', () => {
 		expect(file).toBeInstanceOf(BucketFileLocal);
 		expect(file.name).toBe(resolve(bucketPath, relativePath));
 	});
+
+	it('getFile should throw on path traversal attempts', () => {
+		expect(() => bucket.getFile('../package.json')).toThrow('Path traversal attempt detected');
+		expect(() => bucket.getFile('../../etc/passwd')).toThrow('Path traversal attempt detected');
+		expect(() => bucket.getFile('/etc/passwd')).toThrow('Path traversal attempt detected');
+	});
+
+	it('getFile should allow valid nested paths', () => {
+		const file = bucket.getFile('subdir/../other/file.txt');
+		expect(file.name).toBe(resolve(bucketPath, 'other/file.txt'));
+	});
 });

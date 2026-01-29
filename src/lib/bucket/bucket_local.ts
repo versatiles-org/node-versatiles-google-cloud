@@ -2,7 +2,7 @@ import { AbstractBucket, AbstractBucketFile } from './abstract.js';
 import type { Readable } from 'stream';
 import { access, constants, stat } from 'fs/promises';
 import { createReadStream } from 'fs';
-import { resolve } from 'path';
+import { resolve, sep } from 'path';
 import { BucketFileMetadata } from './metadata.js';
 
 export class BucketFileLocal extends AbstractBucketFile {
@@ -52,7 +52,8 @@ export class BucketLocal extends AbstractBucket {
 
 	public constructor(basePath: string) {
 		super();
-		this.#basePath = basePath;
+		// Normalize the base path to ensure consistent comparison
+		this.#basePath = resolve(basePath);
 	}
 
 	public async check(): Promise<void> {
@@ -60,6 +61,11 @@ export class BucketLocal extends AbstractBucket {
 	}
 
 	public getFile(relativePath: string): BucketFileLocal {
-		return new BucketFileLocal(resolve(this.#basePath, relativePath));
+		const fullPath = resolve(this.#basePath, relativePath);
+		// Prevent path traversal: ensure the resolved path is within the base directory
+		if (!fullPath.startsWith(this.#basePath + sep) && fullPath !== this.#basePath) {
+			throw new Error('Path traversal attempt detected');
+		}
+		return new BucketFileLocal(fullPath);
 	}
 }
