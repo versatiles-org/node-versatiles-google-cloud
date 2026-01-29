@@ -190,6 +190,7 @@ describe('Rewrite', () => {
 			expect(rewrite.match('/apps/other/path/index.html')).toBeNull();
 			expect(rewrite.match('/apps/other/path/without/index-like.file')).toBeNull();
 			expect(rewrite.match('/apps/deeply/nested/with/dots.dots.dots/within/a/directory')).toBe('/apps/deeply/nested/with/dots.dots.dots/within/a/directory/index.html');
+			expect(rewrite.match('/apps/p074_reanimation_maps_web/feat/municipalities/assets/colors-6990494e.js')).toBeNull();
 		})
 	});
 });
