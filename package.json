@@ -2,7 +2,6 @@
   "name": "@versatiles/google-cloud",
   "version": "0.4.8",
   "description": "A server for VersaTiles in Google Cloud Run",
-  "repository": "https://github.com/digitalegarage/node-versatiles-google-cloud.git",
   "bin": {
     "versatiles-google-cloud": "dist/index.js"
   },
@@ -32,6 +31,11 @@
     "test": "vitest run",
     "upgrade": "vrt deps-upgrade"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/versatiles-org/node-versatiles-google-cloud.git"
+  },
+  "homepage": "https://github.com/versatiles-org/node-versatiles-google-cloud#readme",
   "type": "module",
   "author": "yetzt <node@yetzt.me>, Michael Kreil <versatiles@michael-kreil.de>",
   "license": "Unlicense",
