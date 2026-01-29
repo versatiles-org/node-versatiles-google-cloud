@@ -99,8 +99,8 @@ Options:
                                   instead. Useful for local development and
                                   testing.
   -p, --port <port>               Set the server port. Default: 8080
-  -r, --rewrite-rule <path|path>  Set a rewrite rule. Must start with a "/".
-                                  E.g. "/tiles/osm/|/folder/osm.versatiles?"
+  -r, --rewrite-rule <path path>  Set a rewrite rule. Must start with a "/".
+                                  E.g. "/tiles/osm/ /folder/osm.versatiles?"
                                   (default: [])
   -v, --verbose                   Enable verbose mode for detailed operational
                                   logs.
