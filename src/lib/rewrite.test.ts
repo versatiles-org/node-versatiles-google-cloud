@@ -180,14 +180,16 @@ describe('Rewrite', () => {
 
 		it('should work with simlar prefixes', () => {
 			const rewrite = new Rewrite([
-				['/app:any(.*(?<!index.html)$)', '/app:any(.*(?<!index.html)$)/index.html'],
+				['/apps:any((?!.*\\.[^/]+$).*)?', '/apps:any((?!.*\\.[^/]+$).*)?/index.html'],
 			]);
-			expect(rewrite.match('/app')).toBe('/app/index.html');
-			expect(rewrite.match('/app/index.html')).toBeNull();
-			expect(rewrite.match('/app/some')).toBe('/app/some/index.html');
-			expect(rewrite.match('/app/some/index.html')).toBeNull();
-			expect(rewrite.match('/app/other/path')).toBe('/app/other/path/index.html');
-			expect(rewrite.match('/app/other/path/index.html')).toBeNull();
+			expect(rewrite.match('/apps')).toBe('/apps/index.html');
+			expect(rewrite.match('/apps/index.html')).toBeNull();
+			expect(rewrite.match('/apps/some')).toBe('/apps/some/index.html');
+			expect(rewrite.match('/apps/some/index.html')).toBeNull();
+			expect(rewrite.match('/apps/other/path')).toBe('/apps/other/path/index.html');
+			expect(rewrite.match('/apps/other/path/index.html')).toBeNull();
+			expect(rewrite.match('/apps/other/path/without/index-like.file')).toBeNull();
+			expect(rewrite.match('/apps/deeply/nested/with/dots.dots.dots/within/a/directory')).toBe('/apps/deeply/nested/with/dots.dots.dots/within/a/directory/index.html');
 		})
 	});
 });
