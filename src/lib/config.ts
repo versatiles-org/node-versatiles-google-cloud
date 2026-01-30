@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { load as loadYaml } from 'js-yaml';
+import { loadConfig as loadConfigC12 } from 'c12';
+import { existsSync } from 'node:fs';
 
 /**
  * Configuration file interface defining all optional config fields.
@@ -17,37 +17,49 @@ export interface ConfigFile {
 
 /**
  * Loads and validates a configuration file from the specified path.
- * @param path - Path to the YAML configuration file
+ * Supports YAML, JSON, TOML, JS, and TS config formats.
+ * Supports config inheritance via the "extends" property.
+ * @param path - Path to the configuration file
  * @returns Parsed and validated configuration object
  * @throws Error if file cannot be read, parsed, or contains invalid values
  */
-export function loadConfig(path: string): ConfigFile {
-	let content: string;
-	try {
-		content = readFileSync(path, 'utf-8');
-	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		throw new Error(`Failed to read config file "${path}": ${message}`);
+export async function loadConfig(path: string): Promise<ConfigFile> {
+	// Check if file exists first - c12 returns empty config for non-existent files
+	if (!existsSync(path)) {
+		throw new Error(`Failed to read config file "${path}": ENOENT: no such file or directory`);
 	}
 
-	let parsed: unknown;
+	let result: Awaited<ReturnType<typeof loadConfigC12<ConfigFile>>>;
 	try {
-		parsed = loadYaml(content);
+		result = await loadConfigC12<ConfigFile>({
+			configFile: path,
+			rcFile: false,
+			globalRc: false,
+			packageJson: false,
+			dotenv: false,
+		});
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : String(error);
+		// c12 throws when YAML parses to null (empty file, comments only, explicit null)
+		// Treat these as empty config for backward compatibility
+		if (message.includes("Cannot read properties of null") || message.includes("Cannot read properties of undefined")) {
+			return {};
+		}
 		throw new Error(`Failed to parse config file "${path}": ${message}`);
 	}
 
-	// Empty file returns undefined/null - that's valid
-	if (parsed == null) {
+	const config = result.config;
+
+	// Empty file returns empty object (layers will be populated but config is empty)
+	if (config == null || (typeof config === 'object' && Object.keys(config).length === 0)) {
 		return {};
 	}
 
-	if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-		throw new Error(`Config file "${path}" must contain a YAML object`);
+	if (typeof config !== 'object' || Array.isArray(config)) {
+		throw new Error(`Config file "${path}" must contain an object`);
 	}
 
-	return validateConfig(parsed as Record<string, unknown>, path);
+	return validateConfig(config as Record<string, unknown>, path);
 }
 
 /**

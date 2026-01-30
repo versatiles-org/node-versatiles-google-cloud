@@ -39,12 +39,12 @@ program
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
 	.option(`-r, --rewrite-rule <path${REWRITE_DELIMITER}path>`, `Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/${REWRITE_DELIMITER}/folder/osm.versatiles?"`, collect, [])
 	.option('-v, --verbose', 'Enable verbose mode for detailed operational logs.')
-	.action((bucketName: string | undefined, cmdOptions: Record<string, unknown>) => {
+	.action(async (bucketName: string | undefined, cmdOptions: Record<string, unknown>) => {
 		// Load config file if provided
 		let config: ConfigFile = {};
 		if (cmdOptions.config) {
 			try {
-				config = loadConfig(String(cmdOptions.config));
+				config = await loadConfig(String(cmdOptions.config));
 			} catch (error: unknown) {
 				const errorMessage = String((typeof error == 'object' && error != null && 'message' in error) ? error.message : error);
 				console.error(errorMessage);
