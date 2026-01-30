@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Rewrite } from './rewrite.js';
 
 describe('Rewrite', () => {
@@ -130,20 +130,41 @@ describe('Rewrite', () => {
 	});
 
 	describe('options', () => {
-		it('should accept verbose option', () => {
+		let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			consoleLogSpy.mockRestore();
+		});
+
+		it('should accept verbose option and log rewrites', () => {
 			const rewrite = new Rewrite([
 				['/old', '/new'],
 			], { verbose: true });
 
 			expect(rewrite.match('/old')).toBe('/new');
+			expect(consoleLogSpy).toHaveBeenCalledWith('[Rewrite]', 'rule "/old" matched, rewriting "/old" to "/new"');
 		});
 
-		it('should accept combined options', () => {
+		it('should accept combined options and log rewrites', () => {
 			const rewrite = new Rewrite([
 				['/old', '/new'],
 			], { verbose: true, cache: false });
 
 			expect(rewrite.match('/old')).toBe('/new');
+			expect(consoleLogSpy).toHaveBeenCalledWith('[Rewrite]', 'rule "/old" matched, rewriting "/old" to "/new"');
+		});
+
+		it('should not log when verbose is false', () => {
+			const rewrite = new Rewrite([
+				['/old', '/new'],
+			], { verbose: false });
+
+			expect(rewrite.match('/old')).toBe('/new');
+			expect(consoleLogSpy).not.toHaveBeenCalled();
 		});
 	});
 
