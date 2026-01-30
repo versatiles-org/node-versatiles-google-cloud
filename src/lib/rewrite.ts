@@ -45,8 +45,8 @@ export class Rewrite {
 	 * @param rules List of rules to be applied.
 	 * @param options
 	 */
-	constructor(rules: [string, string][], private readonly options: Options = DEFAULT_OPTIONS) {
-		for (const [_, [search, replacement]] of Object.entries(rules)) {
+	constructor(rules: Record<string, string>, private readonly options: Options = DEFAULT_OPTIONS) {
+		for (const [search, replacement] of Object.entries(rules)) {
 			this.register(search, replacement);
 		}
 	}

@@ -78,8 +78,8 @@ fastRecompression: false
 verbose: false
 
 rewriteRules:
-  - ["/tiles/:name", "/geodata/:name.versatiles"]
-  - ["/apps:any((?!.*\\.[^/]+$).*)?", "/apps:any/index.html"]
+  "/tiles/:name": "/geodata/:name.versatiles"
+  "/apps:any((?!.*\\.[^/]+$).*)?": "/apps:any/index.html"
 ```
 
 **JSON** (`config.json`):
@@ -89,9 +89,9 @@ rewriteRules:
   "bucket": "my-tiles-bucket",
   "baseUrl": "https://tiles.example.com/",
   "port": 8080,
-  "rewriteRules": [
-    ["/tiles/:name", "/geodata/:name.versatiles"]
-  ]
+  "rewriteRules": {
+    "/tiles/:name": "/geodata/:name.versatiles"
+  }
 }
 ```
 
@@ -115,7 +115,7 @@ bucket: "production-bucket"
 port: 8080
 verbose: false
 rewriteRules:
-  - ["/tiles/:name", "/geodata/:name.versatiles"]
+  "/tiles/:name": "/geodata/:name.versatiles"
 ```
 
 ```yaml
@@ -134,17 +134,17 @@ When using `extends`:
 
 ### Configuration options
 
-| Option              | Type    | Description                                   |
-| ------------------- | ------- | --------------------------------------------- |
-| `bucket`            | string  | Name of the Google Cloud Storage bucket       |
-| `baseUrl`           | string  | Public base URL                               |
-| `directory`         | string  | Bucket directory prefix                       |
-| `port`              | integer | Server port (default: 8080)                   |
-| `fastRecompression` | boolean | Enable fast recompression mode                |
-| `localDirectory`    | string  | Use local directory instead of bucket         |
-| `verbose`           | boolean | Enable verbose logging                        |
-| `rewriteRules`      | array   | List of `[source, target]` path rewrite rules |
-| `extends`           | string  | Path to parent configuration file to inherit  |
+| Option              | Type    | Description                                  |
+| ------------------- | ------- | -------------------------------------------- |
+| `bucket`            | string  | Name of the Google Cloud Storage bucket      |
+| `baseUrl`           | string  | Public base URL                              |
+| `directory`         | string  | Bucket directory prefix                      |
+| `port`              | integer | Server port (default: 8080)                  |
+| `fastRecompression` | boolean | Enable fast recompression mode               |
+| `localDirectory`    | string  | Use local directory instead of bucket        |
+| `verbose`           | boolean | Enable verbose logging                       |
+| `rewriteRules`      | object  | Object mapping source paths to target paths  |
+| `extends`           | string  | Path to parent configuration file to inherit |
 
 > [!NOTE]
 > When using `--config`, the bucket name can be omitted from the command line if it's specified in the config file. The bucket is only required if `localDirectory` is not set.

@@ -12,7 +12,7 @@ export interface ConfigFile {
 	fastRecompression?: boolean;
 	localDirectory?: string;
 	verbose?: boolean;
-	rewriteRules?: [string, string][];
+	rewriteRules?: Record<string, string>;
 }
 
 /**
@@ -127,26 +127,28 @@ function validateConfig(config: Record<string, unknown>, path: string): ConfigFi
 /**
  * Validates the rewrite rules configuration.
  */
-function validateRewriteRules(rules: unknown, path: string): [string, string][] {
-	if (!Array.isArray(rules)) {
-		throw new Error(`Config file "${path}": "rewriteRules" must be an array`);
+function validateRewriteRules(rules: unknown, path: string): Record<string, string> {
+	if (rules === null || typeof rules !== 'object' || Array.isArray(rules)) {
+		throw new Error(`Config file "${path}": "rewriteRules" must be an object`);
 	}
 
-	return rules.map((rule, index) => {
-		if (!Array.isArray(rule) || rule.length !== 2) {
-			throw new Error(`Config file "${path}": rewriteRules[${index}] must be a tuple of two strings`);
+	const result: Record<string, string> = {};
+
+	for (const [source, target] of Object.entries(rules)) {
+		if (typeof target !== 'string') {
+			throw new Error(`Config file "${path}": rewriteRules["${source}"] value must be a string`);
 		}
 
-		const [source, target] = rule;
-
-		if (typeof source !== 'string' || typeof target !== 'string') {
-			throw new Error(`Config file "${path}": rewriteRules[${index}] must contain two strings`);
+		if (!source.startsWith('/')) {
+			throw new Error(`Config file "${path}": rewriteRules key "${source}" must start with "/"`);
 		}
 
-		if (!source.startsWith('/') || !target.startsWith('/')) {
-			throw new Error(`Config file "${path}": rewriteRules[${index}] paths must start with "/"`);
+		if (!target.startsWith('/')) {
+			throw new Error(`Config file "${path}": rewriteRules["${source}"] value must start with "/"`);
 		}
 
-		return [source, target];
-	});
+		result[source] = target;
+	}
+
+	return result;
 }

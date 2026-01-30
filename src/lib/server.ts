@@ -16,7 +16,7 @@ export interface ServerOptions {
 	bucketPrefix: string; // Prefix for objects in the bucket
 	fastRecompression: boolean; // Flag for fast recompression
 	localDirectory?: string; // Local directory path to use instead of GCS bucket
-	rewriteRules: [string, string][];
+	rewriteRules: Record<string, string>;
 	port: number; // Port number for the server
 	verbose: boolean; // Flag for verbose logging
 }
