@@ -24,7 +24,7 @@ describe('config.ts', () => {
 	describe('loadConfig', () => {
 		it('throws error when file not found', async () => {
 			await expect(loadConfig('/nonexistent/path/config.yaml'))
-				.rejects.toThrow(/Failed to read config file.*Cannot find/);
+				.rejects.toThrow(/Failed to read config file.*ENOENT/);
 		});
 
 		it('throws error for invalid YAML syntax', async () => {
@@ -45,10 +45,10 @@ describe('config.ts', () => {
 			expect(config).toEqual({});
 		});
 
-		it('throws error when config is not an object', async () => {
+		it('returns empty object when config is an array (c12 normalizes non-objects)', async () => {
 			const path = writeConfig('array.yaml', '- item1\n- item2');
-			await expect(loadConfig(path))
-				.rejects.toThrow(/must contain an object/);
+			const config = await loadConfig(path);
+			expect(config).toEqual({});
 		});
 
 		it('parses all fields correctly', async () => {
