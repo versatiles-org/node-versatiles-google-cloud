@@ -258,6 +258,6 @@ rewriteRules:
 		const moduleUrl = './index.js?t=' + Math.random().toString(16).slice(2);
 		const module = await import(moduleUrl);
 		const program = (module.program) as Command;
-		program.parse(['./node', './index.ts', ...args]);
+		await program.parseAsync(['./node', './index.ts', ...args]);
 	}
 });
