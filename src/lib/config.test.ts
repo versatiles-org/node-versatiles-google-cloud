@@ -61,8 +61,8 @@ fastRecompression: true
 localDirectory: ./local
 verbose: true
 rewriteRules:
-  - ["/tiles/:name", "/geodata/:name.versatiles"]
-  - ["/apps:any", "/apps:any/index.html"]
+  "/tiles/:name": "/geodata/:name.versatiles"
+  "/apps:any": "/apps:any/index.html"
 `);
 			const config = await loadConfig(path);
 			expect(config).toEqual({
@@ -73,10 +73,10 @@ rewriteRules:
 				fastRecompression: true,
 				localDirectory: './local',
 				verbose: true,
-				rewriteRules: [
-					['/tiles/:name', '/geodata/:name.versatiles'],
-					['/apps:any', '/apps:any/index.html'],
-				],
+				rewriteRules: {
+					'/tiles/:name': '/geodata/:name.versatiles',
+					'/apps:any': '/apps:any/index.html',
+				},
 			} satisfies ConfigFile);
 		});
 
@@ -183,20 +183,20 @@ port: 9090
 			const basePath = writeConfig('base3.yaml', `
 bucket: base-bucket
 rewriteRules:
-  - ["/parent/path", "/parent/target"]
+  "/parent/path": "/parent/target"
 `);
 			const childPath = writeConfig('child3.yaml', `
 extends: ${basePath}
 rewriteRules:
-  - ["/child/path", "/child/target"]
+  "/child/path": "/child/target"
 `);
 			const config = await loadConfig(childPath);
 			expect(config.bucket).toBe('base-bucket');
-			// c12 uses defu for merging, which appends child rules to parent rules
-			expect(config.rewriteRules).toEqual([
-				['/child/path', '/child/target'],
-				['/parent/path', '/parent/target'],
-			]);
+			// c12 uses defu for merging, which merges child rules with parent rules
+			expect(config.rewriteRules).toEqual({
+				'/child/path': '/child/target',
+				'/parent/path': '/parent/target',
+			});
 		});
 
 		it('supports multi-level inheritance', async () => {
@@ -275,76 +275,67 @@ verbose: true
 	});
 
 	describe('rewrite rules validation', () => {
-		it('throws error when rewriteRules is not an array', async () => {
-			const path = writeConfig('invalid-rules-object.yaml', 'rewriteRules: not-an-array');
+		it('throws error when rewriteRules is not an object', async () => {
+			const path = writeConfig('invalid-rules-string.yaml', 'rewriteRules: not-an-object');
 			await expect(loadConfig(path))
-				.rejects.toThrow(/"rewriteRules" must be an array/);
+				.rejects.toThrow(/"rewriteRules" must be an object/);
 		});
 
-		it('throws error when rule is not a tuple', async () => {
-			const path = writeConfig('invalid-rule-not-tuple.yaml', `
+		it('throws error when rewriteRules is an array', async () => {
+			const path = writeConfig('invalid-rules-array.yaml', `
 rewriteRules:
-  - /single/path
+  - ["/source", "/target"]
 `);
 			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[0\] must be a tuple of two strings/);
+				.rejects.toThrow(/"rewriteRules" must be an object/);
 		});
 
-		it('throws error when rule has wrong length', async () => {
-			const path = writeConfig('invalid-rule-length.yaml', `
+		it('throws error when value is not a string', async () => {
+			const path = writeConfig('invalid-rule-value.yaml', `
 rewriteRules:
-  - ["/one", "/two", "/three"]
+  "/source": 123
 `);
 			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[0\] must be a tuple of two strings/);
+				.rejects.toThrow(/rewriteRules\["\/source"\] value must be a string/);
 		});
 
-		it('throws error when rule contains non-strings', async () => {
-			const path = writeConfig('invalid-rule-types.yaml', `
+		it('throws error when key does not start with /', async () => {
+			const path = writeConfig('invalid-rule-key.yaml', `
 rewriteRules:
-  - [123, "/target"]
+  "source": "/target"
 `);
 			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[0\] must contain two strings/);
+				.rejects.toThrow(/rewriteRules key "source" must start with "\/"/);
 		});
 
-		it('throws error when source does not start with /', async () => {
-			const path = writeConfig('invalid-rule-source.yaml', `
-rewriteRules:
-  - ["source", "/target"]
-`);
-			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[0\] paths must start with "\/"/);
-		});
-
-		it('throws error when target does not start with /', async () => {
+		it('throws error when value does not start with /', async () => {
 			const path = writeConfig('invalid-rule-target.yaml', `
 rewriteRules:
-  - ["/source", "target"]
+  "/source": "target"
 `);
 			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[0\] paths must start with "\/"/);
+				.rejects.toThrow(/rewriteRules\["\/source"\] value must start with "\/"/);
 		});
 
-		it('validates all rules in array', async () => {
+		it('validates all rules in object', async () => {
 			const path = writeConfig('invalid-second-rule.yaml', `
 rewriteRules:
-  - ["/valid/source", "/valid/target"]
-  - ["invalid", "/target"]
+  "/valid/source": "/valid/target"
+  "invalid": "/target"
 `);
 			await expect(loadConfig(path))
-				.rejects.toThrow(/rewriteRules\[1\] paths must start with "\/"/);
+				.rejects.toThrow(/rewriteRules key "invalid" must start with "\/"/);
 		});
 
 		it('accepts valid rewrite rules', async () => {
 			const path = writeConfig('valid-rules.yaml', `
 rewriteRules:
-  - ["/tiles/:name", "/geodata/:name.versatiles"]
+  "/tiles/:name": "/geodata/:name.versatiles"
 `);
 			const config = await loadConfig(path);
-			expect(config.rewriteRules).toEqual([
-				['/tiles/:name', '/geodata/:name.versatiles'],
-			]);
+			expect(config.rewriteRules).toEqual({
+				'/tiles/:name': '/geodata/:name.versatiles',
+			});
 		});
 	});
 });

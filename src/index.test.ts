@@ -24,7 +24,7 @@ describe('index.ts', () => {
 		fastRecompression: false,
 		localDirectory: undefined,
 		port: 8080,
-		rewriteRules: [],
+		rewriteRules: {},
 		verbose: false,
 	};
 
@@ -144,14 +144,14 @@ verbose: false
 			const configPath = writeConfig('config.yaml', `
 bucket: config-bucket
 rewriteRules:
-  - ["/config/source", "/config/target"]
+  "/config/source": "/config/target"
 `);
 			await run('--config', configPath, '-r', '/cli/source /cli/target');
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
 				...defaultResults,
 				bucket: 'config-bucket',
-				rewriteRules: [['/cli/source', '/cli/target']],
+				rewriteRules: { '/cli/source': '/cli/target' },
 			});
 		});
 
@@ -159,18 +159,18 @@ rewriteRules:
 			const configPath = writeConfig('config.yaml', `
 bucket: config-bucket
 rewriteRules:
-  - ["/config/source", "/config/target"]
-  - ["/another/source", "/another/target"]
+  "/config/source": "/config/target"
+  "/another/source": "/another/target"
 `);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
 				...defaultResults,
 				bucket: 'config-bucket',
-				rewriteRules: [
-					['/config/source', '/config/target'],
-					['/another/source', '/another/target'],
-				],
+				rewriteRules: {
+					'/config/source': '/config/target',
+					'/another/source': '/another/target',
+				},
 			});
 		});
 
@@ -237,7 +237,7 @@ fastRecompression: true
 localDirectory: ./full-local
 verbose: true
 rewriteRules:
-  - ["/a", "/b"]
+  "/a": "/b"
 `);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
@@ -248,7 +248,7 @@ rewriteRules:
 				fastRecompression: true,
 				localDirectory: './full-local',
 				port: 7777,
-				rewriteRules: [['/a', '/b']],
+				rewriteRules: { '/a': '/b' },
 				verbose: true,
 			});
 		});

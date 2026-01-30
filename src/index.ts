@@ -70,23 +70,25 @@ program
 
 		// CLI rewrite rules completely replace config rules (no merging)
 		const cliRewriteRules = cmdOptions.rewriteRule as string[];
-		let rewriteRules: [string, string][];
+		let rewriteRules: Record<string, string>;
 
 		if (cliRewriteRules.length > 0) {
 			// Use CLI rules
-			rewriteRules = cliRewriteRules.map(r => {
+			rewriteRules = {};
+			for (const r of cliRewriteRules) {
 				const parts = String(r).split(REWRITE_DELIMITER);
 				if (parts.length !== 2) throw Error(`a rewrite rule must be formatted as "$request${REWRITE_DELIMITER}$origin"`);
 				if (!parts[0].startsWith('/') || !parts[1].startsWith('/')) throw Error(`each side of a rewrite rule must start with a "/", e.g. "/public${REWRITE_DELIMITER}/origin", but this rule is formatted as "${String(r)}"`);
-				return parts as [string, string];
-			});
+				rewriteRules[parts[0]] = parts[1];
+			}
 		} else {
-			// Use config rules (or empty array)
-			rewriteRules = config.rewriteRules ?? [];
+			// Use config rules (or empty object)
+			rewriteRules = config.rewriteRules ?? {};
 		}
 
 		if (verbose) {
 			// Log parameters for verbose mode
+			const ruleEntries = Object.entries(rewriteRules);
 			console.table({
 				baseUrl,
 				bucket,
@@ -96,7 +98,7 @@ program
 				port,
 				verbose,
 				...(cmdOptions.config ? { configFile: cmdOptions.config } : {}),
-				...Object.fromEntries(rewriteRules.map((r, i) => ['rewriteRule ' + (i + 1), r.join(' => ')])),
+				...Object.fromEntries(ruleEntries.map(([source, target], i) => ['rewriteRule ' + (i + 1), `${source} => ${target}`])),
 			});
 		}
 
