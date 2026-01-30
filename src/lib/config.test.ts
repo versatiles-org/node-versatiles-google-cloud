@@ -45,10 +45,10 @@ describe('config.ts', () => {
 			expect(config).toEqual({});
 		});
 
-		it('returns empty object when config is an array (c12 normalizes non-objects)', async () => {
+		it('throws error when config is an array', async () => {
 			const path = writeConfig('array.yaml', '- item1\n- item2');
-			const config = await loadConfig(path);
-			expect(config).toEqual({});
+			await expect(loadConfig(path))
+				.rejects.toThrow(/must contain an object/);
 		});
 
 		it('parses all fields correctly', async () => {
