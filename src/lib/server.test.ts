@@ -65,9 +65,9 @@ class MockedServer {
 			fastRecompression: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
-			rewriteRules: [
-				['/g/:name.v', '/geodata/:name.versatiles'],
-			],
+			rewriteRules: {
+				'/g/:name.v': '/geodata/:name.versatiles',
+			},
 			verbose: false,
 		});
 
