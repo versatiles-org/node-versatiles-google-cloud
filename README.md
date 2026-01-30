@@ -48,7 +48,7 @@ You can create more complex matching patterns using regular expressions. For ins
 
 ## Configuration file
 
-Instead of passing all options via command line arguments, you can use a YAML configuration file with the `-c` or `--config` option:
+Instead of passing all options via command line arguments, you can use a configuration file with the `-c` or `--config` option:
 
 ```bash
 versatiles-google-cloud --config ./config.yaml
@@ -56,7 +56,18 @@ versatiles-google-cloud --config ./config.yaml
 
 CLI arguments always override values from the configuration file. This allows you to define defaults in the config file and override specific values as needed.
 
+### Supported formats
+
+Configuration files can be written in multiple formats:
+
+- **YAML** (`.yaml`, `.yml`)
+- **JSON** (`.json`)
+- **JavaScript** (`.js`, `.mjs`, `.cjs`)
+- **TypeScript** (`.ts`, `.mts`, `.cts`)
+
 ### Example configuration file
+
+**YAML** (`config.yaml`):
 
 ```yaml
 bucket: "my-tiles-bucket"
@@ -71,6 +82,56 @@ rewriteRules:
   - ["/apps:any((?!.*\\.[^/]+$).*)?", "/apps:any/index.html"]
 ```
 
+**JSON** (`config.json`):
+
+```json
+{
+  "bucket": "my-tiles-bucket",
+  "baseUrl": "https://tiles.example.com/",
+  "port": 8080,
+  "rewriteRules": [
+    ["/tiles/:name", "/geodata/:name.versatiles"]
+  ]
+}
+```
+
+**JavaScript** (`config.mjs`):
+
+```javascript
+export default {
+  bucket: "my-tiles-bucket",
+  baseUrl: "https://tiles.example.com/",
+  port: 8080,
+};
+```
+
+### Configuration inheritance
+
+Configuration files can extend other configurations using the `extends` property. This allows you to create a base configuration and override specific values in derived configurations.
+
+```yaml
+# base.yaml
+bucket: "production-bucket"
+port: 8080
+verbose: false
+rewriteRules:
+  - ["/tiles/:name", "/geodata/:name.versatiles"]
+```
+
+```yaml
+# development.yaml
+extends: ./base.yaml
+bucket: "dev-bucket"
+verbose: true
+```
+
+When using `extends`:
+
+- All values from the parent config are inherited
+- Values in the child config override parent values
+- For `rewriteRules`, child rules are merged with parent rules (child rules take precedence)
+- Multi-level inheritance is supported (grandparent → parent → child)
+
 ### Configuration options
 
 | Option              | Type    | Description                                   |
@@ -83,6 +144,7 @@ rewriteRules:
 | `localDirectory`    | string  | Use local directory instead of bucket         |
 | `verbose`           | boolean | Enable verbose logging                        |
 | `rewriteRules`      | array   | List of `[source, target]` path rewrite rules |
+| `extends`           | string  | Path to parent configuration file to inherit  |
 
 > [!NOTE]
 > When using `--config`, the bucket name can be omitted from the command line if it's specified in the config file. The bucket is only required if `localDirectory` is not set.
