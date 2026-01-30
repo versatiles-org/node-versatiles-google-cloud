@@ -14,7 +14,7 @@ vi.spyOn(console, 'log').mockReturnValue();
 vi.spyOn(console, 'table').mockReturnValue();
 vi.spyOn(console, 'error').mockReturnValue();
 
-const testDir = join(process.cwd(), `test-index-temp-${randomUUID()}`);
+const testDir = join(process.cwd(), `temp/test-index-temp-${randomUUID()}`);
 
 describe('index.ts', () => {
 	const defaultResults = {
