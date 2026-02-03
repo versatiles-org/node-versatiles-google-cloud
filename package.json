@@ -27,7 +27,6 @@
     "release": "vrt release-npm",
     "start": "tsx src/index.ts",
     "test-coverage": "vitest run --coverage",
-    "test-node": "rm -rf temp && tsc -p tsconfig.test.json && chmod +x temp/index.js && vitest run; rm -rf temp",
     "test": "vitest run",
     "upgrade": "vrt deps-upgrade"
   },
