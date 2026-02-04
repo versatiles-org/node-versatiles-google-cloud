@@ -70,7 +70,7 @@
     "express": "^5.2.1",
     "c12": "^3.3.3",
     "mrmime": "^2.0.1",
-    "path-to-regexp": "^6.3.0"
+    "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
