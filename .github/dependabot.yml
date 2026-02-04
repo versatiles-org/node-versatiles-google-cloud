@@ -8,6 +8,9 @@ updates:
       npm:
         patterns: ['*']
     versioning-strategy: increase-if-necessary
+    ignore:
+      - dependency-name: path-to-regexp
+        versions: [ "8.3.x" ] # waiting for full regex support in path-to-regexp
 
   - package-ecosystem: github-actions
     directory: /
