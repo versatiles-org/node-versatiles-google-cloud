@@ -1,5 +1,8 @@
-[![Code Coverage](https://codecov.io/gh/versatiles-org/node-versatiles-google-cloud/branch/main/graph/badge.svg?token=IDHAI13M0K)](https://codecov.io/gh/versatiles-org/node-versatiles-google-cloud)
-[![GitHub Workflow Status)](https://img.shields.io/github/actions/workflow/status/versatiles-org/node-versatiles-google-cloud/ci.yml)](https://github.com/versatiles-org/node-versatiles-google-cloud/actions/workflows/ci.yml)
+[![NPM version](https://img.shields.io/npm/v/%40versatiles%2Fgoogle-cloud)](https://www.npmjs.com/package/@versatiles/google-cloud)
+[![NPM downloads](https://img.shields.io/npm/dt/%40versatiles%2Fgoogle-cloud)](https://www.npmjs.com/package/@versatiles/google-cloud)
+[![Code coverage](https://codecov.io/gh/versatiles-org/node-versatiles-google-cloud/branch/main/graph/badge.svg?token=IDHAI13M0K)](https://codecov.io/gh/versatiles-org/node-versatiles-google-cloud)
+[![CI status](https://img.shields.io/github/actions/workflow/status/versatiles-org/node-versatiles-google-cloud/ci.yml)](https://github.com/versatiles-org/node-versatiles-google-cloud/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 # VersaTiles Server for Google Cloud Run
 
