@@ -19,6 +19,7 @@ interface MockedServerOptions {
 	localDirectory?: string;
 	port?: number;
 	returnRawBuffer?: boolean;
+	rewriteRules?: Record<string, string>;
 }
 
 interface MockedResponse {
@@ -66,8 +67,8 @@ class MockedServer {
 			fastRecompression: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
-			rewriteRules: {
-				'/g/:name.v': '/geodata/:name.versatiles',
+			rewriteRules: me.#opt.rewriteRules ?? {
+				'/g/:name/:args(.*)': '/geodata/:name.versatiles\\?:args',
 			},
 			verbose: false,
 		});
@@ -162,8 +163,7 @@ describe('Server', () => {
 		});
 
 		it('rewrites path according to rules', async () => {
-			const response = await server.get('/g/test.v?meta.json');
-			console.log(response);
+			const response = await server.get('/g/test/meta.json');
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
 			expect(response.contentType).toBe('application/json');
@@ -278,6 +278,69 @@ describe('Server', () => {
 				expect(response.buffer.length).not.toStrictEqual(response.rawBuffer.length);
 			}
 		}
+	});
+
+	describe('versatiles rewrite rule', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			const bucket = new MockedBucket([
+				{
+					name: 'download.versatiles.org/osm.versatiles',
+					filename: resolve(basePath, 'testdata/island.versatiles'),
+				},
+			]);
+			server = await MockedServer.create({
+				bucket,
+				rewriteRules: {
+					'/tiles/osm/:args(.*)': '/download.versatiles.org/osm.versatiles\\?:args',
+				},
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('serve meta.json via rewrite', async () => {
+			const response = await server.get('/tiles/osm/meta.json');
+			expect(response.status).toBe(200);
+			expect(response.text).toMatch(/^{"vector_layers"/);
+			expect(response.contentType).toBe('application/json');
+		});
+
+		it('serve tiles.json via rewrite', async () => {
+			const response = await server.get('/tiles/osm/tiles.json');
+			expect(response.status).toBe(200);
+			expect(response.text).toMatch(/^{"vector_layers"/);
+			expect(response.contentType).toBe('application/json');
+		});
+
+		it('serve style.json via rewrite', async () => {
+			const response = await server.get('/tiles/osm/style.json');
+			expect(response.status).toBe(200);
+			expect(response.text).toMatch(/^{"version":8/);
+			expect(response.contentType).toBe('application/json');
+		});
+
+		it('serve preview via rewrite', async () => {
+			const response = await server.get('/tiles/osm/preview');
+			expect(response.status).toBe(200);
+			expect(response.text).toMatch(/^<!DOCTYPE html>/);
+			expect(response.contentType).toBe('text/html');
+		});
+
+		it('serve tile via rewrite', async () => {
+			const response = await server.get('/tiles/osm/14/3740/4505');
+			expect(response.status).toBe(200);
+			expect(response.text).toContain('water_lines');
+			expect(response.contentType).toBe('application/x-protobuf');
+		});
+
+		it('handle missing tile via rewrite', async () => {
+			const response = await server.get('/tiles/osm/10/0/0');
+			expect(response.status).toBe(204);
+		});
 	});
 
 	describe('local directory mode', () => {
