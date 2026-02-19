@@ -65,7 +65,6 @@
     "fast-xml-parser": "5.3.4"
   },
   "dependencies": {
-    "@eslint/js": "^10.0.1",
     "@google-cloud/storage": "^7.19.0",
     "@versatiles/container": "^1.4.0",
     "@versatiles/style": "^5.9.4",
@@ -76,6 +75,7 @@
     "path-to-regexp": "^6.3.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.0",
     "@types/supertest": "^6.0.3",
