@@ -61,9 +61,6 @@
     "vectortiles",
     "versatiles"
   ],
-  "overrides": {
-    "fast-xml-parser": "5.3.4"
-  },
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
     "@versatiles/container": "^1.4.0",
