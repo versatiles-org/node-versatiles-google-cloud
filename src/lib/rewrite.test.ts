@@ -237,6 +237,9 @@ describe('Rewrite', () => {
 			).toBeNull();
 		});
 
+		// VersaTiles containers are accessed via query parameters, e.g. /data/osm.versatiles?14/8529/5975
+		// Since "?" means "optional" in path-to-regexp, we escape it as "\?" to produce a literal "?".
+		// In JavaScript string literals, this is written as "\\?" (double backslash).
 		it('should rewrite tile paths to versatiles container with tile coordinates', () => {
 			const rewrite = new Rewrite({
 				'/t/osm/:z(\\d+)/:x(\\d+)/:y(\\d+)': '/d/osm.versatiles\\?:z/:x/:y',
