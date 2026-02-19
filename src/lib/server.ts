@@ -69,15 +69,18 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
-			let pathname = request.path;
-			responder.log('new request: ' + request.url);
+			let { url } = request;
+			responder.log('new request: ' + url);
 
 			try {
-				const maybeRewritten = rewrite.match(pathname);
+				const maybeRewritten = rewrite.match(url);
 				if (maybeRewritten !== null) {
-					pathname = maybeRewritten;
+					responder.log(`rewriting url from "${url}" to "${maybeRewritten}"`);
+					url = maybeRewritten;
 				}
 
+				const parsedUrl = new URL(url, 'http://example.org');
+				const { pathname, search } = parsedUrl;
 				const filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
 
 				responder.log(`request file: ${bucketPrefix + filename}`);
@@ -86,8 +89,6 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 				if (filename.endsWith('.versatiles')) {
 					const container = await getVersatiles(file, baseUrl + filename);
-
-					const { search } = new URL(request.url, 'http://a.b');
 					await container.serve(search, responder);
 				} else {
 					await file.serve(responder);
