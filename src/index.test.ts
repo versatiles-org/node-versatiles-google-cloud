@@ -215,6 +215,29 @@ rewriteRules:
 			});
 		});
 
+		it('config rewrite rules preserve backslash-question-mark for versatiles patterns', async () => {
+			// In YAML double-quoted strings, "\\" is an escape for a literal backslash.
+			// So "\\?" in YAML produces \? in the parsed value, which path-to-regexp
+			// treats as a literal "?" character.
+			// In this JS template literal: \\\\? → \\? in the file → \? when parsed by YAML.
+			const configPath = writeConfig(
+				'config-versatiles.yaml',
+				`
+bucket: config-bucket
+rewriteRules:
+  "/tiles/osm/:args(.*)": "/download/osm.versatiles\\\\?:args"
+`,
+			);
+			await run('--config', configPath);
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				bucket: 'config-bucket',
+				rewriteRules: {
+					'/tiles/osm/:args(.*)': '/download/osm.versatiles\\?:args',
+				},
+			});
+		});
+
 		it('uses bucket from config when no CLI bucket arg', async () => {
 			const configPath = writeConfig(
 				'config.yaml',
