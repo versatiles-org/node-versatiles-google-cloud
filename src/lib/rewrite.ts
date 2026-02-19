@@ -74,6 +74,7 @@ export class Rewrite {
 		} catch (error) {
 			throw new Error(
 				`unable to add search ("${search}") / replacement ("${replacement}") rule due to: ${error}`,
+				{ cause: error },
 			);
 		}
 	}

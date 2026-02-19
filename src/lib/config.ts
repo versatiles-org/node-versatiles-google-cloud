@@ -48,7 +48,7 @@ export async function loadConfig(path: string): Promise<ConfigFile> {
 		) {
 			return {};
 		}
-		throw new Error(`Failed to parse config file "${path}": ${message}`);
+		throw new Error(`Failed to parse config file "${path}": ${message}`, { cause: error });
 	}
 
 	const config = result.config;
