@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-19
+
+### Features
+
+- add support for tiles.json as alias for meta.json in request handling
+- add test for starting server with versatiles rewrite rule
+- enhance rewrite rules for server requests and add tests for tiles.json handling
+
+### Bug Fixes
+
+- disable validation to ensure that strings containing "/" are allowed
+- enhance error handling by adding cause to config and rewrite rule errors
+- update request handling to use request.url instead of request.path
+- omit dev dependencies in npm audit for vulnerability checks
+
+### Documentation
+
+- add comments explaining handling of query parameters in tile path rewrites
+- update rewrite rule option description for clarity and usage examples
+- add detailed examples and explanations for VersaTiles container query rewrites
+
+### Tests
+
+- add tile path rewriting tests for versatiles container
+- shorter paths for testing
+- add case for preserving backslash-question-mark in versatiles rewrite rules
+
+### Chores
+
+- add Prettier for code formatting and update package dependencies
+- update dependencies and devDependencies in package.json
+- update check script to include format checking
+- update package-lock.json and package.json to manage eslint dependency
+- update fast-xml-parser to version 5.3.6 and remove overrides
+- update CI workflow to remove unnecessary branch and tag triggers
+
+### Styles
+
+- improve code formatting
+
 ## [1.0.1] - 2026-02-15
 
 ### Bug Fixes
