@@ -54,7 +54,7 @@ export class Rewrite {
 	register(search: string, replacement: string): Rewrite {
 		try {
 			const resolveSearch = match(search);
-			const compileReplacement = compile(replacement);
+			const compileReplacement = compile(replacement, { validate: false });
 
 			this.#rules.push({
 				search: {
