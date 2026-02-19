@@ -17,7 +17,7 @@
   "scripts": {
     "build:node": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/index.js",
     "build": "npm run build:node && npm run doc",
-    "check": "npm run lint && npm run test && npm run build",
+    "check": "npm run format:check && npm run lint && npm run test && npm run build",
     "coverage": "vitest run --coverage",
     "dev": "tsx watch src/index.ts",
     "doc:command": "vrt doc-command versatiles-google-cloud | vrt doc-insert README.md '## Options'",
