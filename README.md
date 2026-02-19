@@ -42,6 +42,42 @@ You can define path rewriting rules to map public URLs to different paths in the
 
 Rules can use custom pattern matching by utilizing [Custom Matching Parameters](https://github.com/pillarjs/path-to-regexp/tree/6.x?tab=readme-ov-file#custom-matching-parameters). For example, the rule `/tiles/:source.versatiles /data/:source.versatiles` will rewrite requests like `/tiles/osm.versatiles` to `/data/osm.versatiles`.
 
+### Rewriting to VersaTiles container queries
+
+The most common use case is mapping clean tile URLs to VersaTiles container queries. VersaTiles containers are accessed via query parameters (the part after `?`), e.g. `/data/osm.versatiles?14/8529/5975`.
+
+The rule `/tiles/osm/:path(.+)` → `/data/osm.versatiles\?:path` uses:
+
+- `:path(.+)` — a named capture that matches one or more characters (tile coordinates, metadata paths, etc.)
+- `\?` — a literal `?` character (since `?` means "optional" in path-to-regexp, it must be escaped)
+
+**Example rewrites:**
+
+| Request path              | Rewritten to                        |
+| ------------------------- | ----------------------------------- |
+| `/tiles/osm/14/8529/5975` | `/data/osm.versatiles?14/8529/5975` |
+| `/tiles/osm/meta.json`    | `/data/osm.versatiles?meta.json`    |
+| `/tiles/osm/style.json`   | `/data/osm.versatiles?style.json`   |
+
+**Shell escaping:** When passing the rule via CLI, the backslash needs to survive shell processing:
+
+- Double quotes: `-r "/tiles/osm/:path(.+) /data/osm.versatiles\\?:path"`
+- Single quotes: `-r '/tiles/osm/:path(.+) /data/osm.versatiles\?:path'`
+
+**Config file:** In YAML, `\?` works directly in unquoted values:
+
+```yaml
+rewriteRules:
+  /tiles/osm/:path(.+): /data/osm.versatiles\?:path
+```
+
+In double-quoted YAML strings, use `\\?`:
+
+```yaml
+rewriteRules:
+  "/tiles/osm/:path(.+)": "/data/osm.versatiles\\?:path"
+```
+
 ### Complex matching
 
 You can create more complex matching patterns using regular expressions. For instance, the rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` will match any path under `/apps` that does not end with a file extension and rewrite it to serve the corresponding `index.html` file.
@@ -82,6 +118,7 @@ verbose: false
 
 rewriteRules:
   "/tiles/:name": "/geodata/:name.versatiles"
+  "/tiles/osm/:path(.+)": "/data/osm.versatiles\\?:path"
   "/apps:any((?!.*\\.[^/]+$).*)?": "/apps:any/index.html"
 ```
 
