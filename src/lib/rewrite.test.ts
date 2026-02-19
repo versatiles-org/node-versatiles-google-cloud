@@ -129,7 +129,7 @@ describe('Rewrite', () => {
 		let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
 		beforeEach(() => {
-			consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+			consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 		});
 
 		afterEach(() => {
@@ -209,5 +209,35 @@ describe('Rewrite', () => {
 			expect(rewrite.match('/apps/deeply/nested/with/dots.dots.dots/within/a/directory')).toBe('/apps/deeply/nested/with/dots.dots.dots/within/a/directory/index.html');
 			expect(rewrite.match('/apps/p074_reanimation_maps_web/feat/municipalities/assets/colors-6990494e.js')).toBeNull();
 		})
+
+		it('should rewrite tile paths to versatiles container with tile coordinates', () => {
+			const rewrite = new Rewrite({
+				'/tiles/osm/:z(\\d+)/:x(\\d+)/:y(\\d+)': '/download.versatiles.org/osm.versatiles\\?:z/:x/:y',
+			});
+			expect(rewrite.match('/tiles/osm/5/17/11')).toBe('/download.versatiles.org/osm.versatiles?5/17/11');
+			expect(rewrite.match('/tiles/osm/0/0/0')).toBe('/download.versatiles.org/osm.versatiles?0/0/0');
+			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe('/download.versatiles.org/osm.versatiles?14/8529/5975');
+			// should not match non-numeric values
+			expect(rewrite.match('/tiles/osm/a/b/c')).toBeNull();
+			// should not match incomplete paths
+			expect(rewrite.match('/tiles/osm/5/17')).toBeNull();
+			expect(rewrite.match('/tiles/osm')).toBeNull();
+			// should not match extra segments
+			expect(rewrite.match('/tiles/osm/5/17/11/extra')).toBeNull();
+		});
+
+		it('should rewrite tile paths to versatiles container with wildcard suffix', () => {
+			const rewrite = new Rewrite({
+				'/tiles/osm/:path(.+)': '/download.versatiles.org/osm.versatiles\\?:path',
+			});
+			expect(rewrite.match('/tiles/osm/5/17/11')).toBe('/download.versatiles.org/osm.versatiles?5/17/11');
+			expect(rewrite.match('/tiles/osm/0/0/0')).toBe('/download.versatiles.org/osm.versatiles?0/0/0');
+			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe('/download.versatiles.org/osm.versatiles?14/8529/5975');
+			expect(rewrite.match('/tiles/osm/meta.json')).toBe('/download.versatiles.org/osm.versatiles?meta.json');
+			expect(rewrite.match('/tiles/osm/anything/goes/here')).toBe('/download.versatiles.org/osm.versatiles?anything/goes/here');
+			// must have at least one segment after /tiles/osm/
+			expect(rewrite.match('/tiles/osm')).toBeNull();
+			expect(rewrite.match('/tiles/osm/')).toBeNull();
+		});
 	});
 });
