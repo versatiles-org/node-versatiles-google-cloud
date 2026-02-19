@@ -52,6 +52,7 @@ export class Versatiles {
 			case '?preview':
 				await this.sendPreview(responder);
 				return;
+			case '?tiles.json':
 			case '?meta.json':
 				await this.sendMeta(responder);
 				return;
@@ -72,7 +73,7 @@ export class Versatiles {
 
 		responder.error(
 			400,
-			'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+			'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 		);
 		return;
 	}

@@ -31,6 +31,13 @@ describe('VersaTiles', () => {
 			});
 		});
 
+		it('should handle tiles.json as alias for meta.json', async () => {
+			await checkResponse('?tiles.json', 200, '{"vector_layers":[{"id":"place_labels"', {
+				...defaultHeader,
+				'content-type': 'application/json',
+			});
+		});
+
 		it('should handle style.json request correctly', async () => {
 			await checkResponse('?style.json', 200, '{"version":8,"name":"versatiles-colorful",', {
 				...defaultHeader,
@@ -54,7 +61,7 @@ describe('VersaTiles', () => {
 			await checkError(
 				'?bathtub',
 				400,
-				'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 			);
 		});
 

@@ -229,7 +229,7 @@ describe('Server', () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
 			expect(response.text).toBe(
-				'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 			);
 			expect(response.contentType).toBe('text/plain');
 		});
