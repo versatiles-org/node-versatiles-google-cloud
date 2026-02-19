@@ -50,7 +50,11 @@ program
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
 	.option(
 		`-r, --rewrite-rule <path${REWRITE_DELIMITER}path>`,
-		`Set a rewrite rule. Must start with a "/". E.g. "/tiles/osm/${REWRITE_DELIMITER}/folder/osm.versatiles?"`,
+		'Set a rewrite rule using path-to-regexp patterns. ' +
+			'Both sides must start with "/". Multiple rules can be set. ' +
+			'Use "\\?" for a literal "?" since "?" means "optional" in path-to-regexp. ' +
+			'E.g. "/tiles/:path(.+) /data/map.versatiles\\?:path" ' +
+			'rewrites "/tiles/5/17/11" to "/data/map.versatiles?5/17/11".',
 		collect,
 		[],
 	)

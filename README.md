@@ -207,9 +207,14 @@ Options:
                                   instead. Useful for local development and
                                   testing.
   -p, --port <port>               Set the server port. Default: 8080
-  -r, --rewrite-rule <path path>  Set a rewrite rule. Must start with a "/".
-                                  E.g. "/tiles/osm/ /folder/osm.versatiles?"
-                                  (default: [])
+  -r, --rewrite-rule <path path>  Set a rewrite rule using path-to-regexp
+                                  patterns. Both sides must start with "/".
+                                  Multiple rules can be set. Use "\?" for a
+                                  literal "?" since "?" means "optional" in
+                                  path-to-regexp. E.g. "/tiles/:path(.+)
+                                  /data/map.versatiles\?:path" rewrites
+                                  "/tiles/5/17/11" to
+                                  "/data/map.versatiles?5/17/11". (default: [])
   -v, --verbose                   Enable verbose mode for detailed operational
                                   logs.
   -h, --help                      display help for command
