@@ -102,6 +102,21 @@ describe('index.ts', () => {
 		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, verbose: true });
 	});
 
+	it('starts server with versatiles rewrite rule', async () => {
+		await run(
+			'test-bucket',
+			'-r',
+			'/tiles/osm/:path(.+) /download.versatiles.org/osm.versatiles\\?:path',
+		);
+		expect(mockedStartServer).toHaveBeenCalledTimes(1);
+		expect(mockedStartServer).toHaveBeenCalledWith({
+			...defaultResults,
+			rewriteRules: {
+				'/tiles/osm/:path(.+)': '/download.versatiles.org/osm.versatiles\\?:path',
+			},
+		});
+	});
+
 	describe('config file', () => {
 		it('loads config file when --config is provided', async () => {
 			const configPath = writeConfig(
