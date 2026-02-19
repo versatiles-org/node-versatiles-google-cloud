@@ -27,7 +27,8 @@ function buildReader(file: AbstractBucketFile): VersatilesReader {
 		// Read data from the file stream
 		return new Promise<Buffer>((resolve, reject) => {
 			const buffers = Array<Buffer>();
-			file.createReadStream({ start: position, end: position + length - 1 })
+			file
+				.createReadStream({ start: position, end: position + length - 1 })
 				.on('data', (chunk: Buffer) => buffers.push(chunk))
 				.on('end', () => {
 					resolve(Buffer.concat(buffers));

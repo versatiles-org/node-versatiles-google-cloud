@@ -32,7 +32,6 @@ describe('BucketFileMetadata', () => {
 
 		metadata.setHeaders(headers);
 
-
 		const mockedSet = vi.mocked(headers.set);
 		expect(mockedSet.mock.calls).toStrictEqual([
 			['content-length', '500'],

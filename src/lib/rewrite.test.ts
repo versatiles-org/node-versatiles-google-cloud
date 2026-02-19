@@ -20,7 +20,7 @@ describe('Rewrite', () => {
 			expect(() => {
 				new Rewrite({ '/old/::id': '/new' });
 			}).toThrow();
-		})
+		});
 	});
 
 	describe('match', () => {
@@ -107,18 +107,24 @@ describe('Rewrite', () => {
 		});
 
 		it('should work with cache disabled', () => {
-			const rewrite = new Rewrite({
-				'/old/:id': '/new/:id',
-			}, { cache: false });
+			const rewrite = new Rewrite(
+				{
+					'/old/:id': '/new/:id',
+				},
+				{ cache: false },
+			);
 
 			expect(rewrite.match('/old/123')).toBe('/new/123');
 			expect(rewrite.match('/old/456')).toBe('/new/456');
 		});
 
 		it('should work with explicit cache enabled', () => {
-			const rewrite = new Rewrite({
-				'/old': '/new',
-			}, { cache: true });
+			const rewrite = new Rewrite(
+				{
+					'/old': '/new',
+				},
+				{ cache: true },
+			);
 
 			expect(rewrite.match('/old')).toBe('/new');
 			expect(rewrite.match('/old')).toBe('/new');
@@ -129,7 +135,7 @@ describe('Rewrite', () => {
 		let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
 		beforeEach(() => {
-			consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+			consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 		});
 
 		afterEach(() => {
@@ -137,27 +143,42 @@ describe('Rewrite', () => {
 		});
 
 		it('should accept verbose option and log rewrites', () => {
-			const rewrite = new Rewrite({
-				'/old': '/new',
-			}, { verbose: true });
+			const rewrite = new Rewrite(
+				{
+					'/old': '/new',
+				},
+				{ verbose: true },
+			);
 
 			expect(rewrite.match('/old')).toBe('/new');
-			expect(consoleLogSpy).toHaveBeenCalledWith('[Rewrite]', 'rule "/old" matched, rewriting "/old" to "/new"');
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[Rewrite]',
+				'rule "/old" matched, rewriting "/old" to "/new"',
+			);
 		});
 
 		it('should accept combined options and log rewrites', () => {
-			const rewrite = new Rewrite({
-				'/old': '/new',
-			}, { verbose: true, cache: false });
+			const rewrite = new Rewrite(
+				{
+					'/old': '/new',
+				},
+				{ verbose: true, cache: false },
+			);
 
 			expect(rewrite.match('/old')).toBe('/new');
-			expect(consoleLogSpy).toHaveBeenCalledWith('[Rewrite]', 'rule "/old" matched, rewriting "/old" to "/new"');
+			expect(consoleLogSpy).toHaveBeenCalledWith(
+				'[Rewrite]',
+				'rule "/old" matched, rewriting "/old" to "/new"',
+			);
 		});
 
 		it('should not log when verbose is false', () => {
-			const rewrite = new Rewrite({
-				'/old': '/new',
-			}, { verbose: false });
+			const rewrite = new Rewrite(
+				{
+					'/old': '/new',
+				},
+				{ verbose: false },
+			);
 
 			expect(rewrite.match('/old')).toBe('/new');
 			expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -206,17 +227,30 @@ describe('Rewrite', () => {
 			expect(rewrite.match('/apps/other/path')).toBe('/apps/other/path/index.html');
 			expect(rewrite.match('/apps/other/path/index.html')).toBeNull();
 			expect(rewrite.match('/apps/other/path/without/index-like.file')).toBeNull();
-			expect(rewrite.match('/apps/deeply/nested/with/dots.dots.dots/within/a/directory')).toBe('/apps/deeply/nested/with/dots.dots.dots/within/a/directory/index.html');
-			expect(rewrite.match('/apps/p074_reanimation_maps_web/feat/municipalities/assets/colors-6990494e.js')).toBeNull();
-		})
+			expect(rewrite.match('/apps/deeply/nested/with/dots.dots.dots/within/a/directory')).toBe(
+				'/apps/deeply/nested/with/dots.dots.dots/within/a/directory/index.html',
+			);
+			expect(
+				rewrite.match(
+					'/apps/p074_reanimation_maps_web/feat/municipalities/assets/colors-6990494e.js',
+				),
+			).toBeNull();
+		});
 
 		it('should rewrite tile paths to versatiles container with tile coordinates', () => {
 			const rewrite = new Rewrite({
-				'/tiles/osm/:z(\\d+)/:x(\\d+)/:y(\\d+)': '/download.versatiles.org/osm.versatiles\\?:z/:x/:y',
+				'/tiles/osm/:z(\\d+)/:x(\\d+)/:y(\\d+)':
+					'/download.versatiles.org/osm.versatiles\\?:z/:x/:y',
 			});
-			expect(rewrite.match('/tiles/osm/5/17/11')).toBe('/download.versatiles.org/osm.versatiles?5/17/11');
-			expect(rewrite.match('/tiles/osm/0/0/0')).toBe('/download.versatiles.org/osm.versatiles?0/0/0');
-			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe('/download.versatiles.org/osm.versatiles?14/8529/5975');
+			expect(rewrite.match('/tiles/osm/5/17/11')).toBe(
+				'/download.versatiles.org/osm.versatiles?5/17/11',
+			);
+			expect(rewrite.match('/tiles/osm/0/0/0')).toBe(
+				'/download.versatiles.org/osm.versatiles?0/0/0',
+			);
+			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe(
+				'/download.versatiles.org/osm.versatiles?14/8529/5975',
+			);
 			// should not match non-numeric values
 			expect(rewrite.match('/tiles/osm/a/b/c')).toBeNull();
 			// should not match incomplete paths
@@ -230,11 +264,21 @@ describe('Rewrite', () => {
 			const rewrite = new Rewrite({
 				'/tiles/osm/:path(.+)': '/download.versatiles.org/osm.versatiles\\?:path',
 			});
-			expect(rewrite.match('/tiles/osm/5/17/11')).toBe('/download.versatiles.org/osm.versatiles?5/17/11');
-			expect(rewrite.match('/tiles/osm/0/0/0')).toBe('/download.versatiles.org/osm.versatiles?0/0/0');
-			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe('/download.versatiles.org/osm.versatiles?14/8529/5975');
-			expect(rewrite.match('/tiles/osm/meta.json')).toBe('/download.versatiles.org/osm.versatiles?meta.json');
-			expect(rewrite.match('/tiles/osm/anything/goes/here')).toBe('/download.versatiles.org/osm.versatiles?anything/goes/here');
+			expect(rewrite.match('/tiles/osm/5/17/11')).toBe(
+				'/download.versatiles.org/osm.versatiles?5/17/11',
+			);
+			expect(rewrite.match('/tiles/osm/0/0/0')).toBe(
+				'/download.versatiles.org/osm.versatiles?0/0/0',
+			);
+			expect(rewrite.match('/tiles/osm/14/8529/5975')).toBe(
+				'/download.versatiles.org/osm.versatiles?14/8529/5975',
+			);
+			expect(rewrite.match('/tiles/osm/meta.json')).toBe(
+				'/download.versatiles.org/osm.versatiles?meta.json',
+			);
+			expect(rewrite.match('/tiles/osm/anything/goes/here')).toBe(
+				'/download.versatiles.org/osm.versatiles?anything/goes/here',
+			);
 			// must have at least one segment after /tiles/osm/
 			expect(rewrite.match('/tiles/osm')).toBeNull();
 			expect(rewrite.match('/tiles/osm/')).toBeNull();

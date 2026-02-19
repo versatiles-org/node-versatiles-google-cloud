@@ -18,8 +18,13 @@ export class Versatiles {
 
 	readonly #url: string;
 
-
-	private constructor(container: VersatilesContainer, header: VersatilesHeader, metadata: string, url: string, etag: string) {
+	private constructor(
+		container: VersatilesContainer,
+		header: VersatilesHeader,
+		metadata: string,
+		url: string,
+		etag: string,
+	) {
 		this.#container = container;
 		this.#header = header;
 		this.#metadata = metadata;
@@ -27,10 +32,14 @@ export class Versatiles {
 		this.etag = etag;
 	}
 
-	public static async fromReader(reader: VersatilesReader, url: string, etag: string): Promise<Versatiles> {
+	public static async fromReader(
+		reader: VersatilesReader,
+		url: string,
+		etag: string,
+	): Promise<Versatiles> {
 		const container = new VersatilesContainer(reader);
 		const header = await container.getHeader();
-		const metadata = await container.getMetadata() ?? '';
+		const metadata = (await container.getMetadata()) ?? '';
 		return new Versatiles(container, header, metadata, url, etag);
 	}
 
@@ -40,9 +49,15 @@ export class Versatiles {
 
 		// Handle different queries: preview, meta.json, style.json, or tile queries
 		switch (query) {
-			case '?preview': await this.sendPreview(responder); return;
-			case '?meta.json': await this.sendMeta(responder); return;
-			case '?style.json': await this.sendStyle(responder); return;
+			case '?preview':
+				await this.sendPreview(responder);
+				return;
+			case '?meta.json':
+				await this.sendMeta(responder);
+				return;
+			case '?style.json':
+				await this.sendStyle(responder);
+				return;
 		}
 
 		// Extract tile coordinates from the query and serve the requested tile
@@ -55,7 +70,10 @@ export class Versatiles {
 			return;
 		}
 
-		responder.error(400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
+		responder.error(
+			400,
+			'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+		);
 		return;
 	}
 
@@ -83,7 +101,10 @@ export class Versatiles {
 		return;
 	}
 
-	private async sendTile(responder: Responder, coordinates: { x: number; y: number; z: number }): Promise<void> {
+	private async sendTile(
+		responder: Responder,
+		coordinates: { x: number; y: number; z: number },
+	): Promise<void> {
 		const { x, y, z } = coordinates;
 
 		responder.log(`fetch tile x:${x}, y:${y}, z:${z}`);

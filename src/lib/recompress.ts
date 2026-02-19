@@ -35,7 +35,11 @@ export class BufferStream extends Writable {
 	 * @param encoding - The encoding of the chunk.
 	 * @param callback - Callback to signal completion or error.
 	 */
-	public _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
+	public _write(
+		chunk: Buffer,
+		encoding: BufferEncoding,
+		callback: (error?: Error | null | undefined) => void,
+	): void {
 		// Buffer the chunks until the maximum buffer size is reached
 		if (this.#bufferMode) {
 			this.#buffers.push(chunk);
@@ -101,7 +105,7 @@ export class BufferStream extends Writable {
 		const { headers } = this.#responder;
 		headers.set('transfer-encoding', 'chunked');
 		headers.remove('content-length');
-		
+
 		this.#responder.log(`bufferstream - response header for stream: ${headers.toString()}`);
 	}
 }
@@ -156,7 +160,7 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 	}
 
 	// Prepare the streams for the pipeline
-	const transformStreams: (Transform)[] = [];
+	const transformStreams: Transform[] = [];
 	// Handle recompression if the input and output encodings are different
 	if (encodingIn !== encodingOut) {
 		responder.log(`recompress: ${encodingIn.name} to ${encodingOut.name}`);

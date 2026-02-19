@@ -3,12 +3,8 @@
 	"compilerOptions": {
 		"allowImportingTsExtensions": false,
 		"noEmit": false,
-		"outDir": "dist",
+		"outDir": "dist"
 	},
-	"include": [
-		"src/**/*.ts"
-	],
-	"exclude": [
-		"src/**/*.test.ts"
-	]
+	"include": ["src/**/*.ts"],
+	"exclude": ["src/**/*.test.ts"]
 }

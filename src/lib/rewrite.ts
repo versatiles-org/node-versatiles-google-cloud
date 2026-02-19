@@ -1,4 +1,4 @@
-import { compile, match } from "path-to-regexp";
+import { compile, match } from 'path-to-regexp';
 
 /**
  * A compiled Rule containing search and replacement patterns to be
@@ -6,23 +6,23 @@ import { compile, match } from "path-to-regexp";
  */
 type Rule = {
 	search: {
-		raw: string,
-		resolve: ReturnType<typeof match>
-	}
+		raw: string;
+		resolve: ReturnType<typeof match>;
+	};
 	replacement: {
-		raw: string,
-		compile: ReturnType<typeof compile>
-	}
-}
+		raw: string;
+		compile: ReturnType<typeof compile>;
+	};
+};
 
 type Options = {
 	verbose?: boolean;
 	cache?: boolean;
-}
+};
 
 const DEFAULT_OPTIONS: Options = {
 	verbose: false,
-	cache: true
+	cache: true,
 };
 
 /**
@@ -37,7 +37,7 @@ export class Rewrite {
 	/**
 	 * Compiled rewrite rules.
 	 */
-	#rules: Rule[] = []
+	#rules: Rule[] = [];
 
 	/**
 	 * Constructs a Rewrite manager.
@@ -45,7 +45,10 @@ export class Rewrite {
 	 * @param rules List of rules to be applied.
 	 * @param options
 	 */
-	constructor(rules: Record<string, string>, private readonly options: Options = DEFAULT_OPTIONS) {
+	constructor(
+		rules: Record<string, string>,
+		private readonly options: Options = DEFAULT_OPTIONS,
+	) {
 		for (const [search, replacement] of Object.entries(rules)) {
 			this.register(search, replacement);
 		}
@@ -69,7 +72,9 @@ export class Rewrite {
 
 			return this;
 		} catch (error) {
-			throw new Error(`unable to add search ("${search}") / replacement ("${replacement}") rule due to: ${error}`);
+			throw new Error(
+				`unable to add search ("${search}") / replacement ("${replacement}") rule due to: ${error}`,
+			);
 		}
 	}
 
@@ -99,7 +104,7 @@ export class Rewrite {
 
 			this.#log(`rule "${rule.search.raw}" matched, rewriting "${path}" to "${target}"`);
 
-			return target
+			return target;
 		}
 
 		return null;
@@ -107,7 +112,7 @@ export class Rewrite {
 
 	#log(...args: unknown[]): void {
 		if (!this.options.verbose) {
-			return
+			return;
 		}
 
 		console.log('[Rewrite]', ...args);

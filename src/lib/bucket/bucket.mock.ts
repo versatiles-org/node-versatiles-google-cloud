@@ -3,13 +3,15 @@ import { AbstractBucket, AbstractBucketFile } from './abstract.js';
 import { openSync, readFileSync, readSync, statSync } from 'fs';
 import { BucketFileMetadata } from './metadata.js';
 
-export type MocketBucketFileInterface = {
-	name: string;
-	content: Buffer;
-} | {
-	name: string;
-	filename: string;
-};
+export type MocketBucketFileInterface =
+	| {
+			name: string;
+			content: Buffer;
+	  }
+	| {
+			name: string;
+			filename: string;
+	  };
 
 class FileNotFoundError extends Error {
 	public code = 404;
@@ -32,17 +34,16 @@ export class MockedBucketFile extends AbstractBucketFile {
 		return this.#file.name;
 	}
 
-	 
 	public async exists(): Promise<boolean> {
 		return Boolean(this.#file);
 	}
 
-	 
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		if (!this.#file) throw new FileNotFoundError();
 		return new BucketFileMetadata({
 			filename: this.#file.name,
-			size: ('filename' in this.#file) ? statSync(this.#file.filename).size : this.#file.content.length,
+			size:
+				'filename' in this.#file ? statSync(this.#file.filename).size : this.#file.content.length,
 		});
 	}
 
@@ -78,7 +79,7 @@ export class MockedBucket extends AbstractBucket {
 
 	public constructor(files: MocketBucketFileInterface[]) {
 		super();
-		this.#files = new Map(files.map(f => [f.name, f]));
+		this.#files = new Map(files.map((f) => [f.name, f]));
 	}
 
 	public async check(): Promise<void> {
@@ -89,5 +90,3 @@ export class MockedBucket extends AbstractBucket {
 		return new MockedBucketFile(this.#files.get(path));
 	}
 }
-
-

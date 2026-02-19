@@ -58,7 +58,10 @@ describe('index.ts', () => {
 	it('starts server with base URL', async () => {
 		await run('test-bucket', '-b', 'https://example.org');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
-		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'https://example.org' });
+		expect(mockedStartServer).toHaveBeenCalledWith({
+			...defaultResults,
+			baseUrl: 'https://example.org',
+		});
 	});
 
 	it('starts server with bucket prefix', async () => {
@@ -76,13 +79,21 @@ describe('index.ts', () => {
 	it('starts server with different port', async () => {
 		await run('test-bucket', '-p', '3000');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
-		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'http://localhost:3000/', port: 3000 });
+		expect(mockedStartServer).toHaveBeenCalledWith({
+			...defaultResults,
+			baseUrl: 'http://localhost:3000/',
+			port: 3000,
+		});
 	});
 
 	it('starts server with different port', async () => {
 		await run('test-bucket', '-b', 'https://example.org', '-p', '3000');
 		expect(mockedStartServer).toHaveBeenCalledTimes(1);
-		expect(mockedStartServer).toHaveBeenCalledWith({ ...defaultResults, baseUrl: 'https://example.org', port: 3000 });
+		expect(mockedStartServer).toHaveBeenCalledWith({
+			...defaultResults,
+			baseUrl: 'https://example.org',
+			port: 3000,
+		});
 	});
 
 	it('starts server in verbose mode', async () => {
@@ -93,10 +104,13 @@ describe('index.ts', () => {
 
 	describe('config file', () => {
 		it('loads config file when --config is provided', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
 port: 9000
-`);
+`,
+			);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -108,9 +122,12 @@ port: 9000
 		});
 
 		it('CLI bucket overrides config bucket', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
-`);
+`,
+			);
 			await run('cli-bucket', '--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -120,13 +137,16 @@ bucket: config-bucket
 		});
 
 		it('CLI options override config values', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
 port: 9000
 directory: /config-dir/
 fastRecompression: false
 verbose: false
-`);
+`,
+			);
 			await run('--config', configPath, '-p', '3000', '-d', '/cli-dir/', '-f', '-v');
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -141,11 +161,14 @@ verbose: false
 		});
 
 		it('CLI rewrite rules replace config rules', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
 rewriteRules:
   "/config/source": "/config/target"
-`);
+`,
+			);
 			await run('--config', configPath, '-r', '/cli/source /cli/target');
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -156,12 +179,15 @@ rewriteRules:
 		});
 
 		it('config rewrite rules used when no CLI rules', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
 rewriteRules:
   "/config/source": "/config/target"
   "/another/source": "/another/target"
-`);
+`,
+			);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -175,10 +201,13 @@ rewriteRules:
 		});
 
 		it('uses bucket from config when no CLI bucket arg', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 bucket: config-bucket
 baseUrl: https://example.com/
-`);
+`,
+			);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -189,9 +218,12 @@ baseUrl: https://example.com/
 		});
 
 		it('allows local directory without bucket in config', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 localDirectory: ./local
-`);
+`,
+			);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -202,9 +234,12 @@ localDirectory: ./local
 		});
 
 		it('CLI local directory overrides config local directory', async () => {
-			const configPath = writeConfig('config.yaml', `
+			const configPath = writeConfig(
+				'config.yaml',
+				`
 localDirectory: ./config-local
-`);
+`,
+			);
 			await run('--config', configPath, '-l', './cli-local');
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -224,11 +259,15 @@ localDirectory: ./config-local
 			const configPath = writeConfig('empty.yaml', '');
 			await run('--config', configPath);
 			expect(process.exit).toHaveBeenCalledWith(1);
-			expect(console.error).toHaveBeenCalledWith(expect.stringContaining('bucket-name is required'));
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('bucket-name is required'),
+			);
 		});
 
 		it('loads all config options correctly', async () => {
-			const configPath = writeConfig('full.yaml', `
+			const configPath = writeConfig(
+				'full.yaml',
+				`
 bucket: full-bucket
 baseUrl: https://full.example.com/
 directory: /full-dir/
@@ -238,7 +277,8 @@ localDirectory: ./full-local
 verbose: true
 rewriteRules:
   "/a": "/b"
-`);
+`,
+			);
 			await run('--config', configPath);
 			expect(mockedStartServer).toHaveBeenCalledTimes(1);
 			expect(mockedStartServer).toHaveBeenCalledWith({
@@ -257,7 +297,7 @@ rewriteRules:
 	async function run(...args: string[]): Promise<void> {
 		const moduleUrl = './index.js?t=' + Math.random().toString(16).slice(2);
 		const module = await import(moduleUrl);
-		const program = (module.program) as Command;
+		const program = module.program as Command;
 		await program.parseAsync(['./node', './index.ts', ...args]);
 	}
 });

@@ -88,7 +88,9 @@ describe('Responder', () => {
 	});
 
 	it('should respond correctly with brotli compressed text content', async () => {
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip, br', 'content-type': 'application/json' } });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip, br', 'content-type': 'application/json' },
+		});
 
 		const content = Buffer.from('brotli compressed text content');
 		const contentCompressed = brotliCompressSync(content);
@@ -122,22 +124,26 @@ describe('Responder', () => {
 		});
 		it('async buffer', async () => {
 			await responder.end(buffer);
-			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([
+				[buffer, expect.any(Function)],
+			]);
 		});
 		it('sync', async () => {
-			await new Promise<void>(r => responder.end(() => r()));
+			await new Promise<void>((r) => responder.end(() => r()));
 			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[expect.any(Function)]]);
 		});
 		it('sync buffer', async () => {
-			await new Promise<void>(r => responder.end(buffer, () => r()));
-			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([[buffer, expect.any(Function)]]);
+			await new Promise<void>((r) => responder.end(buffer, () => r()));
+			expect(vi.mocked(responder.response.end).mock.calls).toStrictEqual([
+				[buffer, expect.any(Function)],
+			]);
 		});
 	});
 
 	describe('Error Handling', () => {
 		it('should throw error when trying to write before headers are sent', () => {
 			expect(() => {
-				getMockedResponder().write(Buffer.from('Test'), () => { });
+				getMockedResponder().write(Buffer.from('Test'), () => {});
 			}).toThrow('Headers not send yet');
 		});
 
@@ -167,14 +173,14 @@ describe('Responder', () => {
 
 			// Initially, headers should not be sent
 			expect(() => {
-				responder.write(Buffer.from('Test'), () => { });
+				responder.write(Buffer.from('Test'), () => {});
 			}).toThrow('Headers not send yet');
 
 			// Send headers
 			responder.sendHeaders(200);
 			// Now, headers are sent, write should not throw
 			expect(() => {
-				responder.write(Buffer.from('Test'), () => { });
+				responder.write(Buffer.from('Test'), () => {});
 			}).not.toThrow();
 
 			// End the response

@@ -1,17 +1,19 @@
 import { vi, it, describe, beforeEach, expect } from 'vitest';
 import { resolve } from 'path';
 import { BucketFileMetadata } from './metadata.js';
-import type { BucketFileLocal as BucketFileLocalType, BucketLocal as BucketLocalType } from './bucket_local.js';
+import type {
+	BucketFileLocal as BucketFileLocalType,
+	BucketLocal as BucketLocalType,
+} from './bucket_local.js';
 import type { Stats } from 'fs';
 
-
-vi.mock(import('fs/promises'), async original => {
+vi.mock(import('fs/promises'), async (original) => {
 	const constants = (await original()).constants;
 	return {
 		access: vi.fn(),
 		stat: vi.fn(),
 		constants,
-	}
+	};
 });
 
 vi.mock('fs', () => ({
@@ -45,7 +47,10 @@ describe('BucketFileLocal', () => {
 	});
 
 	it('getMetadata should return instance of BucketFileMetadata', async () => {
-		vi.mocked(stat).mockResolvedValue({ mtime: new Date('1989-11-09T19:01:00+01:00'), size: 1024 } as Stats);
+		vi.mocked(stat).mockResolvedValue({
+			mtime: new Date('1989-11-09T19:01:00+01:00'),
+			size: 1024,
+		} as Stats);
 
 		const metadata = await file.getMetadata();
 		expect(metadata).toBeInstanceOf(BucketFileMetadata);

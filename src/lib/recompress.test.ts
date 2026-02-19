@@ -13,13 +13,17 @@ import { defaultHeader as defaultHeader0 } from './response_headers.mock.js';
 const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;
 
-
 const maxBufferSize = 10 * 1024 * 1024;
-const testBuffer = Buffer.from('Krawehl! Krawehl! Taubtrüber Ginst am Musenhain! Trübtauber Hain am Musenginst! Krawehl!');
+const testBuffer = Buffer.from(
+	'Krawehl! Krawehl! Taubtrüber Ginst am Musenhain! Trübtauber Hain am Musenginst! Krawehl!',
+);
 
 describe('recompress', () => {
 	it('should handle different types of media without recompression', async () => {
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip' }, responseHeaders: { 'content-type': 'audio/mpeg' } });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip' },
+			responseHeaders: { 'content-type': 'audio/mpeg' },
+		});
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
@@ -31,7 +35,11 @@ describe('recompress', () => {
 	});
 
 	it('should handle fast compression setting', async () => {
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip' }, responseHeaders: { 'content-type': 'text/plain' }, fastRecompression: true });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip' },
+			responseHeaders: { 'content-type': 'text/plain' },
+			fastRecompression: true,
+		});
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
@@ -43,7 +51,9 @@ describe('recompress', () => {
 	});
 
 	it('should find the best encoding based on headers', async () => {
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip, deflate, br' } });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip, deflate, br' },
+		});
 		await recompress(responder, testBuffer);
 
 		checkResponseHeaders(responder, {
@@ -81,7 +91,10 @@ describe('recompress', () => {
 
 	it('should buffer small streams correctly', async () => {
 		const stream = Readable.from(testBuffer);
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip' }, responseHeaders: { 'content-type': 'audio/mpeg' } });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip' },
+			responseHeaders: { 'content-type': 'audio/mpeg' },
+		});
 
 		await finished(stream.pipe(new BufferStream(responder)));
 
@@ -104,7 +117,10 @@ describe('recompress', () => {
 			Buffer.from('x'.repeat(100)),
 		];
 		const stream = Readable.from(data);
-		const responder = getMockedResponder({ requestHeaders: { 'accept-encoding': 'gzip' }, responseHeaders: { 'content-type': 'audio/mpeg' } });
+		const responder = getMockedResponder({
+			requestHeaders: { 'accept-encoding': 'gzip' },
+			responseHeaders: { 'content-type': 'audio/mpeg' },
+		});
 
 		await finished(stream.pipe(new BufferStream(responder)));
 
@@ -125,16 +141,25 @@ describe('recompress', () => {
 		for (const encodingIn of encodings) {
 			let buffer: Buffer;
 			switch (encodingIn) {
-				case 'raw': buffer = testBuffer; break;
-				case 'gzip': buffer = zlib.gzipSync(testBuffer, { level: 9 }); break;
-				case 'br': buffer = zlib.brotliCompressSync(testBuffer); break;
-				default: throw Error('unknown encoding: ' + encodingIn);
+				case 'raw':
+					buffer = testBuffer;
+					break;
+				case 'gzip':
+					buffer = zlib.gzipSync(testBuffer, { level: 9 });
+					break;
+				case 'br':
+					buffer = zlib.brotliCompressSync(testBuffer);
+					break;
+				default:
+					throw Error('unknown encoding: ' + encodingIn);
 			}
 			for (const encodingOut of encodings) {
 				for (const isStream of [true, false]) {
 					it(`from ${encodingIn} to ${encodingOut} for ${isStream ? 'stream' : 'buffer'}s`, async () => {
 						const responder = getMockedResponder({
-							responseHeaders: { 'content-encoding': encodingIn === 'raw' ? undefined : encodingIn },
+							responseHeaders: {
+								'content-encoding': encodingIn === 'raw' ? undefined : encodingIn,
+							},
 							requestHeaders: { 'accept-encoding': encodingOut },
 						});
 						const body = isStream ? Readable.from(buffer) : buffer;
@@ -142,14 +167,22 @@ describe('recompress', () => {
 
 						const contentEncoding = responder.headers.get('content-encoding');
 						switch (encodingOut) {
-							case 'raw': expect(contentEncoding).toBeUndefined(); break;
-							default: expect(contentEncoding).toBe(encodingOut); break;
+							case 'raw':
+								expect(contentEncoding).toBeUndefined();
+								break;
+							default:
+								expect(contentEncoding).toBe(encodingOut);
+								break;
 						}
 
 						let bufferOut = responder.response.getBuffer();
 						switch (encodingOut) {
-							case 'gzip': bufferOut = zlib.gunzipSync(bufferOut); break;
-							case 'br': bufferOut = zlib.brotliDecompressSync(bufferOut); break;
+							case 'gzip':
+								bufferOut = zlib.gunzipSync(bufferOut);
+								break;
+							case 'br':
+								bufferOut = zlib.brotliDecompressSync(bufferOut);
+								break;
 							default:
 						}
 
@@ -160,7 +193,10 @@ describe('recompress', () => {
 		}
 	});
 
-	function checkResponseHeaders(responder: MockedResponder, responseHeaders: OutgoingHttpHeaders): void {
+	function checkResponseHeaders(
+		responder: MockedResponder,
+		responseHeaders: OutgoingHttpHeaders,
+	): void {
 		expect(responder.headers.getHeaders()).toStrictEqual(responseHeaders);
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
 		expect(responder.response.writeHead).toHaveBeenCalledWith(200, responseHeaders);

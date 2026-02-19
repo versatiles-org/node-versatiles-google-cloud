@@ -58,7 +58,9 @@ export class BucketGoogle extends AbstractBucket {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			if ((err as any)?.response?.data?.error === 'invalid_grant') {
 				console.error(`You are not authorized to access bucket "${this.#bucket.name}"`);
-				console.error('Maybe you want to set Application Default Credentials (ADC) by running: "gcloud auth application-default login"');
+				console.error(
+					'Maybe you want to set Application Default Credentials (ADC) by running: "gcloud auth application-default login"',
+				);
 			}
 			throw err;
 		}

@@ -1,6 +1,3 @@
- 
-
- 
 import type { IncomingHttpHeaders } from 'http';
 import type { EncodingTools, EncodingType } from './encoding.js';
 import type { Response } from 'express';
@@ -60,7 +57,11 @@ export class Responder {
 		return this.#options.requestNo;
 	}
 
-	public async respond(content: Buffer | string, contentMIME: string, contentEncoding: EncodingType): Promise<void> {
+	public async respond(
+		content: Buffer | string,
+		contentMIME: string,
+		contentEncoding: EncodingType,
+	): Promise<void> {
 		this.headers.set('content-type', contentMIME);
 		ENCODINGS[contentEncoding].setEncodingHeader(this.#responseHeaders);
 
@@ -72,15 +73,13 @@ export class Responder {
 
 	public error(code: number, message: string): void {
 		this.log(`error ${code}: ${message}`);
-		this.#options.response
-			.writeHead(code, { 'content-type': 'text/plain' })
-			.end(message);
+		this.#options.response.writeHead(code, { 'content-type': 'text/plain' }).end(message);
 	}
 
 	public write(buffer: Buffer, callback: () => void): void {
 		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
 
-		this.#options.response.write(buffer, error => {
+		this.#options.response.write(buffer, (error) => {
 			if (error) throw Error();
 			callback();
 		});
@@ -90,8 +89,11 @@ export class Responder {
 	public end(callback: () => void): void;
 	public end(buffer: Buffer): Promise<void>;
 	public end(buffer: Buffer, callback: () => void): void;
-	 
-	public end(bufferOrCallback?: Buffer | (() => void), maybeCallback?: () => void): Promise<void> | void {
+
+	public end(
+		bufferOrCallback?: Buffer | (() => void),
+		maybeCallback?: () => void,
+	): Promise<void> | void {
 		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
 		if (this.#responderState >= ResponderState.Finished) throw Error('already ended');
 
@@ -104,10 +106,12 @@ export class Responder {
 					callback();
 				});
 			} else {
-				return new Promise(resolve => this.#options.response.end(buffer, () => {
-					this.#responderState = ResponderState.Finished;
-					resolve();
-				}));
+				return new Promise((resolve) =>
+					this.#options.response.end(buffer, () => {
+						this.#responderState = ResponderState.Finished;
+						resolve();
+					}),
+				);
 			}
 		} else {
 			const callback = bufferOrCallback;
@@ -117,10 +121,12 @@ export class Responder {
 					callback();
 				});
 			} else {
-				return new Promise(resolve => this.#options.response.end(() => {
-					this.#responderState = ResponderState.Finished;
-					resolve();
-				}));
+				return new Promise((resolve) =>
+					this.#options.response.end(() => {
+						this.#responderState = ResponderState.Finished;
+						resolve();
+					}),
+				);
 			}
 		}
 	}

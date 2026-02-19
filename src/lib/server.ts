@@ -54,10 +54,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 	// Health check endpoint
 	app.get('/healthcheck', (serverRequest, serverResponse) => {
-		serverResponse
-			.status(200)
-			.type('text')
-			.send('ok');
+		serverResponse.status(200).type('text').send('ok');
 	});
 
 	// Handler for all GET requests
@@ -72,7 +69,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				verbose,
 			});
 
-			let pathname = request.path
+			let pathname = request.path;
 			responder.log('new request: ' + request.url);
 
 			try {
@@ -95,14 +92,13 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				} else {
 					await file.serve(responder);
 				}
-
-
 			} catch (error) {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				switch ((error as any).code) {
 					case 'ENOENT':
 					case 404:
-						responder.error(404, `file "${request.path}" not found`); return;
+						responder.error(404, `file "${request.path}" not found`);
+						return;
 				}
 				console.error(error);
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));
@@ -112,15 +108,19 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 	// Start the server and return the server instance
 	return new Promise((res, rej) => {
-		const server = app.listen(port, () => {
-			const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as { version: string };
-			console.log(`starting server @versatiles/google-cloud v${version}`);
-			console.log(`listening on port ${port}`);
-			console.log(`you can find me at ${baseUrl}`);
-			res(server);
-		}).on('error', error => {
-			console.log(`server error: ${error.message}`);
-			rej(error);
-		});
+		const server = app
+			.listen(port, () => {
+				const { version } = JSON.parse(
+					readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+				) as { version: string };
+				console.log(`starting server @versatiles/google-cloud v${version}`);
+				console.log(`listening on port ${port}`);
+				console.log(`you can find me at ${baseUrl}`);
+				res(server);
+			})
+			.on('error', (error) => {
+				console.log(`server error: ${error.message}`);
+				rej(error);
+			});
 	});
 }

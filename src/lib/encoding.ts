@@ -24,7 +24,7 @@ export interface EncodingTools {
  * Provides implementations for 'br', 'gzip', and 'raw' encodings.
  */
 export const ENCODINGS: Record<EncodingType, EncodingTools> = {
-	'br': ((): EncodingTools => {
+	br: ((): EncodingTools => {
 		function getOptions(fast: boolean, size?: number): BrotliOptions {
 			const params = { [zlib.constants.BROTLI_PARAM_QUALITY]: fast ? 3 : 11 };
 			if (size != null) params[zlib.constants.BROTLI_PARAM_SIZE_HINT] = size;
@@ -35,25 +35,28 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 		return {
 			name: 'br',
 			// Implementations for Brotli-specific methods
-			compressStream: (fast: boolean, size?: number) => zlib.createBrotliCompress(getOptions(fast, size)),
+			compressStream: (fast: boolean, size?: number) =>
+				zlib.createBrotliCompress(getOptions(fast, size)),
 			decompressStream: () => zlib.createBrotliDecompress(),
-			compressBuffer: async (buffer: Buffer, fast: boolean) => new Promise(resolve => {
-				zlib.brotliCompress(buffer, getOptions(fast, buffer.length), (e, b) => {
-					resolve(b);
-				});
-			}),
-			decompressBuffer: async (buffer: Buffer) => new Promise(resolve => {
-				zlib.brotliDecompress(buffer, (e, b) => {
-					resolve(b);
-				});
-			}),
+			compressBuffer: async (buffer: Buffer, fast: boolean) =>
+				new Promise((resolve) => {
+					zlib.brotliCompress(buffer, getOptions(fast, buffer.length), (e, b) => {
+						resolve(b);
+					});
+				}),
+			decompressBuffer: async (buffer: Buffer) =>
+				new Promise((resolve) => {
+					zlib.brotliDecompress(buffer, (e, b) => {
+						resolve(b);
+					});
+				}),
 			setEncodingHeader: (headers: ResponseHeaders): void => {
 				headers.set('content-encoding', 'br');
 				return;
 			},
 		};
 	})(),
-	'gzip': ((): EncodingTools => {
+	gzip: ((): EncodingTools => {
 		function getOptions(fast: boolean): ZlibOptions {
 			return { level: fast ? 3 : 9 };
 		}
@@ -64,23 +67,25 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 			// Implementations for Gzip-specific methods
 			compressStream: (fast: boolean) => zlib.createGzip(getOptions(fast)),
 			decompressStream: () => zlib.createGunzip(),
-			compressBuffer: async (buffer: Buffer, fast: boolean) => new Promise(resolve => {
-				zlib.gzip(buffer, getOptions(fast), (e, b) => {
-					resolve(b);
-				});
-			}),
-			decompressBuffer: async (buffer: Buffer) => new Promise(resolve => {
-				zlib.gunzip(buffer, (e, b) => {
-					resolve(b);
-				});
-			}),
+			compressBuffer: async (buffer: Buffer, fast: boolean) =>
+				new Promise((resolve) => {
+					zlib.gzip(buffer, getOptions(fast), (e, b) => {
+						resolve(b);
+					});
+				}),
+			decompressBuffer: async (buffer: Buffer) =>
+				new Promise((resolve) => {
+					zlib.gunzip(buffer, (e, b) => {
+						resolve(b);
+					});
+				}),
 			setEncodingHeader: (headers: ResponseHeaders): void => {
 				headers.set('content-encoding', 'gzip');
 				return;
 			},
 		};
 	})(),
-	'raw': {
+	raw: {
 		name: 'raw',
 		setEncodingHeader: (headers: ResponseHeaders): void => {
 			headers.remove('content-encoding');
@@ -99,13 +104,17 @@ export function parseContentEncoding(contentEncoding?: string): EncodingTools {
 	// Logic to parse content encoding
 	if (contentEncoding == null) return ENCODINGS.raw;
 
-	if (typeof contentEncoding !== 'string') throw Error(`unknown content-encoding ${JSON.stringify(contentEncoding)}`);
+	if (typeof contentEncoding !== 'string')
+		throw Error(`unknown content-encoding ${JSON.stringify(contentEncoding)}`);
 
 	const contentEncodingString = contentEncoding.trim().toLowerCase();
 	switch (contentEncodingString) {
-		case '': return ENCODINGS.raw;
-		case 'br': return ENCODINGS.br;
-		case 'gzip': return ENCODINGS.gzip;
+		case '':
+			return ENCODINGS.raw;
+		case 'br':
+			return ENCODINGS.br;
+		case 'gzip':
+			return ENCODINGS.gzip;
 	}
 
 	throw Error(`unknown content-encoding ${JSON.stringify(contentEncoding)}`);

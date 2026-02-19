@@ -11,11 +11,12 @@ import { readFileSync } from 'fs';
 const filename = new URL('../../../testdata/island.versatiles', import.meta.url).pathname;
 
 describe('VersaTiles', () => {
-
 	describe('serve', () => {
-
 		it('should handle preview request correctly', async () => {
-			const html = readFileSync(new URL('../../../static/preview.html', import.meta.url).pathname, 'utf8');
+			const html = readFileSync(
+				new URL('../../../static/preview.html', import.meta.url).pathname,
+				'utf8',
+			);
 			checkResponse('?preview', 200, html, {
 				...defaultHeader,
 				'content-length': '' + html.length,
@@ -50,7 +51,11 @@ describe('VersaTiles', () => {
 		});
 
 		it('should handle wrong requests correctly', async () => {
-			await checkError('?bathtub', 400, 'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
+			await checkError(
+				'?bathtub',
+				400,
+				'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+			);
 		});
 
 		async function runQuery(query: string): Promise<MockedResponse> {
@@ -68,9 +73,14 @@ describe('VersaTiles', () => {
 			await versatiles.serve(query, mockResponder);
 
 			return mockResponder.response;
-		};
+		}
 
-		async function checkResponse(query: string, status: number, expectedContent: string, headers: unknown): Promise<void> {
+		async function checkResponse(
+			query: string,
+			status: number,
+			expectedContent: string,
+			headers: unknown,
+		): Promise<void> {
 			const response: MockedResponse = await runQuery(query);
 
 			expect(response.writeHead).toHaveBeenCalledTimes(1);
@@ -97,5 +107,4 @@ describe('VersaTiles', () => {
 			expect(response.end).toHaveBeenCalledWith(message);
 		}
 	});
-
 });

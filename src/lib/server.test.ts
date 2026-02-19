@@ -14,8 +14,6 @@ vi.mock('@google-cloud/storage'); // Mock Google Cloud Storage
 
 const basePath = new URL('../../', import.meta.url).pathname;
 
-
-
 interface MockedServerOptions {
 	bucket?: MockedBucket | string;
 	localDirectory?: string;
@@ -49,7 +47,10 @@ class MockedServer {
 			this.#bucket = new MockedBucket([
 				{ name: 'static/package.json', filename: resolve(basePath, 'package.json') },
 				{ name: 'static/has space/package.json', filename: resolve(basePath, 'package.json') },
-				{ name: 'geodata/test.versatiles', filename: resolve(basePath, 'testdata/island.versatiles') },
+				{
+					name: 'geodata/test.versatiles',
+					filename: resolve(basePath, 'testdata/island.versatiles'),
+				},
 			]);
 		}
 	}
@@ -83,57 +84,65 @@ class MockedServer {
 		const url = new URL(urlString, new URL(`http://localhost:${port}`));
 
 		return new Promise((resolvePromise, rejectPromise) => {
-			http.get(url, { headers }, (response) => {
-				const data: Buffer[] = [];
-				response.on('data', (chunk: Buffer) => {
-					data.push(chunk);
-				});
-				response.on('end', () => {
-					const rawBuffer = Buffer.concat(data);
-					const contentEncoding = response.headers['content-encoding'];
-					const contentType = (response.headers['content-type'] ?? '').replace(/;.*/, '');
-
-					let buffer: Buffer;
-					switch (contentEncoding) {
-						case undefined: buffer = rawBuffer.subarray(); break;
-						case 'gzip': buffer = gunzipSync(rawBuffer); break;
-						case 'br': buffer = brotliDecompressSync(rawBuffer); break;
-						default:
-							console.log('ERROR:', { contentEncoding });
-							rejectPromise('unknown encoding: ' + contentEncoding);
-							return;
-					}
-
-					resolvePromise({
-						contentEncoding,
-						contentLength: Number(response.headers['content-length']),
-						contentType,
-						rawBuffer,
-						buffer,
-						status: response.statusCode ?? 0,
-						text: buffer.toString(),
+			http
+				.get(url, { headers }, (response) => {
+					const data: Buffer[] = [];
+					response.on('data', (chunk: Buffer) => {
+						data.push(chunk);
 					});
-				});
-			}).on('error', err => {
-				rejectPromise(`Got error: ${err.message}`);
-			}).end();
+					response.on('end', () => {
+						const rawBuffer = Buffer.concat(data);
+						const contentEncoding = response.headers['content-encoding'];
+						const contentType = (response.headers['content-type'] ?? '').replace(/;.*/, '');
+
+						let buffer: Buffer;
+						switch (contentEncoding) {
+							case undefined:
+								buffer = rawBuffer.subarray();
+								break;
+							case 'gzip':
+								buffer = gunzipSync(rawBuffer);
+								break;
+							case 'br':
+								buffer = brotliDecompressSync(rawBuffer);
+								break;
+							default:
+								console.log('ERROR:', { contentEncoding });
+								rejectPromise('unknown encoding: ' + contentEncoding);
+								return;
+						}
+
+						resolvePromise({
+							contentEncoding,
+							contentLength: Number(response.headers['content-length']),
+							contentType,
+							rawBuffer,
+							buffer,
+							status: response.statusCode ?? 0,
+							text: buffer.toString(),
+						});
+					});
+				})
+				.on('error', (err) => {
+					rejectPromise(`Got error: ${err.message}`);
+				})
+				.end();
 		});
 	}
 
 	public async close(): Promise<void> {
 		const server = this.#server;
 		if (server === undefined) throw Error();
-		await new Promise<void>(res => server.close(() => {
-			res();
-		}));
+		await new Promise<void>((res) =>
+			server.close(() => {
+				res();
+			}),
+		);
 		return;
 	}
 }
 
-
-
 describe('Server', () => {
-
 	describe('simple requests', () => {
 		let server: MockedServer;
 
@@ -154,7 +163,7 @@ describe('Server', () => {
 
 		it('rewrites path according to rules', async () => {
 			const response = await server.get('/g/test.v?meta.json');
-			console.log(response)
+			console.log(response);
 			expect(response.status).toBe(200);
 			expect(response.text).toMatch(/^{"vector_layers"/);
 			expect(response.contentType).toBe('application/json');
@@ -219,19 +228,21 @@ describe('Server', () => {
 		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);
-			expect(response.text).toBe('get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"');
+			expect(response.text).toBe(
+				'get parameter must be "?preview", "?meta.json", "?style.json", or "?{z}/{x}/{y}"',
+			);
 			expect(response.contentType).toBe('text/plain');
 		});
 	});
 
 	describe('compressed responses', () => {
-		const content = Buffer.from('Look again at that dot. That\'s here. That\'s home. That\'s us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.');
+		const content = Buffer.from(
+			"Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.",
+		);
 		let server: MockedServer;
 
 		beforeAll(async () => {
-			const bucket = new MockedBucket([
-				{ name: 'test.txt', content },
-			]);
+			const bucket = new MockedBucket([{ name: 'test.txt', content }]);
 			server = await MockedServer.create({ bucket, returnRawBuffer: true });
 		});
 
@@ -252,11 +263,9 @@ describe('Server', () => {
 		});
 
 		async function check(encoding: 'br' | 'gzip' | undefined): Promise<void> {
-
 			const headers = { 'Accept-Encoding': encoding ?? 'identity' };
 
 			const response = await server.get('/test.txt', headers);
-
 
 			expect(response.status).toBe(200);
 			expect(response.contentType).toBe('text/plain');

@@ -12,7 +12,9 @@ delete defaultHeader.vary;
 
 describe('Encoding Tools', () => {
 	const encodings: EncodingType[] = ['br', 'gzip', 'raw'];
-	const buffer = Buffer.from('VersaTiles is a completely FLOSS stack for generating, distributing and using map tiles based on OpenStreetMap data, free of any commercial interests.');
+	const buffer = Buffer.from(
+		'VersaTiles is a completely FLOSS stack for generating, distributing and using map tiles based on OpenStreetMap data, free of any commercial interests.',
+	);
 	const buffers = {
 		raw: buffer,
 		br: brotliCompressSync(buffer),
@@ -20,7 +22,7 @@ describe('Encoding Tools', () => {
 	};
 
 	describe('ENCODINGS are completely defined', () => {
-		encodings.forEach(name => {
+		encodings.forEach((name) => {
 			it(name, () => {
 				const encoding = ENCODINGS[name];
 				expect(encoding).toBeDefined();
@@ -39,7 +41,7 @@ describe('Encoding Tools', () => {
 	});
 
 	describe('compress buffer', () => {
-		encodings.forEach(name => {
+		encodings.forEach((name) => {
 			it(name, async () => {
 				const encoding = ENCODINGS[name];
 
@@ -64,7 +66,7 @@ describe('Encoding Tools', () => {
 	});
 
 	describe('decompress buffer', () => {
-		encodings.forEach(name => {
+		encodings.forEach((name) => {
 			it(name, async () => {
 				const encoding = ENCODINGS[name];
 
@@ -76,7 +78,7 @@ describe('Encoding Tools', () => {
 	});
 
 	describe('compress stream', () => {
-		encodings.forEach(name => {
+		encodings.forEach((name) => {
 			it(name, async () => {
 				const encoding = ENCODINGS[name];
 
@@ -103,7 +105,7 @@ describe('Encoding Tools', () => {
 	});
 
 	describe('decompress stream', () => {
-		encodings.forEach(name => {
+		encodings.forEach((name) => {
 			it(name, async () => {
 				const encoding = ENCODINGS[name];
 
@@ -161,12 +163,19 @@ describe('findBestEncoding', () => {
 		expect(findBestEncoding({ 'accept-encoding': 'GZIP' }).name).toBe('gzip');
 	});
 	it('handles multiple encodings correctly', () => {
-		expect(findBestEncoding({ 'accept-encoding': 'gzip, deflate, br;q=1.0, identity;q=0.5, *;q=0.25' }).name).toBe('br');
-		expect(findBestEncoding({ 'accept-encoding': 'deflate, gzip;q=1.0, *;q=0.5' }).name).toBe('gzip');
+		expect(
+			findBestEncoding({ 'accept-encoding': 'gzip, deflate, br;q=1.0, identity;q=0.5, *;q=0.25' })
+				.name,
+		).toBe('br');
+		expect(findBestEncoding({ 'accept-encoding': 'deflate, gzip;q=1.0, *;q=0.5' }).name).toBe(
+			'gzip',
+		);
 		expect(findBestEncoding({ 'accept-encoding': 'gzip, compress, br' }).name).toBe('br');
 		expect(findBestEncoding({ 'accept-encoding': 'gzip, compress' }).name).toBe('gzip');
 		expect(findBestEncoding({ 'accept-encoding': 'compress, gzip' }).name).toBe('gzip');
-		expect(findBestEncoding({ 'accept-encoding': 'br;q=1.0, gzip;q=0.8, *;q=0.1' }).name).toBe('br');
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=1.0, gzip;q=0.8, *;q=0.1' }).name).toBe(
+			'br',
+		);
 		expect(findBestEncoding({ 'accept-encoding': 'q=1.0, gzip;q=0.8, *;q=0.1' }).name).toBe('gzip');
 	});
 	it('handles unusable encodings correctly', () => {
@@ -209,7 +218,9 @@ describe('acceptEncoding', () => {
 		if (acceptedEncoding != null) header['accept-encoding'] = acceptedEncoding;
 
 		it(`works for ${JSON.stringify(acceptedEncoding)}`, () => {
-			const result = encodings.filter(encodingName => acceptEncoding(header, ENCODINGS[encodingName]));
+			const result = encodings.filter((encodingName) =>
+				acceptEncoding(header, ENCODINGS[encodingName]),
+			);
 			expect(result.join(',')).toBe(encodingList);
 		});
 	}
@@ -222,8 +233,8 @@ async function stream2buffer(stream: Readable): Promise<Buffer> {
 		stream.on('end', () => {
 			resolve(Buffer.concat(buffers));
 		});
-		stream.on('error', err => {
+		stream.on('error', (err) => {
 			reject(`error converting stream - ${String(err)}`);
 		});
 	});
-} 
+}

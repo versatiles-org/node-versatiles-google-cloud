@@ -11,7 +11,11 @@ export function getResponseSink(): MockedResponse {
 	class ResponseSink extends Writable {
 		readonly #buffers = Array<Buffer>();
 
-		public _write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null | undefined) => void): void {
+		public _write(
+			chunk: Buffer,
+			encoding: BufferEncoding,
+			callback: (error?: Error | null | undefined) => void,
+		): void {
 			this.#buffers.push(chunk);
 			callback();
 		}
@@ -32,15 +36,13 @@ export function getResponseSink(): MockedResponse {
 	return response;
 }
 
-export function getMockedResponder(
-	options?: {
-		fastRecompression?: boolean;
-		requestHeaders?: IncomingHttpHeaders;
-		responseHeaders?: OutgoingHttpHeaders;
-		requestNo?: number;
-		verbose?: boolean;
-	},
-): MockedResponder {
+export function getMockedResponder(options?: {
+	fastRecompression?: boolean;
+	requestHeaders?: IncomingHttpHeaders;
+	responseHeaders?: OutgoingHttpHeaders;
+	requestNo?: number;
+	verbose?: boolean;
+}): MockedResponder {
 	options ??= {};
 
 	const response = getResponseSink();

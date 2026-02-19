@@ -15,9 +15,11 @@ vi.mock('@google-cloud/storage', () => {
 		file: vi.fn().mockReturnValue(mockFile),
 	};
 	return {
-		Storage: vi.fn(class {
-			bucket = vi.fn().mockReturnValue(mockBucket);
-		})
+		Storage: vi.fn(
+			class {
+				bucket = vi.fn().mockReturnValue(mockBucket);
+			},
+		),
 	};
 });
 
@@ -27,14 +29,18 @@ const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 describe('BucketFileGoogle', () => {
 	beforeEach(() => {
 		vi.mocked(mockFile.exists).mockImplementation(() => Promise.resolve([true]));
-		vi.mocked(mockFile.getMetadata).mockImplementation(() => Promise.resolve([{
-			cacheControl: 'no-cache',
-			contentType: 'text/plain',
-			etag: 'etag123',
-			name: 'test.txt',
-			timeCreated: new Date().toISOString(),
-			size: '1024',
-		}]));
+		vi.mocked(mockFile.getMetadata).mockImplementation(() =>
+			Promise.resolve([
+				{
+					cacheControl: 'no-cache',
+					contentType: 'text/plain',
+					etag: 'etag123',
+					name: 'test.txt',
+					timeCreated: new Date().toISOString(),
+					size: '1024',
+				},
+			]),
+		);
 		mockFile.createReadStream.mockReturnValue(new Readable());
 	});
 
@@ -47,10 +53,10 @@ describe('BucketFileGoogle', () => {
 		const file = new BucketFileGoogle(mockFile);
 		const metadata = await file.getMetadata();
 		expect(JSON.parse(metadata.toString())).toStrictEqual({
-			'cacheControl': 'no-cache',
-			'contentLength': '1024',
-			'contentType': 'text/plain',
-			'etag': 'etag123',
+			cacheControl: 'no-cache',
+			contentLength: '1024',
+			contentType: 'text/plain',
+			etag: 'etag123',
 		});
 	});
 

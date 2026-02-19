@@ -42,7 +42,10 @@ export async function loadConfig(path: string): Promise<ConfigFile> {
 		const message = error instanceof Error ? error.message : String(error);
 		// c12 throws when YAML parses to null (empty file, comments only, explicit null)
 		// Treat these as empty config for backward compatibility
-		if (message.includes("Cannot read properties of null") || message.includes("Cannot read properties of undefined")) {
+		if (
+			message.includes('Cannot read properties of null') ||
+			message.includes('Cannot read properties of undefined')
+		) {
 			return {};
 		}
 		throw new Error(`Failed to parse config file "${path}": ${message}`);
