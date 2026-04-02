@@ -70,7 +70,7 @@
     "commander": "^14.0.3",
     "express": "^5.2.1",
     "mrmime": "^2.0.1",
-    "path-to-regexp": "^6.3.0"
+    "path-to-regexp": "^8.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -85,7 +85,7 @@
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.1",
     "vitest": "^4.1.0"
   }
