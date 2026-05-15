@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-05-15
+
+### Build System
+
+- **deps:** bump codecov/codecov-action from 5 to 6 in the action group ([2191cc6](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/2191cc68375c7076a91c119d27c3d2197b4abe14))
+
+### Chores
+
+- update dependencies and improve upgrade script ([10b2caf](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/10b2cafb5b70bd14a8f85157a5d657fc9663ccd7))
+- update tsconfig.build.json to include rootDir in compilerOptions ([75ef594](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/75ef5946399014e9baf5c1bfa158daee2d8ca6ae))
+- update package-lock.json and package.json to remove deprecated dependencies and add overrides for teeny-request ([26fa8c1](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/26fa8c113e23ba1965239519c33e134db6427621))
+
 ## [1.1.2] - 2026-03-20
 
 ### Chores
