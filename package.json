@@ -67,15 +67,15 @@
     "@versatiles/container": "^1.4.2",
     "@versatiles/style": "^5.12.0",
     "c12": "^3.3.4",
-    "commander": "^14.0.3",
+    "commander": "^15.0.0",
     "express": "^5.2.1",
     "mrmime": "^2.0.1",
-    "path-to-regexp": "^6.3.0"
+    "path-to-regexp": "^8.4.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
-    "@types/node": "^25.8.0",
+    "@types/node": "^26.1.0",
     "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^8.59.3",
     "@typescript-eslint/parser": "^8.59.3",
