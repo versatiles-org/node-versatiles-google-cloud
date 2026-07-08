@@ -1,21 +1,57 @@
 import { vi, it, describe, beforeAll, afterAll, expect } from 'vitest';
 import { MockedBucket } from './bucket/bucket.mock.js';
+import { AbstractBucket, AbstractBucketFile } from './bucket/abstract.js';
+import { BucketFileMetadata } from './bucket/metadata.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { Readable } from 'stream';
 import { startServer } from './server.js';
-import type { AbstractBucket } from './bucket/index.js';
 import type { Server } from 'http';
 import { brotliDecompressSync, gunzipSync } from 'zlib';
 import type { AddressInfo } from 'net';
 import http from 'http';
 
 vi.spyOn(console, 'log').mockReturnValue();
+vi.spyOn(console, 'error').mockReturnValue();
 vi.mock('@google-cloud/storage'); // Mock Google Cloud Storage
+
+/**
+ * A bucket whose files fail while streaming (after metadata succeeds). Used to
+ * verify the server surfaces a 500 instead of crashing on an unhandled
+ * rejection when recompression of a failing stream is awaited.
+ */
+class ErroringBucketFile extends AbstractBucketFile {
+	public get name(): string {
+		return 'erroring.bin';
+	}
+	public async exists(): Promise<boolean> {
+		return true;
+	}
+	public async getMetadata(): Promise<BucketFileMetadata> {
+		return new BucketFileMetadata({ filename: 'erroring.bin', size: 100 });
+	}
+	public createReadStream(): Readable {
+		return new Readable({
+			read(): void {
+				this.destroy(new Error('simulated stream failure'));
+			},
+		});
+	}
+}
+
+class ErroringBucket extends AbstractBucket {
+	public async check(): Promise<void> {
+		await Promise.resolve();
+	}
+	public getFile(): AbstractBucketFile {
+		return new ErroringBucketFile();
+	}
+}
 
 const basePath = new URL('../../', import.meta.url).pathname;
 
 interface MockedServerOptions {
-	bucket?: MockedBucket | string;
+	bucket?: AbstractBucket | string;
 	localDirectory?: string;
 	port?: number;
 	returnRawBuffer?: boolean;
@@ -232,6 +268,25 @@ describe('Server', () => {
 				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 			);
 			expect(response.contentType).toBe('text/plain');
+		});
+	});
+
+	describe('stream error handling', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({ bucket: new ErroringBucket() });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('responds with 500 when the bucket stream fails mid-request', async () => {
+			const response = await server.get('/erroring.bin');
+			expect(response.status).toBe(500);
+			expect(response.contentType).toBe('text/plain');
+			expect(response.text).toContain('Internal Server Error');
 		});
 	});
 
