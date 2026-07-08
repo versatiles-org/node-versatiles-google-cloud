@@ -121,34 +121,82 @@ export function parseContentEncoding(contentEncoding?: string): EncodingTools {
 }
 
 /**
+ * Parses an `accept-encoding` header value into a map of coding name to quality
+ * value (`q`). Coding names are lower-cased; a missing `q` defaults to `1`, and
+ * a malformed `q` is ignored (treated as `1`). Wildcards (`*`) are kept as-is so
+ * callers can decide how to treat them.
+ * @param header - The raw `accept-encoding` header value.
+ * @returns A map of coding name to its quality value.
+ */
+function parseAcceptEncoding(header: string): Map<string, number> {
+	const result = new Map<string, number>();
+
+	for (const part of header.split(',')) {
+		const [rawName, ...params] = part.trim().split(';');
+		const name = rawName.trim().toLowerCase();
+		if (name === '') continue;
+
+		let q = 1;
+		for (const param of params) {
+			const match = /^q=(.*)$/i.exec(param.trim());
+			if (match) {
+				const parsed = Number.parseFloat(match[1]);
+				if (!Number.isNaN(parsed)) q = parsed;
+			}
+		}
+
+		result.set(name, q);
+	}
+
+	return result;
+}
+
+/**
+ * Returns the quality value the client assigned to an explicit coding, or `0`
+ * if the coding is absent. Wildcards are intentionally not expanded: a bare `*`
+ * does not enable compression, matching this server's conservative behaviour.
+ */
+function qualityOf(accepted: Map<string, number>, name: EncodingType): number {
+	return accepted.get(name) ?? 0;
+}
+
+/**
  * Determines the best encoding supported by the client based on the `accept-encoding` HTTP header.
+ * Quality values are respected: a coding with `q=0` is never selected, and the
+ * highest-quality supported coding wins (ties prefer Brotli over gzip).
  * @param headers - The incoming HTTP headers.
  * @returns The best available `EncodingTools` based on client's preferences.
  */
 export function findBestEncoding(headers: IncomingHttpHeaders): EncodingTools {
-	// Logic to find the best encoding
 	const encodingHeader = headers['accept-encoding'];
 	if (typeof encodingHeader !== 'string') return ENCODINGS.raw;
 
-	const encodingString: string = encodingHeader.toLowerCase();
+	const accepted = parseAcceptEncoding(encodingHeader);
+	const brQ = qualityOf(accepted, 'br');
+	const gzipQ = qualityOf(accepted, 'gzip');
 
-	if (encodingString.includes('br')) return ENCODINGS.br;
-	if (encodingString.includes('gzip')) return ENCODINGS.gzip;
+	if (brQ > 0 && brQ >= gzipQ) return ENCODINGS.br;
+	if (gzipQ > 0) return ENCODINGS.gzip;
 	return ENCODINGS.raw;
 }
 
 /**
  * Checks if the given encoding is acceptable based on the `accept-encoding` HTTP header.
+ * A coding explicitly listed with `q=0` is treated as not acceptable.
  * @param headers - The incoming HTTP headers.
  * @param encoding - The `EncodingTools` to check.
  * @returns `true` if the encoding is acceptable, otherwise `false`.
  */
 export function acceptEncoding(headers: IncomingHttpHeaders, encoding: EncodingTools): boolean {
-	// Logic to check if the encoding is acceptable
+	// The identity ("raw") encoding is always acceptable.
 	if (encoding.name === 'raw') return true;
 
 	const encodingHeader = headers['accept-encoding'];
-	if (encodingHeader == null) return encoding === ENCODINGS.raw;
+	if (encodingHeader == null) return false;
 
-	return JSON.stringify(encodingHeader).toLowerCase().includes(encoding.name);
+	const headerString = Array.isArray(encodingHeader)
+		? encodingHeader.join(',')
+		: String(encodingHeader);
+
+	return qualityOf(parseAcceptEncoding(headerString), encoding.name) > 0;
 }

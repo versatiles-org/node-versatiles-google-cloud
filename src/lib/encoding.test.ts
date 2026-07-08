@@ -184,6 +184,19 @@ describe('findBestEncoding', () => {
 		expect(findBestEncoding({ 'accept-encoding': 'identity' }).name).toBe('raw');
 		expect(findBestEncoding({ 'accept-encoding': '*' }).name).toBe('raw');
 	});
+	it('respects q=0 as an explicit rejection', () => {
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=0, gzip' }).name).toBe('gzip');
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=0, gzip;q=0' }).name).toBe('raw');
+		expect(findBestEncoding({ 'accept-encoding': 'gzip;q=0' }).name).toBe('raw');
+	});
+	it('selects the highest quality encoding', () => {
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=0.5, gzip;q=0.9' }).name).toBe('gzip');
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=0.9, gzip;q=0.5' }).name).toBe('br');
+	});
+	it('matches whole tokens, not substrings', () => {
+		expect(findBestEncoding({ 'accept-encoding': 'xbr, gzip' }).name).toBe('gzip');
+		expect(findBestEncoding({ 'accept-encoding': 'gzippy' }).name).toBe('raw');
+	});
 });
 
 describe('acceptEncoding', () => {
@@ -211,6 +224,11 @@ describe('acceptEncoding', () => {
 		check('deflate', 'raw');
 		check('identity', 'raw');
 		check('*', 'raw');
+	});
+	describe('respects q=0 as an explicit rejection', () => {
+		check('br;q=0, gzip', 'raw,gzip');
+		check('br;q=0, gzip;q=0', 'raw');
+		check('xbr, gzippy', 'raw');
 	});
 
 	function check(acceptedEncoding: string | undefined, encodingList: string): void {
