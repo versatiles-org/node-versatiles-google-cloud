@@ -290,6 +290,28 @@ describe('Server', () => {
 		});
 	});
 
+	describe('path traversal', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			// Serve from the "static" directory so we can attempt to escape it.
+			server = await MockedServer.create({ localDirectory: resolve(basePath, 'static') });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('rejects percent-encoded traversal instead of serving files outside the directory', async () => {
+			// The slash is also encoded (%2f) so the whole segment survives URL
+			// normalisation and is only decoded to "../" afterwards, targeting the
+			// real project package.json one level above "static".
+			const response = await server.get('/%2e%2e%2fpackage.json');
+			expect(response.status).toBe(500);
+			expect(response.text).not.toContain('@versatiles/google-cloud');
+		});
+	});
+
 	describe('compressed responses', () => {
 		const content = Buffer.from(
 			"Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.",
