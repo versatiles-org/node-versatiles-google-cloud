@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-07-08
+
+### Features
+
+- implement cache size limit and eviction for Rewrite class ([b715d44](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/b715d448978b71a336303a2195ee691c7c7811b8))
+- enhance encoding handling with quality-based selection and explicit rejection support ([9d0db4c](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/9d0db4c1e48b68d3d8aee937d26beb4cab1b469d))
+- enhance error handling in encoding functions to reject invalid input ([bac5eb4](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/bac5eb4ed1eea4b966bac02752a331b3cd9069d7))
+- implement a bounded least-recently-used cache for VersaTiles containers ([0f05dfb](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/0f05dfbfffa2e1e45ffb1631a973c855b16856b0))
+
+### Bug Fixes
+
+- remove versioning from server header in response headers ([258f9c0](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/258f9c0fb1f88f962ead217fd70549a6dd9cb3af))
+- improve error handling for style.json generation to prevent internal message leakage ([f4852d9](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/f4852d9f5b02a84b6e745bbd5478ea3c9b7705a3))
+
+### Tests
+
+- add tests for ErroringBucketFile and enhance Responder error handling ([a4c20f4](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/a4c20f474fdc96adc7f8595a7773fd56f2c59539))
+- implement error handling for streaming failures in MockedServer tests ([5827d7e](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/5827d7e6eab7edc28cbaab3c183ba1dd80f0de2d))
+- add error handling for invalid metadata in style.json generation ([2611274](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/2611274f0eae80959e88c4000d3ce26fd8ef4944))
+- add path traversal handling to reject encoded directory escapes ([747e16e](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/747e16e6ef447df1d89d4871f94c5bafa9ac487a))
+- add unit tests for ContainerCache functionality ([64dabab](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/64dabab296a95b2cd1829fdfb1aeaf8d1fd38744))
+
+### Build System
+
+- **deps:** bump the action group with 2 updates ([6327209](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/6327209a8848a855895b43232c2337919758933b))
+
+### Chores
+
+- **deps:** update dependencies to latest versions ([80c9eea](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/80c9eeacc216af860e986bbc4ff938d05b46e4d5))
+- add allowScripts configuration for esbuild and fsevents ([7997b02](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/7997b0217fea12bfa5c0ad0848ec16af3626d866))
+- **deps:** update uuid to version 11.1.1 and teeny-request to 10.1.3 ([7e278dc](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/7e278dc63fd722784853c0cceb0b5694af0f6c0a))
+
+### Styles
+
+- format code ([ce24741](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/ce24741dd5827cfb17de9f3c94f6ef5f5bfd7eab))
+
 ## [1.1.3] - 2026-05-15
 
 ### Build System
