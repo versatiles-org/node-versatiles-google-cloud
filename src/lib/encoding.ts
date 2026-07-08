@@ -39,15 +39,17 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 				zlib.createBrotliCompress(getOptions(fast, size)),
 			decompressStream: () => zlib.createBrotliDecompress(),
 			compressBuffer: async (buffer: Buffer, fast: boolean) =>
-				new Promise((resolve) => {
+				new Promise((resolve, reject) => {
 					zlib.brotliCompress(buffer, getOptions(fast, buffer.length), (e, b) => {
-						resolve(b);
+						if (e) reject(e);
+						else resolve(b);
 					});
 				}),
 			decompressBuffer: async (buffer: Buffer) =>
-				new Promise((resolve) => {
+				new Promise((resolve, reject) => {
 					zlib.brotliDecompress(buffer, (e, b) => {
-						resolve(b);
+						if (e) reject(e);
+						else resolve(b);
 					});
 				}),
 			setEncodingHeader: (headers: ResponseHeaders): void => {
@@ -68,15 +70,17 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 			compressStream: (fast: boolean) => zlib.createGzip(getOptions(fast)),
 			decompressStream: () => zlib.createGunzip(),
 			compressBuffer: async (buffer: Buffer, fast: boolean) =>
-				new Promise((resolve) => {
+				new Promise((resolve, reject) => {
 					zlib.gzip(buffer, getOptions(fast), (e, b) => {
-						resolve(b);
+						if (e) reject(e);
+						else resolve(b);
 					});
 				}),
 			decompressBuffer: async (buffer: Buffer) =>
-				new Promise((resolve) => {
+				new Promise((resolve, reject) => {
 					zlib.gunzip(buffer, (e, b) => {
-						resolve(b);
+						if (e) reject(e);
+						else resolve(b);
 					});
 				}),
 			setEncodingHeader: (headers: ResponseHeaders): void => {

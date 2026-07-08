@@ -75,6 +75,12 @@ describe('Encoding Tools', () => {
 				expect(await encoding.decompressBuffer(buffers[name])).toStrictEqual(buffer);
 			});
 		});
+
+		it('rejects on invalid input instead of resolving undefined', async () => {
+			const garbage = Buffer.from('this is not compressed data');
+			await expect(ENCODINGS.br.decompressBuffer!(garbage)).rejects.toBeDefined();
+			await expect(ENCODINGS.gzip.decompressBuffer!(garbage)).rejects.toBeDefined();
+		});
 	});
 
 	describe('compress stream', () => {
