@@ -14,7 +14,7 @@ export abstract class AbstractBucketFile {
 
 		metadata.setHeaders(responder.headers);
 
-		void recompress(responder, this.createReadStream());
+		await recompress(responder, this.createReadStream());
 	}
 
 	public abstract exists(): Promise<boolean>;

@@ -73,7 +73,19 @@ export class Responder {
 
 	public error(code: number, message: string): void {
 		this.log(`error ${code}: ${message}`);
+
+		// If the response has already started streaming we can no longer send an
+		// error status/body. Abort the connection instead of throwing
+		// ERR_HTTP_HEADERS_SENT (which would become an unhandled rejection).
+		if (this.#responderState >= ResponderState.HeaderSend) {
+			this.log(`cannot send error ${code}: headers already sent, destroying response`);
+			this.#options.response.destroy();
+			this.#responderState = ResponderState.Finished;
+			return;
+		}
+
 		this.#options.response.writeHead(code, { 'content-type': 'text/plain' }).end(message);
+		this.#responderState = ResponderState.Finished;
 	}
 
 	public write(buffer: Buffer, callback: () => void): void {

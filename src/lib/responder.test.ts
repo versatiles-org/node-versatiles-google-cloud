@@ -153,6 +153,17 @@ describe('Responder', () => {
 			await expect(async () => responder.end()).rejects.toThrow('Headers not send yet');
 		});
 
+		it('should abort instead of throwing when erroring after headers were sent', () => {
+			const responder = getMockedResponder();
+			responder.sendHeaders(200);
+			const destroySpy = vi.spyOn(responder.response, 'destroy');
+
+			expect(() => responder.error(500, 'too late')).not.toThrow();
+			expect(destroySpy).toHaveBeenCalledTimes(1);
+			// no error body should be written once streaming has started
+			expect(responder.response.end).not.toHaveBeenCalledWith('too late');
+		});
+
 		it('should throw error when trying to send headers after they are already sent', () => {
 			const responder = getMockedResponder();
 			responder.sendHeaders(200);
