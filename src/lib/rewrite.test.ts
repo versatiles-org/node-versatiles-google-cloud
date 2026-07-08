@@ -129,6 +129,34 @@ describe('Rewrite', () => {
 			expect(rewrite.match('/old')).toBe('/new');
 			expect(rewrite.match('/old')).toBe('/new');
 		});
+
+		it('should bound the cache size and evict least-recently-used entries', () => {
+			const rewrite = new Rewrite({ '/t/:id(.+)': '/d/:id' }, { cache: true, cacheLimit: 3 });
+
+			// Fill the cache to its limit.
+			for (const id of ['a', 'b', 'c']) rewrite.match(`/t/${id}`);
+			expect(rewrite.cacheSize).toBe(3);
+
+			// Touch "a" so it becomes most-recently-used; "b" is now the oldest.
+			rewrite.match('/t/a');
+
+			// Inserting a new entry must evict "b", keeping the cache at the limit.
+			rewrite.match('/t/d');
+			expect(rewrite.cacheSize).toBe(3);
+			expect(rewrite.cacheHas('/t/b')).toBe(false);
+			expect(rewrite.cacheHas('/t/a')).toBe(true);
+			expect(rewrite.cacheHas('/t/c')).toBe(true);
+			expect(rewrite.cacheHas('/t/d')).toBe(true);
+
+			// Results remain correct after eviction.
+			expect(rewrite.match('/t/b')).toBe('/d/b');
+		});
+
+		it('should not grow the cache beyond the limit under many distinct paths', () => {
+			const rewrite = new Rewrite({ '/t/:id(.+)': '/d/:id' }, { cache: true, cacheLimit: 10 });
+			for (let i = 0; i < 1000; i++) rewrite.match(`/t/${i}`);
+			expect(rewrite.cacheSize).toBe(10);
+		});
 	});
 
 	describe('options', () => {

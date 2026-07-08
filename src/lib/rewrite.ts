@@ -18,11 +18,21 @@ type Rule = {
 type Options = {
 	verbose?: boolean;
 	cache?: boolean;
+	cacheLimit?: number;
 };
+
+/**
+ * Upper bound for the number of entries kept in the rewrite cache. Request
+ * paths are attacker-controlled, so an unbounded cache would grow without
+ * limit under a wildcard rule and exhaust memory. Least-recently-used entries
+ * are evicted once this limit is exceeded.
+ */
+const DEFAULT_CACHE_LIMIT = 1000;
 
 const DEFAULT_OPTIONS: Options = {
 	verbose: false,
 	cache: true,
+	cacheLimit: DEFAULT_CACHE_LIMIT,
 };
 
 /**
@@ -88,7 +98,10 @@ export class Rewrite {
 	match(path: string): string | null {
 		if (this.options.cache && this.#cache.has(path)) {
 			const cached = this.#cache.get(path)!;
-			this.#log(`cache hit for "${path}" => "${this.#cache.get(path)}"`);
+			// Mark as most-recently-used by re-inserting at the end of the Map.
+			this.#cache.delete(path);
+			this.#cache.set(path, cached);
+			this.#log(`cache hit for "${path}" => "${cached}"`);
 			return cached;
 		}
 
@@ -100,7 +113,7 @@ export class Rewrite {
 
 			const target = rule.replacement.compile(matched.params);
 			if (this.options.cache) {
-				this.#cache.set(path, target);
+				this.#cacheSet(path, target);
 			}
 
 			this.#log(`rule "${rule.search.raw}" matched, rewriting "${path}" to "${target}"`);
@@ -109,6 +122,35 @@ export class Rewrite {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Current number of cached entries. Exposed for monitoring and testing.
+	 */
+	public get cacheSize(): number {
+		return this.#cache.size;
+	}
+
+	/**
+	 * Whether a path is currently cached. Exposed for monitoring and testing.
+	 */
+	public cacheHas(path: string): boolean {
+		return this.#cache.has(path);
+	}
+
+	/**
+	 * Stores a cache entry, evicting the least-recently-used entry once the
+	 * configured cache limit is exceeded.
+	 */
+	#cacheSet(path: string, target: string): void {
+		this.#cache.set(path, target);
+
+		const limit = this.options.cacheLimit ?? DEFAULT_CACHE_LIMIT;
+		while (this.#cache.size > limit) {
+			const oldest = this.#cache.keys().next().value;
+			if (oldest === undefined) break;
+			this.#cache.delete(oldest);
+		}
 	}
 
 	#log(...args: unknown[]): void {
