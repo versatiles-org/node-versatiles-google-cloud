@@ -95,8 +95,10 @@ export class Versatiles {
 			const style = await guessStyle(tileJson, {});
 			await responder.respond(JSON.stringify(style), 'application/json', 'raw');
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			responder.error(500, `server side error: ${message}`);
+			// Log the details server-side but do not leak internal error messages
+			// (which can echo malformed metadata) to the client.
+			console.error('style.json generation failed:', error);
+			responder.error(500, 'internal server error');
 		}
 
 		return;

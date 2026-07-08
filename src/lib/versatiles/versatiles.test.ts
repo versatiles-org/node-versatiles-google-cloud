@@ -11,6 +11,8 @@ import { readFileSync } from 'fs';
 
 const filename = new URL('../../../testdata/island.versatiles', import.meta.url).pathname;
 
+vi.spyOn(console, 'error').mockReturnValue();
+
 describe('VersaTiles', () => {
 	describe('serve', () => {
 		it('should handle preview request correctly', async () => {
@@ -84,7 +86,8 @@ describe('VersaTiles', () => {
 			});
 			const endMock = vi.mocked(responder.response.end);
 			expect(endMock).toHaveBeenCalledTimes(1);
-			expect(String(endMock.mock.calls[0][0])).toContain('server side error');
+			// Client gets a generic message; internal details are not leaked.
+			expect(String(endMock.mock.calls[0][0])).toBe('internal server error');
 		});
 
 		async function runQuery(query: string): Promise<MockedResponse> {
