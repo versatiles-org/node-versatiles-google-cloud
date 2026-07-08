@@ -82,8 +82,7 @@ program
 			config.fastRecompression ??
 			false) as boolean;
 		const localDirectory = (cmdOptions.localDirectory ?? config.localDirectory) as
-			| string
-			| undefined;
+			string | undefined;
 		const verbose = (cmdOptions.verbose ?? config.verbose ?? false) as boolean;
 		const bucket = bucketName ?? config.bucket;
 
