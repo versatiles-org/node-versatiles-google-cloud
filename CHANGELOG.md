@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-07-08
+
+### Bug Fixes
+
+- update @versatiles/container dependency to version 1.5.0 ([c15ec64](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/c15ec6403e658a47061b9a8f6890674769e89136))
+
 ## [1.1.4] - 2026-07-08
 
 ### Features
