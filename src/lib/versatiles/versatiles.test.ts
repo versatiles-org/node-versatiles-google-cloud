@@ -1,10 +1,11 @@
 import type { MockedResponse } from '../responder.mock.js';
 import type { Response } from 'express';
 import { createHash } from 'crypto';
+import { Container } from '@versatiles/container';
 import { defaultHeader } from '../response_headers.mock.js';
 import { getMockedResponder } from '../responder.mock.js';
 import { getVersatiles } from './cache.js';
-import { it, describe, expect } from 'vitest';
+import { it, describe, expect, vi } from 'vitest';
 import { MockedBucketFile } from '../bucket/bucket.mock.js';
 import { readFileSync } from 'fs';
 
@@ -63,6 +64,27 @@ describe('VersaTiles', () => {
 				400,
 				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 			);
+		});
+
+		it('should respond 500 when style.json generation fails on invalid metadata', async () => {
+			// Build a fresh container (unique name to bypass the module cache) whose
+			// metadata is not valid JSON, so sendStyle's JSON.parse throws.
+			const spy = vi
+				.spyOn(Container.prototype, 'getMetadata')
+				.mockResolvedValue('this is not json');
+			const mockFile = new MockedBucketFile({ name: 'broken-meta.versatiles', filename });
+			const versatiles = await getVersatiles(mockFile, 'https://example.org/data/map.versatiles');
+			spy.mockRestore();
+
+			const responder = getMockedResponder({ fastRecompression: true });
+			await versatiles.serve('?style.json', responder);
+
+			expect(responder.response.writeHead).toHaveBeenCalledWith(500, {
+				'content-type': 'text/plain',
+			});
+			const endMock = vi.mocked(responder.response.end);
+			expect(endMock).toHaveBeenCalledTimes(1);
+			expect(String(endMock.mock.calls[0][0])).toContain('server side error');
 		});
 
 		async function runQuery(query: string): Promise<MockedResponse> {
