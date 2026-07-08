@@ -1,17 +1,14 @@
 import type { OutgoingHttpHeaders } from 'http';
 import type { EncodingTools } from './encoding.js';
 import { parseContentEncoding } from './encoding.js';
-import { readFileSync } from 'fs';
-
-const { version } = JSON.parse(
-	readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
-) as { version: string };
 
 export class ResponseHeaders {
 	#locked = false;
 
 	readonly #headers: OutgoingHttpHeaders = {
-		server: 'versatiles-google-cloud v' + version,
+		// Intentionally versionless: advertising the exact version lets clients
+		// match it against known advisories.
+		server: 'versatiles-google-cloud',
 		'cache-control': 'max-age=86400', // Set default cache control header (1 day)
 	};
 
