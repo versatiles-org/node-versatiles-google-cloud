@@ -329,13 +329,13 @@ subgraph 2["lib"]
 4["server.ts"]
 subgraph 5["bucket"]
 6["index.ts"]
-7["bucket_google.ts"]
-8["abstract.ts"]
+7["abstract.ts"]
+A["bucket_google.ts"]
 B["metadata.ts"]
 C["bucket_local.ts"]
 end
-9["recompress.ts"]
-A["encoding.ts"]
+8["recompress.ts"]
+9["encoding.ts"]
 D["responder.ts"]
 E["response_headers.ts"]
 F["rewrite.ts"]
@@ -353,17 +353,18 @@ end
 4-->F
 4-->H
 6-->7
+6-->A
 6-->C
 7-->8
-7-->B
 8-->9
-9-->A
-C-->8
+A-->7
+A-->B
+C-->7
 C-->B
-D-->A
 D-->9
+D-->8
 D-->E
-E-->A
+E-->9
 H-->I
 I-->J
 

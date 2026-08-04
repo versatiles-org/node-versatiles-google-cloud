@@ -1,4 +1,4 @@
-import { AbstractBucket, AbstractBucketFile } from './abstract.js';
+import { AbstractBucket, AbstractBucketFile, PathTraversalError } from './abstract.js';
 import type { Readable } from 'stream';
 import { access, constants, stat } from 'fs/promises';
 import { createReadStream } from 'fs';
@@ -19,7 +19,7 @@ export class BucketFileLocal extends AbstractBucketFile {
 		const safePath = this.#filename;
 		// Prevent path traversal: ensure the resolved path is within the base directory
 		if (!safePath.startsWith(this.#basePath + sep) && safePath !== this.#basePath) {
-			throw new Error('Path traversal attempt detected');
+			throw new PathTraversalError();
 		}
 		return safePath;
 	}

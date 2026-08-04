@@ -308,8 +308,42 @@ describe('Server', () => {
 			// normalisation and is only decoded to "../" afterwards, targeting the
 			// real project package.json one level above "static".
 			const response = await server.get('/%2e%2e%2fpackage.json');
-			expect(response.status).toBe(500);
+			expect(response.status).toBe(404);
 			expect(response.text).not.toContain('@versatiles/google-cloud');
+		});
+
+		// A rejected path must be indistinguishable from a file that simply is not
+		// there: same status, same content-type, same body shape. Answering 500
+		// instead would confirm to a prober that the path was special, and would
+		// misreport a rejected client request as a server fault.
+		it('answers a rejected path exactly like a missing file', async () => {
+			const missing = await server.get('/no-such-file.txt');
+			const rejected = await server.get('/%2e%2e%2fpackage.json');
+
+			expect(missing.status).toBe(404);
+			expect(rejected.status).toBe(missing.status);
+			expect(rejected.contentType).toBe(missing.contentType);
+			expect(rejected.text).toBe('file "/%2e%2e%2fpackage.json" not found');
+			expect(rejected.text).not.toMatch(/traversal/i);
+		});
+
+		it('does not print a stack trace for a rejected path', async () => {
+			const errorSpy = vi.mocked(console.error);
+			errorSpy.mockClear();
+
+			await server.get('/%2e%2e%2fpackage.json');
+
+			// Client-controlled input, so an unauthenticated caller could otherwise
+			// flood the logs by repeating the request.
+			expect(errorSpy).not.toHaveBeenCalled();
+		});
+
+		it('answers malformed percent-encoding with 400', async () => {
+			for (const path of ['/%zz', '/%E0%A4%A', '/%']) {
+				const response = await server.get(path);
+				expect(response.status, path).toBe(400);
+				expect(response.text, path).toBe('invalid URL encoding in request path');
+			}
 		});
 	});
 

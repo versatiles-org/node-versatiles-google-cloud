@@ -2,7 +2,7 @@ import type { Server } from 'http';
 import type { AbstractBucket } from './bucket/index.js';
 import express from 'express';
 import { Responder } from './responder.js';
-import { BucketGoogle, BucketLocal } from './bucket/index.js';
+import { BucketGoogle, BucketLocal, PathTraversalError } from './bucket/index.js';
 import { getVersatiles } from './versatiles/index.js';
 import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
@@ -81,7 +81,16 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 				const parsedUrl = new URL(url, 'http://example.org');
 				const { pathname, search } = parsedUrl;
-				const filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
+
+				// decodeURIComponent throws URIError on malformed escapes such as
+				// "/%zz". That is a malformed request, not a server fault.
+				let filename: string;
+				try {
+					filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
+				} catch {
+					responder.error(400, 'invalid URL encoding in request path');
+					return;
+				}
 
 				responder.log(`request file: ${bucketPrefix + filename}`);
 
@@ -94,6 +103,17 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 					await file.serve(responder);
 				}
 			} catch (error) {
+				// A path resolving outside the bucket is a rejected client request,
+				// not a server fault. Answer exactly like a missing file so probes
+				// cannot distinguish the two, and log a single line rather than a
+				// stack trace — the path is client-controlled, so an unauthenticated
+				// caller could otherwise flood the logs at will.
+				if (error instanceof PathTraversalError) {
+					responder.log(`rejected path outside bucket: ${JSON.stringify(request.path)}`);
+					responder.error(404, `file "${request.path}" not found`);
+					return;
+				}
+
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				switch ((error as any).code) {
 					case 'ENOENT':
