@@ -188,19 +188,33 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 	// Start the server and return the server instance
 	return new Promise((res, rej) => {
-		const server = app
-			.listen(port, () => {
-				const { version } = JSON.parse(
-					readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
-				) as { version: string };
-				console.log(`starting server @versatiles/google-cloud v${version}`);
-				console.log(`listening on port ${port}`);
-				console.log(`you can find me at ${baseUrl}`);
-				res(server);
-			})
-			.on('error', (error) => {
-				console.log(`server error: ${error.message}`);
+		let settled = false;
+
+		const server = app.listen(port, () => {
+			const { version } = JSON.parse(
+				readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+			) as { version: string };
+			console.log(`starting server @versatiles/google-cloud v${version}`);
+			console.log(`listening on port ${port}`);
+			console.log(`you can find me at ${baseUrl}`);
+			settled = true;
+			res(server);
+		});
+
+		server.on('error', (error) => {
+			if (!settled) {
+				settled = true;
 				rej(error);
-			});
+				return;
+			}
+
+			// Some platforms emit "listening" before reporting that the bind failed,
+			// so this can arrive after the promise has already resolved — at which
+			// point rejecting is a no-op and the process would otherwise exit 0 while
+			// serving nothing. Re-throw so it becomes a fatal error instead.
+			console.error(`server error after startup: ${error.message}`);
+			server.close();
+			throw error;
+		});
 	});
 }
