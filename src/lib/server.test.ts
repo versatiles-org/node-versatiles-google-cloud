@@ -52,6 +52,7 @@ const basePath = new URL('../../', import.meta.url).pathname;
 
 interface MockedServerOptions {
 	bucket?: AbstractBucket | string;
+	bucketPrefix?: string;
 	localDirectory?: string;
 	port?: number;
 	returnRawBuffer?: boolean;
@@ -99,7 +100,7 @@ class MockedServer {
 		const server = await startServer({
 			baseUrl: 'http://localhost:' + port,
 			bucket: me.#bucket,
-			bucketPrefix: '',
+			bucketPrefix: me.#opt.bucketPrefix ?? '',
 			fastRecompression: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
@@ -344,6 +345,45 @@ describe('Server', () => {
 				expect(response.status, path).toBe(400);
 				expect(response.text, path).toBe('invalid URL encoding in request path');
 			}
+		});
+	});
+
+	describe('bucket prefix confinement', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			// Serve the project root through the "static/" prefix, so escaping the
+			// prefix would expose the real package.json one level above it.
+			server = await MockedServer.create({
+				localDirectory: basePath,
+				bucketPrefix: 'static/',
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('serves files inside the prefix', async () => {
+			const response = await server.get('/preview.html');
+			expect(response.status).toBe(200);
+		});
+
+		// The prefix must be a real boundary. Before this was enforced, ".." in
+		// the request escaped it and served files from outside: the prefix was
+		// concatenated first, after which "static/../package.json" normalised to
+		// a path that looked entirely legitimate.
+		it('does not serve files outside the prefix', async () => {
+			for (const path of ['/..%2Fpackage.json', '/%2e%2e%2fpackage.json', '/..%2f..%2fetc']) {
+				const response = await server.get(path);
+				expect(response.status, path).toBe(404);
+				expect(response.text, path).not.toContain('@versatiles/google-cloud');
+			}
+		});
+
+		it('still resolves "." and ".." that stay inside the prefix', async () => {
+			const response = await server.get('/./preview.html');
+			expect(response.status).toBe(200);
 		});
 	});
 
