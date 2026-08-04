@@ -122,11 +122,11 @@ rewriteRules:
 
 Single-page applications usually need every route that is not a file to fall back to `index.html`. The rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` matches any path under `/apps` that does not end with a file extension and rewrites it to the corresponding `index.html`:
 
-| Request path             | Rewritten to                         |
-| ------------------------ | ------------------------------------ |
-| `/apps/editor`           | `/apps/editor/index.html`            |
-| `/apps/editor/settings`  | `/apps/editor/settings/index.html`   |
-| `/apps/editor/bundle.js` | _(unchanged — has a file extension)_ |
+| Request path             | Rewritten to                                |
+| ------------------------ | ------------------------------------------- |
+| `/apps/editor`           | `/apps/editor/index.html`                   |
+| `/apps/editor/settings`  | `/apps/editor/settings/index.html`          |
+| `/apps/editor/bundle.js` | <em>(unchanged — has a file extension)</em> |
 
 > [!WARNING]
 > There is no separator between the `/apps` literal and the parameter, so this rule also matches sibling paths that merely start with the same characters — `/apps-admin` and `/appsX` are rewritten too. To match only below `/apps`, put a `/` before the parameter on both sides:
