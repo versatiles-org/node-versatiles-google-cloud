@@ -111,6 +111,76 @@ describe('VersaTiles', () => {
 			expect(response.writeHead).toHaveBeenCalledWith(204);
 		});
 
+		// Everything a container serves is determined by its revision plus what was
+		// asked for, so each response carries a validator and can be revalidated
+		// without transferring the body again.
+		describe('validators', () => {
+			const etagOf = async (query: string): Promise<string> => {
+				const response = await runQuery(query);
+				const [, headers] = vi.mocked(response.writeHead).mock.calls[0] as [
+					number,
+					Record<string, string>,
+				];
+				return headers.etag;
+			};
+
+			it('sends an etag for every kind of container response', async () => {
+				for (const query of ['?13/1870/2252', '?meta.json', '?style.json', '?preview']) {
+					expect(await etagOf(query), query).toMatch(/^".+"$/);
+				}
+			});
+
+			it('gives different tiles different validators', async () => {
+				expect(await etagOf('?13/1870/2252')).not.toBe(await etagOf('?8/58/70'));
+			});
+
+			it('gives each response kind its own validator', async () => {
+				const tags = await Promise.all(['?13/1870/2252', '?meta.json', '?style.json'].map(etagOf));
+				expect(new Set(tags).size).toBe(tags.length);
+			});
+
+			it('answers 304 when the client already holds the tile', async () => {
+				const etag = await etagOf('?13/1870/2252');
+				const response = await runQuery('?13/1870/2252', { 'if-none-match': etag });
+
+				// A 304 keeps the validator and caching headers, unlike a bodiless 204.
+				expect(response.writeHead).toHaveBeenCalledWith(304, expect.objectContaining({ etag }));
+				expect(response.getBuffer().length).toBe(0);
+			});
+
+			it('omits body headers from a 304', async () => {
+				const etag = await etagOf('?13/1870/2252');
+				const response = await runQuery('?13/1870/2252', { 'if-none-match': etag });
+
+				const [, headers] = vi.mocked(response.writeHead).mock.calls[0] as [
+					number,
+					Record<string, string>,
+				];
+				expect(headers['content-type']).toBeUndefined();
+				expect(headers['content-length']).toBeUndefined();
+				expect(headers['content-encoding']).toBeUndefined();
+			});
+
+			// The validator is known before the tile is read, so a client that still
+			// holds the tile costs no bucket read at all.
+			it('does not read the tile when answering 304', async () => {
+				const etag = await etagOf('?13/1870/2252');
+				const spy = vi.spyOn(Container.prototype, 'getTile');
+
+				await runQuery('?13/1870/2252', { 'if-none-match': etag });
+
+				expect(spy).not.toHaveBeenCalled();
+				spy.mockRestore();
+			});
+
+			it('serves the body when the validator does not match', async () => {
+				const response = await runQuery('?13/1870/2252', { 'if-none-match': '"stale"' });
+
+				expect(response.writeHead).toHaveBeenCalledWith(200, expect.anything());
+				expect(response.getBuffer().length).toBeGreaterThan(0);
+			});
+		});
+
 		it('should handle wrong requests correctly', async () => {
 			await checkError(
 				'?bathtub',
@@ -141,14 +211,17 @@ describe('VersaTiles', () => {
 			expect(String(endMock.mock.calls[0][0])).toBe('internal server error');
 		});
 
-		async function runQuery(query: string): Promise<MockedResponse> {
+		async function runQuery(
+			query: string,
+			extraHeaders: Record<string, string> = {},
+		): Promise<MockedResponse> {
 			const mockFile = new MockedBucketFile({ name: 'osm.versatiles', filename });
 
 			const versatiles = await new ContainerCache().getVersatiles(mockFile);
 
 			const mockResponder = getMockedResponder({
 				fastRecompression: true,
-				requestHeaders: { 'accept-encoding': 'gzip, br' },
+				requestHeaders: { 'accept-encoding': 'gzip, br', ...extraHeaders },
 				requestNo: 5,
 				verbose: false,
 			});

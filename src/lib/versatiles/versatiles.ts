@@ -1,6 +1,8 @@
 import { Container as VersatilesContainer } from '@versatiles/container';
 import { guessStyle } from '@versatiles/style';
 import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { ifNoneMatchMatches } from '../conditional.js';
 import type { Header as VersatilesHeader, Reader as VersatilesReader } from '@versatiles/container';
 import type { Responder } from '../responder.js';
 
@@ -9,6 +11,12 @@ import type { Responder } from '../responder.js';
 // any character URL-encodes) would otherwise fail to read this file and, since
 // this runs at module load, take down the process on startup.
 const bufferPreview = readFileSync(new URL('../../../static/preview.html', import.meta.url));
+
+/**
+ * The preview page is a build-time constant, identical for every container, so
+ * its validator is derived from the file itself rather than from any container.
+ */
+const previewEtag = `"${createHash('sha256').update(bufferPreview).digest('hex')}"`;
 
 export class Versatiles {
 	public readonly etag: string;
@@ -88,16 +96,50 @@ export class Versatiles {
 		return;
 	}
 
+	/**
+	 * Derives an entity-tag for something served from this container.
+	 *
+	 * Everything a container serves is fully determined by its revision plus what
+	 * was asked for, so composing the two yields a validator without hashing any
+	 * payload. Quotes are stripped from the parts because an entity-tag cannot
+	 * contain them.
+	 */
+	#etagFor(...parts: (string | number)[]): string {
+		const revision = this.etag.replace(/^W\//, '').replace(/^"(.*)"$/s, '$1');
+		return `"${[revision, ...parts].join(':').replace(/"/g, '')}"`;
+	}
+
+	/**
+	 * Records the validator for this response and answers 304 when the client
+	 * already holds it.
+	 *
+	 * @returns true when the response has been sent and there is nothing to do.
+	 */
+	async #notModified(responder: Responder, etag: string): Promise<boolean> {
+		responder.headers.set('etag', etag);
+
+		const ifNoneMatch = responder.getRequestHeader('if-none-match');
+		if (ifNoneMatch === undefined || !ifNoneMatchMatches(ifNoneMatch, etag)) return false;
+
+		await responder.sendNotModified();
+		return true;
+	}
+
 	private async sendPreview(responder: Responder): Promise<void> {
+		if (await this.#notModified(responder, previewEtag)) return;
 		await responder.respond(bufferPreview, 'text/html', 'raw');
 	}
 
 	private async sendMeta(responder: Responder): Promise<void> {
+		if (await this.#notModified(responder, this.#etagFor('meta'))) return;
 		await responder.respond(this.#metadata, 'application/json', 'raw');
 	}
 
 	private async sendStyle(url: string, responder: Responder): Promise<void> {
 		responder.log('respond with style.json');
+
+		// The generated style embeds the public URL, so it is part of the validator.
+		if (await this.#notModified(responder, this.#etagFor('style', url))) return;
 
 		try {
 			const tileJson = JSON.parse(this.#metadata);
@@ -119,6 +161,11 @@ export class Versatiles {
 		coordinates: { x: number; y: number; z: number },
 	): Promise<void> {
 		const { x, y, z } = coordinates;
+
+		// Checked before fetching: a tile is identified by the container revision
+		// and its coordinates, both known already, so a client that still holds it
+		// costs no bucket read at all.
+		if (await this.#notModified(responder, this.#etagFor('tile', z, x, y))) return;
 
 		responder.log(`fetch tile x:${x}, y:${y}, z:${z}`);
 

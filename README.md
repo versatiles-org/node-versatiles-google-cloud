@@ -203,6 +203,23 @@ Both are deliberate, and both are permitted responses to a `Range` request:
 > [!NOTE]
 > Ranges apply to static files only. VersaTiles containers are addressed through query parameters (`?{z}/{x}/{y}`, `?meta.json`, …), which already return exactly one tile or document, so those responses do not advertise `Accept-Ranges`.
 
+## Conditional requests
+
+Every response carries an `ETag`, so a client or CDN that already holds a copy can revalidate instead of downloading it again:
+
+```console
+$ curl -H 'If-None-Match: "4689…"' -i https://public.domain.com/map.versatiles?14/8529/5975
+HTTP/1.1 304 Not Modified
+cache-control: max-age=86400
+etag: "4689…"
+```
+
+This covers static files and every container response — tiles, `meta.json`, `tiles.json`, `style.json` and `preview`. Weak validators (`W/"…"`), comma-separated lists and `*` are all accepted, as RFC 9110 prescribes for this header.
+
+A container's validators are derived from the container's revision plus what was requested, so they change automatically when the container is replaced and never need to be tracked separately. For tiles this is known **before** the tile is read, so a revalidated tile costs no bucket read at all.
+
+`If-None-Match` is evaluated before `Range`: a client whose copy is still current gets a `304` rather than a `206`.
+
 ## Container caching
 
 Serving a tile requires the container's header and tile index, so re-reading them on every request would add several round trips to the bucket. Instead each container is parsed once and kept in memory — up to 100 of them, least-recently-used first — and only the tile bytes themselves are fetched per request.
@@ -464,6 +481,7 @@ H-->B
 K-->L
 L-->6
 L-->M
+M-->8
 
 class 0,2,5,J subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
