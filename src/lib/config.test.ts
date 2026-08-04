@@ -45,6 +45,28 @@ describe('config.ts', () => {
 			expect(config).toEqual({});
 		});
 
+		// A file that parses to null reaches us as a TypeError from c12 rather than
+		// as a parse error. That used to be recognised by matching V8's wording
+		// ("Cannot read properties of null"), so a reworded runtime message would
+		// have turned every empty config into a hard failure. It is now confirmed
+		// against the file's own contents instead.
+		it('returns empty object for an explicit null config', async () => {
+			for (const [name, content] of [
+				['null.yaml', 'null'],
+				['tilde.yaml', '~'],
+				['markers.yaml', '---\n# nothing here\n...'],
+				['whitespace.yaml', '   \n\t\n  '],
+			]) {
+				const path = writeConfig(name, content);
+				await expect(loadConfig(path), name).resolves.toEqual({});
+			}
+		});
+
+		it('still reports a genuine parse failure rather than treating it as empty', async () => {
+			const path = writeConfig('broken.yaml', 'bucket: "unterminated\n  nested: [1, 2');
+			await expect(loadConfig(path)).rejects.toThrow(/Failed to parse config file/);
+		});
+
 		it('throws error when config is an array', async () => {
 			const path = writeConfig('array.yaml', '- item1\n- item2');
 			await expect(loadConfig(path)).rejects.toThrow(/must contain an object/);

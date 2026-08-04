@@ -1,5 +1,5 @@
 import { loadConfig as loadConfigC12 } from 'c12';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 /**
  * Configuration file interface defining all optional config fields.
@@ -13,6 +13,24 @@ export interface ConfigFile {
 	localDirectory?: string;
 	verbose?: boolean;
 	rewriteRules?: Record<string, string>;
+}
+
+/**
+ * Whether a config file carries no settings at all: empty, whitespace, comments,
+ * YAML document markers, or an explicit null.
+ */
+function isBlank(source: string): boolean {
+	return source.split('\n').every((line) => {
+		const trimmed = line.trim();
+		return (
+			trimmed === '' ||
+			trimmed.startsWith('#') ||
+			trimmed === '---' ||
+			trimmed === '...' ||
+			trimmed === 'null' ||
+			trimmed === '~'
+		);
+	});
 }
 
 /**
@@ -39,15 +57,19 @@ export async function loadConfig(path: string): Promise<ConfigFile> {
 			dotenv: false,
 		});
 	} catch (error: unknown) {
-		const message = error instanceof Error ? error.message : String(error);
-		// c12 throws when YAML parses to null (empty file, comments only, explicit null)
-		// Treat these as empty config for backward compatibility
-		if (
-			message.includes('Cannot read properties of null') ||
-			message.includes('Cannot read properties of undefined')
-		) {
+		// c12 dereferences whatever the file parsed to, so a file that parses to
+		// null — empty, comments only, or an explicit null — surfaces as a
+		// TypeError rather than as a parse failure.
+		//
+		// Confirmed against the file's own contents rather than by matching the
+		// runtime's wording: "Cannot read properties of null" is a V8 message, not
+		// an API, and rewording it would turn every empty config file into a hard
+		// error. Anything that is not blank is a real problem and still throws.
+		if (error instanceof TypeError && isBlank(readFileSync(path, 'utf8'))) {
 			return {};
 		}
+
+		const message = error instanceof Error ? error.message : String(error);
 		throw new Error(`Failed to parse config file "${path}": ${message}`, { cause: error });
 	}
 
