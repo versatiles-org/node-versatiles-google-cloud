@@ -49,7 +49,7 @@ describe('BucketFileGoogle', () => {
 			cacheControl: 'no-cache',
 			contentLength: '1024',
 			contentType: 'text/plain',
-			etag: 'etag123',
+			etag: '"etag123"',
 		});
 	});
 

@@ -2,6 +2,20 @@ import { createHash } from 'crypto';
 import { lookup } from 'mrmime';
 import type { ResponseHeaders } from '../response_headers.js';
 
+/**
+ * Formats a value as a valid entity-tag.
+ *
+ * RFC 9110 §8.8.3 requires an ETag to be a quoted-string, optionally prefixed
+ * with `W/`. Values already in that shape are returned untouched, since Cloud
+ * Storage may supply one; anything else — including the hash generated below —
+ * is quoted. Embedded quotes are dropped rather than escaped, as an entity-tag
+ * cannot contain them.
+ */
+function toEntityTag(value: string): string {
+	if (/^(?:W\/)?".*"$/s.test(value)) return value;
+	return `"${value.replace(/"/g, '')}"`;
+}
+
 export class BucketFileMetadata {
 	readonly #header: {
 		cacheControl?: string;
@@ -30,7 +44,9 @@ export class BucketFileMetadata {
 			cacheControl: options.cacheControl ?? 'max-age=604800',
 			contentType:
 				options.contentType ?? lookup(options.filename ?? '') ?? 'application/octet-stream',
-			etag: options.etag ?? this.generateHash(options.filename, options.size, options.mtime),
+			etag: toEntityTag(
+				options.etag ?? this.generateHash(options.filename, options.size, options.mtime),
+			),
 			size,
 		};
 	}
