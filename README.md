@@ -380,13 +380,14 @@ end
 8["range.ts"]
 9["recompress.ts"]
 A["encoding.ts"]
-E["responder.ts"]
-F["response_headers.ts"]
-G["rewrite.ts"]
-subgraph H["versatiles"]
-I["index.ts"]
-J["cache.ts"]
-K["versatiles.ts"]
+E["readiness.ts"]
+F["responder.ts"]
+G["response_headers.ts"]
+H["rewrite.ts"]
+subgraph I["versatiles"]
+J["index.ts"]
+K["cache.ts"]
+L["versatiles.ts"]
 end
 end
 end
@@ -394,8 +395,9 @@ end
 1-->4
 4-->6
 4-->E
-4-->G
-4-->I
+4-->F
+4-->H
+4-->J
 6-->7
 6-->B
 6-->D
@@ -406,14 +408,14 @@ B-->7
 B-->C
 D-->7
 D-->C
-E-->A
-E-->9
-E-->F
 F-->A
-I-->J
+F-->9
+F-->G
+G-->A
 J-->K
+K-->L
 
-class 0,2,5,H subgraphs;
+class 0,2,5,I subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 

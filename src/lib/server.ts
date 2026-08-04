@@ -11,6 +11,7 @@ import {
 import { ContainerCache } from './versatiles/index.js';
 import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
+import { ReadinessCheck } from './readiness.js';
 
 /**
  * Interface defining the options for starting the server.
@@ -61,9 +62,32 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	app.set('query parser', (a: string): string => a);
 	app.disable('x-powered-by');
 
-	// Health check endpoint
+	// Liveness: is this process still running? Deliberately checks nothing else.
+	// Wiring the bucket in here would let a transient Cloud Storage problem fail
+	// every instance at once, turning a degraded dependency into a dead service —
+	// use /readiness for that instead.
 	app.get('/healthcheck', (serverRequest, serverResponse) => {
 		serverResponse.status(200).type('text').send('ok');
+	});
+
+	// Readiness: should this instance receive traffic? Reports the bucket's
+	// reachability, so credentials that expire after startup are noticed.
+	const readiness = new ReadinessCheck(() => bucket.check());
+
+	app.get('/readiness', (serverRequest, serverResponse) => {
+		void (async (): Promise<void> => {
+			const state = await readiness.get();
+
+			if (state.ready) {
+				serverResponse.status(200).type('text').send('ok');
+				return;
+			}
+
+			// Logged, not returned: the reason can name buckets and credentials,
+			// and this endpoint is unauthenticated.
+			console.error(`readiness check failed: ${state.error ?? 'unknown error'}`);
+			serverResponse.status(503).type('text').send('bucket unavailable');
+		})();
 	});
 
 	// Handler for all GET requests
