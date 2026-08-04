@@ -31,7 +31,7 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "upgrade": "vrt deps-upgrade && npm install path-to-regexp@^6.3.0"
+    "upgrade": "vrt deps-upgrade; code=$?; npm pkg set dependencies.path-to-regexp=^6.3.0; npm install; exit $code"
   },
   "repository": {
     "type": "git",
