@@ -51,7 +51,16 @@ export class ContainerCache {
 
 const containerCache = new ContainerCache();
 
-export async function getVersatiles(file: AbstractBucketFile, url: string): Promise<Versatiles> {
+/**
+ * Returns a parsed container for a file, reusing a cached one when the file has
+ * not changed.
+ *
+ * Cached instances are shared, so they must hold only state derived from the
+ * file itself. Anything server-specific — notably the public URL used to build
+ * style.json — is supplied per request instead, since the cache key is the
+ * filename and cannot distinguish two servers reading the same file.
+ */
+export async function getVersatiles(file: AbstractBucketFile): Promise<Versatiles> {
 	const metadata = await file.getMetadata();
 
 	let container = containerCache.get(file.name);
@@ -62,7 +71,7 @@ export async function getVersatiles(file: AbstractBucketFile, url: string): Prom
 
 	if (container == null) {
 		const reader = buildReader(file);
-		container = await Versatiles.fromReader(reader, url, metadata.etag);
+		container = await Versatiles.fromReader(reader, metadata.etag);
 		containerCache.set(file.name, container);
 	}
 

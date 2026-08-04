@@ -19,34 +19,34 @@ export class Versatiles {
 
 	readonly #metadata: string;
 
-	readonly #url: string;
-
 	private constructor(
 		container: VersatilesContainer,
 		header: VersatilesHeader,
 		metadata: string,
-		url: string,
 		etag: string,
 	) {
 		this.#container = container;
 		this.#header = header;
 		this.#metadata = metadata;
-		this.#url = url;
 		this.etag = etag;
 	}
 
-	public static async fromReader(
-		reader: VersatilesReader,
-		url: string,
-		etag: string,
-	): Promise<Versatiles> {
+	public static async fromReader(reader: VersatilesReader, etag: string): Promise<Versatiles> {
 		const container = new VersatilesContainer(reader);
 		const header = await container.getHeader();
 		const metadata = (await container.getMetadata()) ?? '';
-		return new Versatiles(container, header, metadata, url, etag);
+		return new Versatiles(container, header, metadata, etag);
 	}
 
-	public async serve(query: string, responder: Responder): Promise<void> {
+	/**
+	 * Serves a query against this container.
+	 *
+	 * @param url The public URL of this container, used to build the tile URLs in
+	 * style.json. It is a parameter rather than instance state because instances
+	 * are cached and shared: a server's own base URL must not be baked into an
+	 * object that another server may later read.
+	 */
+	public async serve(query: string, url: string, responder: Responder): Promise<void> {
 		// Log serving versatiles if verbose mode is enabled
 		responder.log(`serve versatiles query: ${JSON.stringify(query)}`);
 
@@ -60,7 +60,7 @@ export class Versatiles {
 				await this.sendMeta(responder);
 				return;
 			case '?style.json':
-				await this.sendStyle(responder);
+				await this.sendStyle(url, responder);
 				return;
 		}
 
@@ -93,12 +93,12 @@ export class Versatiles {
 		await responder.respond(this.#metadata, 'application/json', 'raw');
 	}
 
-	private async sendStyle(responder: Responder): Promise<void> {
+	private async sendStyle(url: string, responder: Responder): Promise<void> {
 		responder.log('respond with style.json');
 
 		try {
 			const tileJson = JSON.parse(this.#metadata);
-			tileJson.tiles = [`${this.#url}?{z}/{x}/{y}`];
+			tileJson.tiles = [`${url}?{z}/{x}/{y}`];
 			const style = await guessStyle(tileJson, {});
 			await responder.respond(JSON.stringify(style), 'application/json', 'raw');
 		} catch (error) {

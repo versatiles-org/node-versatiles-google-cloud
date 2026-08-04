@@ -113,8 +113,8 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				const file = bucket.getFile(bucketPrefix + filename);
 
 				if (filename.endsWith('.versatiles')) {
-					const container = await getVersatiles(file, baseUrl + filename);
-					await container.serve(search, responder);
+					const container = await getVersatiles(file);
+					await container.serve(search, baseUrl + filename, responder);
 				} else {
 					await file.serve(responder);
 				}
