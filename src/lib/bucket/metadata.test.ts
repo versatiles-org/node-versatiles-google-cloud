@@ -71,6 +71,50 @@ describe('BucketFileMetadata', () => {
 		});
 	});
 
+	// An object's etag also changes when only its metadata does, so basing the
+	// validator on it invalidated every cached response whenever someone edited
+	// cacheControl or storage class — for bytes that never moved.
+	describe('validator derivation', () => {
+		const etagOf = (options: ConstructorParameters<typeof BucketFileMetadata>[0]): string => {
+			const headers = new ResponseHeaders();
+			new BucketFileMetadata(options).setHeaders(headers);
+			return headers.get('etag') ?? '';
+		};
+
+		it('prefers a content hash over the etag', () => {
+			expect(etagOf({ filename: 'a.txt', etag: 'obj-etag', contentHash: 'abc123' })).toBe(
+				'"abc123"',
+			);
+		});
+
+		it('is unchanged when only the etag moves', () => {
+			const before = etagOf({ filename: 'a.txt', etag: 'etag-v1', contentHash: 'abc123' });
+			const after = etagOf({ filename: 'a.txt', etag: 'etag-v2', contentHash: 'abc123' });
+			expect(after).toBe(before);
+		});
+
+		it('changes when the content hash changes', () => {
+			const before = etagOf({ filename: 'a.txt', contentHash: 'abc123' });
+			const after = etagOf({ filename: 'a.txt', contentHash: 'def456' });
+			expect(after).not.toBe(before);
+		});
+
+		it('falls back to the etag when no content hash is available', () => {
+			expect(etagOf({ filename: 'a.txt', etag: 'obj-etag' })).toBe('"obj-etag"');
+		});
+
+		it('falls back to a derived hash when neither is available', () => {
+			expect(etagOf({ filename: 'a.txt', size: 10 })).toMatch(/^"[0-9a-f]{64}"$/);
+		});
+
+		// Base64 hashes contain "+", "/" and "="; only quotes are a problem.
+		it('quotes a base64 content hash unchanged', () => {
+			expect(etagOf({ filename: 'a.txt', contentHash: 'rL0Y20zC+Fzt72VPzMSk2A==' })).toBe(
+				'"rL0Y20zC+Fzt72VPzMSk2A=="',
+			);
+		});
+	});
+
 	it('toString returns correct JSON representation', () => {
 		const metadata = new BucketFileMetadata({
 			filename: 'test.png',

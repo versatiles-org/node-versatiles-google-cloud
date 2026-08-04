@@ -34,6 +34,12 @@ export class BucketFileMetadata {
 			mtime?: Date | string;
 			size?: number | string;
 			version?: string;
+			/**
+			 * A hash of the file's bytes, when the backend can supply one. Preferred
+			 * over `etag` for the response validator, because it changes only when
+			 * the content does.
+			 */
+			contentHash?: string;
 		} = {},
 	) {
 		let size: string | undefined;
@@ -46,8 +52,16 @@ export class BucketFileMetadata {
 			cacheControl: options.cacheControl ?? 'max-age=604800',
 			contentType:
 				options.contentType ?? lookup(options.filename ?? '') ?? 'application/octet-stream',
+			// Content hash first: an object's etag also changes when only its
+			// metadata does — editing cacheControl or storage class bumps the
+			// generation's metageneration — which would invalidate every cached
+			// response downstream for bytes that never moved. A re-upload of
+			// identical content is likewise a no-op for a content hash, but a new
+			// etag. Falls back to the etag, then to a hash of what is known.
 			etag: toEntityTag(
-				options.etag ?? this.generateHash(options.filename, options.size, options.mtime),
+				options.contentHash ??
+					options.etag ??
+					this.generateHash(options.filename, options.size, options.mtime),
 			),
 			size,
 			version: options.version,

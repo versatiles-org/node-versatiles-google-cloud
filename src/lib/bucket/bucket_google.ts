@@ -36,6 +36,8 @@ export class BucketFileGoogle extends AbstractBucketFile {
 			mtime: metadata.timeCreated,
 			size: metadata.size,
 			version: metadata.generation == null ? undefined : String(metadata.generation),
+			// md5Hash is absent for composite objects; crc32c is always present.
+			contentHash: metadata.md5Hash ?? metadata.crc32c,
 		});
 	}
 
