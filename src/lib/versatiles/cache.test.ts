@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Readable } from 'stream';
+import { createReadStream } from 'fs';
 import { fileURLToPath } from 'url';
 import { ContainerCache } from './cache.js';
-import { AbstractBucketFile } from '../bucket/abstract.js';
+import type { CachedContainer } from './cache.js';
+import { AbstractBucketFile, StaleRevisionError } from '../bucket/abstract.js';
 import { BucketFileMetadata } from '../bucket/metadata.js';
 import { MockedBucketFile } from '../bucket/bucket.mock.js';
 import { getMockedResponder } from '../responder.mock.js';
@@ -11,8 +13,8 @@ import type { Versatiles } from './versatiles.js';
 const CONTAINER = fileURLToPath(new URL('../../../testdata/island.versatiles', import.meta.url));
 
 // The cache only ever reads `.etag`, so a minimal stand-in is sufficient here.
-function fake(etag: string): Versatiles {
-	return { etag } as unknown as Versatiles;
+function fake(etag: string): CachedContainer {
+	return { container: { etag } as unknown as Versatiles, version: etag };
 }
 
 /**
@@ -71,6 +73,138 @@ describe('cached containers hold no server-specific state', () => {
 	}
 });
 
+/** A container file whose revision can be changed between calls. */
+class VersionedFile extends AbstractBucketFile {
+	public version = 'v1';
+	public metadataCalls = 0;
+	public readVersions: (string | undefined)[] = [];
+	public failStaleReads = false;
+
+	public get name(): string {
+		return 'versioned.versatiles';
+	}
+
+	public async getMetadata(): Promise<BucketFileMetadata> {
+		this.metadataCalls++;
+		return new BucketFileMetadata({
+			filename: 'versioned.versatiles',
+			size: 1000,
+			version: this.version,
+		});
+	}
+
+	public createReadStream(opt?: { start: number; end: number; version?: string }): Readable {
+		this.readVersions.push(opt?.version);
+		if (this.failStaleReads && opt?.version !== this.version) throw new StaleRevisionError();
+		return createReadStream(CONTAINER, { start: opt?.start, end: opt?.end });
+	}
+}
+
+describe('revision pinning', () => {
+	// Tile-index offsets are cached across requests, so every read must name the
+	// revision the index came from — otherwise an overwritten container is read
+	// at stale offsets and returns unrelated bytes as a valid tile.
+	it('pins every read to the revision the index was built from', async () => {
+		const file = new VersionedFile();
+		const container = await new ContainerCache().getVersatiles(file);
+		await container.serve('?8/58/70', 'http://x/', getMockedResponder({ fastRecompression: true }));
+
+		expect(file.readVersions.length).toBeGreaterThan(1);
+		expect(new Set(file.readVersions)).toStrictEqual(new Set(['v1']));
+	});
+
+	// The whole point of pinning: correctness stops depending on a check that
+	// happens before the reads, so that check can leave the critical path.
+	it('does not fetch metadata again on a cache hit', async () => {
+		const file = new VersionedFile();
+		const cache = new ContainerCache({ now: () => 0 });
+
+		await cache.getVersatiles(file);
+		const afterFirst = file.metadataCalls;
+
+		for (let i = 0; i < 5; i++) await cache.getVersatiles(file);
+
+		expect(afterFirst).toBe(1);
+		expect(file.metadataCalls).toBe(1);
+	});
+
+	it('surfaces a stale read unwrapped so the caller can retry', async () => {
+		const file = new VersionedFile();
+		file.failStaleReads = true;
+		const cache = new ContainerCache();
+
+		await cache.getVersatiles(file);
+		file.version = 'v2';
+		cache.invalidate(file.name);
+
+		// The index is now read at v2, but a reader pinned to v1 must fail loudly.
+		const stale = buildStaleRead(file);
+		await expect(stale).rejects.toBeInstanceOf(StaleRevisionError);
+	});
+
+	async function buildStaleRead(file: VersionedFile): Promise<void> {
+		file.version = 'v3';
+		const cache = new ContainerCache();
+		const container = await cache.getVersatiles(file);
+		file.version = 'v4';
+		await container.serve('?14/3741/4507', 'http://x/', getMockedResponder({}));
+	}
+});
+
+describe('background refresh', () => {
+	// Freshness must never block a response: a cached entry is safe to serve
+	// because its reads are pinned, so the check runs alongside, not before.
+	it('drops the entry once the file has been replaced', async () => {
+		let t = 0;
+		const file = new VersionedFile();
+		const cache = new ContainerCache({ refreshIntervalMs: 1000, now: () => t });
+
+		await cache.getVersatiles(file);
+		expect(cache.size).toBe(1);
+
+		file.version = 'v2';
+		t = 1001;
+		await cache.getVersatiles(file);
+		await new Promise((resolve) => setImmediate(resolve));
+
+		expect(cache.size).toBe(0);
+	});
+
+	it('checks at most once per refresh interval', async () => {
+		let t = 0;
+		const file = new VersionedFile();
+		const cache = new ContainerCache({ refreshIntervalMs: 1000, now: () => t });
+
+		await cache.getVersatiles(file);
+		const afterCold = file.metadataCalls;
+
+		t = 500;
+		for (let i = 0; i < 5; i++) await cache.getVersatiles(file);
+		expect(file.metadataCalls).toBe(afterCold);
+
+		t = 1001;
+		await cache.getVersatiles(file);
+		await new Promise((resolve) => setImmediate(resolve));
+		expect(file.metadataCalls).toBe(afterCold + 1);
+	});
+
+	it('keeps serving when the refresh itself fails', async () => {
+		let t = 0;
+		const file = new VersionedFile();
+		const cache = new ContainerCache({ refreshIntervalMs: 1000, now: () => t });
+
+		await cache.getVersatiles(file);
+		vi.spyOn(file, 'getMetadata').mockRejectedValue(new Error('transient'));
+
+		t = 1001;
+		await expect(cache.getVersatiles(file)).resolves.toBeDefined();
+		await new Promise((resolve) => setImmediate(resolve));
+
+		// A transient metadata error must not discard an entry that still reads.
+		expect(cache.size).toBe(1);
+	});
+});
+
 describe('getVersatiles', () => {
 	// Rejecting with a string would lose the stack and slip past `instanceof
 	// Error` checks in callers such as the request handler in server.ts.
@@ -88,7 +222,7 @@ describe('getVersatiles', () => {
 
 describe('ContainerCache', () => {
 	it('stores and retrieves entries', () => {
-		const cache = new ContainerCache(3);
+		const cache = new ContainerCache({ limit: 3 });
 		const a = fake('a');
 		cache.set('a', a);
 		expect(cache.get('a')).toBe(a);
@@ -96,7 +230,7 @@ describe('ContainerCache', () => {
 	});
 
 	it('evicts the least-recently-used entry beyond the limit', () => {
-		const cache = new ContainerCache(3);
+		const cache = new ContainerCache({ limit: 3 });
 		cache.set('a', fake('a'));
 		cache.set('b', fake('b'));
 		cache.set('c', fake('c'));
@@ -113,7 +247,7 @@ describe('ContainerCache', () => {
 	});
 
 	it('stays bounded under many distinct entries', () => {
-		const cache = new ContainerCache(10);
+		const cache = new ContainerCache({ limit: 10 });
 		for (let i = 0; i < 1000; i++) cache.set('k' + i, fake(String(i)));
 		expect(cache.size).toBe(10);
 	});
