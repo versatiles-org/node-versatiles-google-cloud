@@ -4,8 +4,11 @@ import { readFileSync } from 'fs';
 import type { Header as VersatilesHeader, Reader as VersatilesReader } from '@versatiles/container';
 import type { Responder } from '../responder.js';
 
-const filenamePreview = new URL('../../../static/preview.html', import.meta.url).pathname;
-const bufferPreview = readFileSync(filenamePreview);
+// Pass the file: URL straight to readFileSync rather than its .pathname, which
+// is percent-encoded: a package installed under a path containing a space (or
+// any character URL-encodes) would otherwise fail to read this file and, since
+// this runs at module load, take down the process on startup.
+const bufferPreview = readFileSync(new URL('../../../static/preview.html', import.meta.url));
 
 export class Versatiles {
 	public readonly etag: string;
