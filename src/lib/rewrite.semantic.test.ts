@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createRequire } from 'node:module';
 import { Rewrite } from './rewrite.js';
 
 /**
@@ -357,6 +358,29 @@ describe('v8 migration', () => {
 		'custom regex: numeric tile coordinates',
 		'repeating parameter',
 	];
+
+	/**
+	 * Backstop for the pin in package.json and the ignore rule in
+	 * .github/dependabot.yml. Neither of those can stop a manual `npm install`
+	 * or `vrt deps-upgrade`, which has no ignore option — so if the engine is
+	 * ever bumped, this fails with an explanation instead of leaving the corpus
+	 * above to fail with a dozen opaque pattern-parse errors.
+	 */
+	it('runs against a path-to-regexp major that supports custom matching parameters', () => {
+		const version = (
+			createRequire(import.meta.url)('path-to-regexp/package.json') as { version: string }
+		).version;
+		const major = Number(version.split('.')[0]);
+
+		expect(
+			major,
+			`path-to-regexp ${version} is installed, but this package requires the 6.x line. ` +
+				'v7 removed custom matching parameters such as ":z(\\d+)" with no replacement, ' +
+				'which the rewrite syntax documented in README.md depends on. ' +
+				'Re-pin "path-to-regexp": "^6.3.0" in package.json, or migrate the pattern ' +
+				'language deliberately as a breaking change.',
+		).toBe(6);
+	});
 
 	it('every rule declares either a v8 translation or an explicit blocker', () => {
 		for (const entry of CORPUS) {
