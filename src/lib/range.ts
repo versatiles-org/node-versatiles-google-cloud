@@ -1,3 +1,31 @@
+/**
+ * Whether an `If-Range` value still matches the representation being served.
+ *
+ * Per RFC 9110 §13.1.5 a range must only be honoured while the client's copy of
+ * the validator is current; otherwise the range is ignored and the whole
+ * representation is sent. Without this, a client resuming an interrupted
+ * download of a file that changed in the meantime would splice together bytes
+ * from two different versions and never notice.
+ *
+ * Only strong entity-tags can satisfy it. A weak tag is rejected because it
+ * does not guarantee byte-for-byte equality, and the HTTP-date form is rejected
+ * because no `Last-Modified` header is sent to compare against — in both cases
+ * the safe answer is "does not match", which costs a full body rather than
+ * risking a corrupted one.
+ */
+export function ifRangeMatches(ifRange: string, etag: string | undefined): boolean {
+	if (etag === undefined) return false;
+
+	const value = ifRange.trim();
+	if (value === '' || value.startsWith('W/')) return false;
+
+	const unquote = (text: string): string => text.replace(/^"(.*)"$/s, '$1');
+
+	// Tolerate either spelling: this server emits an unquoted entity-tag, while
+	// a client or proxy may echo it back quoted.
+	return unquote(value) === unquote(etag.trim());
+}
+
 /** A resolved, inclusive byte range within a representation. */
 export interface ByteRange {
 	start: number;

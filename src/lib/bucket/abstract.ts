@@ -2,7 +2,7 @@ import type { Readable } from 'stream';
 import type { BucketFileMetadata } from './metadata.js';
 import type { Responder } from '../responder.js';
 import { recompress, streamUnmodified } from '../recompress.js';
-import { parseByteRange } from '../range.js';
+import { ifRangeMatches, parseByteRange } from '../range.js';
 import { posix } from 'path';
 
 /**
@@ -67,6 +67,16 @@ export abstract class AbstractBucketFile {
 	async #serveRange(responder: Responder): Promise<boolean> {
 		const rangeHeader = responder.getRequestHeader('range');
 		if (rangeHeader === undefined) return false;
+
+		// An If-Range whose validator no longer matches means the client's partial
+		// copy is stale: send the whole representation instead, so a resumed
+		// download cannot splice together two different versions. Absent a Range
+		// header this is never reached, which is what the spec requires.
+		const ifRange = responder.getRequestHeader('if-range');
+		if (ifRange !== undefined && !ifRangeMatches(ifRange, responder.headers.get('etag'))) {
+			responder.log('if-range validator does not match; serving the full representation');
+			return false;
+		}
 
 		// Ranges are resolved against the stored size, so without a known
 		// content-length there is nothing to resolve them against.
