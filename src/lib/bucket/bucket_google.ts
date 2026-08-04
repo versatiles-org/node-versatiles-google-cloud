@@ -1,4 +1,5 @@
 import type { Readable } from 'stream';
+import { PassThrough } from 'stream';
 import type { Bucket, File } from '@google-cloud/storage';
 import {
 	AbstractBucket,
@@ -48,12 +49,23 @@ export class BucketFileGoogle extends AbstractBucketFile {
 		// then fails with 404 — which means "stale", not "missing".
 		const { start, end } = opt;
 		const pinned = this.#file.bucket.file(this.#file.name, { generation: opt.version });
+		const source = pinned.createReadStream({ start, end });
 
-		return pinned.createReadStream({ start, end }).on('error', function (this: Readable, error) {
-			if ((error as { code?: number }).code === 404) {
-				this.destroy(new StaleRevisionError());
-			}
+		// Piped through rather than translated in place: by the time an "error"
+		// listener runs, the stream is already failing with that error, and
+		// destroying it again is a no-op — so the 404 would reach the caller
+		// unmapped and never trigger the stale-revision retry.
+		const output = new PassThrough();
+
+		source.on('error', (error: unknown) => {
+			output.destroy(
+				(error as { code?: number }).code === 404 ? new StaleRevisionError() : (error as Error),
+			);
 		});
+
+		source.pipe(output);
+
+		return output;
 	}
 }
 
