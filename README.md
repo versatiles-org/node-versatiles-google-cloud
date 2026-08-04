@@ -126,7 +126,7 @@ Single-page applications usually need every route that is not a file to fall bac
 | ------------------------ | ------------------------------------ |
 | `/apps/editor`           | `/apps/editor/index.html`            |
 | `/apps/editor/settings`  | `/apps/editor/settings/index.html`   |
-| `/apps/editor/bundle.js` | *(unchanged — has a file extension)* |
+| `/apps/editor/bundle.js` | _(unchanged — has a file extension)_ |
 
 > [!WARNING]
 > There is no separator between the `/apps` literal and the parameter, so this rule also matches sibling paths that merely start with the same characters — `/apps-admin` and `/appsX` are rewritten too. To match only below `/apps`, put a `/` before the parameter on both sides:
