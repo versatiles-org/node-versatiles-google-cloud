@@ -2,7 +2,7 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule: 
+    schedule:
       interval: monthly
     groups:
       npm:
@@ -10,11 +10,11 @@ updates:
     versioning-strategy: increase-if-necessary
     ignore:
       - dependency-name: path-to-regexp
-        versions: [ "<=8.3.x" ] # waiting for full regex support in path-to-regexp
+        versions: ['<=8.3.x'] # waiting for full regex support in path-to-regexp
 
   - package-ecosystem: github-actions
     directory: /
-    schedule: 
+    schedule:
       interval: monthly
     groups:
       action:

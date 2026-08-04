@@ -236,7 +236,8 @@ describe('Server', () => {
 		it('serve versatiles preview', async () => {
 			const response = await server.get('/geodata/test.versatiles?preview');
 			expect(response.status).toBe(200);
-			expect(response.text).toMatch(/^<!DOCTYPE html>/);
+			// The HTML5 doctype is case-insensitive, so do not pin its casing.
+			expect(response.text).toMatch(/^<!doctype html>/i);
 			expect(response.contentType).toBe('text/html');
 		});
 
@@ -403,7 +404,8 @@ describe('Server', () => {
 		it('serve preview via rewrite', async () => {
 			const response = await server.get('/tiles/osm/preview');
 			expect(response.status).toBe(200);
-			expect(response.text).toMatch(/^<!DOCTYPE html>/);
+			// The HTML5 doctype is case-insensitive, so do not pin its casing.
+			expect(response.text).toMatch(/^<!doctype html>/i);
 			expect(response.contentType).toBe('text/html');
 		});
 
@@ -462,7 +464,8 @@ describe('Server', () => {
 		it('serve versatiles preview', async () => {
 			const response = await server.get('/testdata/island.versatiles?preview');
 			expect(response.status).toBe(200);
-			expect(response.text).toMatch(/^<!DOCTYPE html>/);
+			// The HTML5 doctype is case-insensitive, so do not pin its casing.
+			expect(response.text).toMatch(/^<!doctype html>/i);
 			expect(response.contentType).toBe('text/html');
 		});
 	});
