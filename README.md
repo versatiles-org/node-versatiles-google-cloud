@@ -160,7 +160,7 @@ Three forms are understood, all relative to the stored file:
 | `bytes=1000-` | everything from byte 1000 on |
 | `bytes=-500`  | the last 500 bytes           |
 
-A range whose end runs past the file is not an error — it is clamped to the last byte. A range that *starts* beyond the end of the file cannot be satisfied:
+A range whose end runs past the file is not an error — it is clamped to the last byte. A range whose start lies beyond the end of the file cannot be satisfied:
 
 ```console
 $ curl -H 'Range: bytes=99999999-' -i https://public.domain.com/video.mp4

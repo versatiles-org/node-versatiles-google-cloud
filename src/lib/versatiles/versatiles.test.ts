@@ -102,11 +102,11 @@ describe('VersaTiles', () => {
 				.spyOn(Container.prototype, 'getMetadata')
 				.mockResolvedValue('this is not json');
 			const mockFile = new MockedBucketFile({ name: 'broken-meta.versatiles', filename });
-			const versatiles = await getVersatiles(mockFile, 'https://example.org/data/map.versatiles');
+			const versatiles = await getVersatiles(mockFile);
 			spy.mockRestore();
 
 			const responder = getMockedResponder({ fastRecompression: true });
-			await versatiles.serve('?style.json', responder);
+			await versatiles.serve('?style.json', 'https://example.org/data/map.versatiles', responder);
 
 			expect(responder.response.writeHead).toHaveBeenCalledWith(500, {
 				'content-type': 'text/plain',
@@ -120,7 +120,7 @@ describe('VersaTiles', () => {
 		async function runQuery(query: string): Promise<MockedResponse> {
 			const mockFile = new MockedBucketFile({ name: 'osm.versatiles', filename });
 
-			const versatiles = await getVersatiles(mockFile, 'https://example.org/data/map.versatiles');
+			const versatiles = await getVersatiles(mockFile);
 
 			const mockResponder = getMockedResponder({
 				fastRecompression: true,
@@ -129,7 +129,7 @@ describe('VersaTiles', () => {
 				verbose: false,
 			});
 
-			await versatiles.serve(query, mockResponder);
+			await versatiles.serve(query, 'https://example.org/data/map.versatiles', mockResponder);
 
 			return mockResponder.response;
 		}
