@@ -136,6 +136,72 @@ describe('recompress', () => {
 		expect(Buffer.concat(data).compare(response.getBuffer())).toBe(0);
 	});
 
+	// When nothing needs recompressing and the size is already known from bucket
+	// metadata, buffering only recomputes a content-length that is already
+	// correct — and above the buffer threshold BufferStream deletes it and falls
+	// back to chunked encoding, losing information it started with.
+	describe('direct forwarding when no recompression is needed', () => {
+		it('keeps the known content-length instead of buffering', async () => {
+			const responder = getMockedResponder({
+				requestHeaders: { 'accept-encoding': 'identity' },
+				responseHeaders: { 'content-type': 'audio/mpeg', 'content-length': '90' },
+			});
+
+			await recompress(responder, Readable.from(testBuffer));
+
+			const headers = getWriteHeadHeaders(responder);
+			expect(headers['content-length']).toBe('90');
+			expect(headers['transfer-encoding']).toBeUndefined();
+			expect(responder.response.getBuffer()).toStrictEqual(testBuffer);
+		});
+
+		it('keeps content-length for bodies larger than the buffer threshold', async () => {
+			const chunks = [Buffer.alloc(maxBufferSize, 0x61), Buffer.alloc(1024, 0x62)];
+			const total = maxBufferSize + 1024;
+
+			const responder = getMockedResponder({
+				requestHeaders: { 'accept-encoding': 'identity' },
+				responseHeaders: { 'content-type': 'audio/mpeg', 'content-length': String(total) },
+			});
+
+			await recompress(responder, Readable.from(chunks));
+
+			const headers = getWriteHeadHeaders(responder);
+			expect(headers['content-length']).toBe(String(total));
+			expect(headers['transfer-encoding']).toBeUndefined();
+			expect(responder.response.getBuffer().length).toBe(total);
+		});
+
+		// The buffering path is still required when the body is recompressed,
+		// because the output size is not known until compression finishes.
+		it('still buffers when the body is recompressed', async () => {
+			const responder = getMockedResponder({
+				requestHeaders: { 'accept-encoding': 'gzip' },
+				responseHeaders: { 'content-type': 'text/plain', 'content-length': '90' },
+			});
+
+			await recompress(responder, Readable.from(testBuffer));
+
+			const headers = getWriteHeadHeaders(responder);
+			expect(headers['content-encoding']).toBe('gzip');
+			// Recomputed from the compressed output, not the original size.
+			expect(headers['content-length']).not.toBe('90');
+			expect(zlib.gunzipSync(responder.response.getBuffer())).toStrictEqual(testBuffer);
+		});
+
+		it('falls back to buffering when the size is unknown', async () => {
+			const responder = getMockedResponder({
+				requestHeaders: { 'accept-encoding': 'identity' },
+				responseHeaders: { 'content-type': 'audio/mpeg' },
+			});
+
+			await recompress(responder, Readable.from(testBuffer));
+
+			// No content-length was supplied, so buffering computed one.
+			expect(getWriteHeadHeaders(responder)['content-length']).toBe('90');
+		});
+	});
+
 	describe('systematically check recompression', () => {
 		const encodings = Object.keys(ENCODINGS);
 		for (const encodingIn of encodings) {
@@ -192,6 +258,13 @@ describe('recompress', () => {
 			}
 		}
 	});
+
+	/** The headers actually written, asserting exactly one writeHead call. */
+	function getWriteHeadHeaders(responder: MockedResponder): OutgoingHttpHeaders {
+		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
+		expect(responder.response.writeHead).toHaveBeenCalledWith(200, responder.headers.getHeaders());
+		return responder.headers.getHeaders();
+	}
 
 	function checkResponseHeaders(
 		responder: MockedResponder,
