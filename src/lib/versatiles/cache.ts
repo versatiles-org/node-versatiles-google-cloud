@@ -81,7 +81,10 @@ function buildReader(file: AbstractBucketFile): VersatilesReader {
 					resolve(Buffer.concat(buffers));
 				})
 				.on('error', (err: unknown) => {
-					reject(`error accessing bucket stream - ${String(err)}`);
+					// Reject with an Error, not a string: a string rejection carries no
+					// stack, and defeats `instanceof Error` checks in callers such as
+					// the request handler in server.ts.
+					reject(new Error(`error accessing bucket stream - ${String(err)}`, { cause: err }));
 				});
 		});
 	};

@@ -1,11 +1,56 @@
 import { describe, it, expect } from 'vitest';
-import { ContainerCache } from './cache.js';
+import { Readable } from 'stream';
+import { ContainerCache, getVersatiles } from './cache.js';
+import { AbstractBucketFile } from '../bucket/abstract.js';
+import { BucketFileMetadata } from '../bucket/metadata.js';
 import type { Versatiles } from './versatiles.js';
 
 // The cache only ever reads `.etag`, so a minimal stand-in is sufficient here.
 function fake(etag: string): Versatiles {
 	return { etag } as unknown as Versatiles;
 }
+
+/**
+ * A file whose metadata resolves but whose read stream fails, so the failure
+ * happens inside the reader that `getVersatiles` builds.
+ */
+class ErroringStreamFile extends AbstractBucketFile {
+	public get name(): string {
+		return 'broken.versatiles';
+	}
+
+	public async exists(): Promise<boolean> {
+		return true;
+	}
+
+	public async getMetadata(): Promise<BucketFileMetadata> {
+		return new BucketFileMetadata({ filename: 'broken.versatiles', size: 100 });
+	}
+
+	public createReadStream(): Readable {
+		return new Readable({
+			read(): void {
+				this.destroy(new Error('bucket unavailable'));
+			},
+		});
+	}
+}
+
+describe('getVersatiles', () => {
+	// Rejecting with a string would lose the stack and slip past `instanceof
+	// Error` checks in callers such as the request handler in server.ts.
+	it('rejects with an Error carrying the original cause when the stream fails', async () => {
+		const thrown: unknown = await getVersatiles(
+			new ErroringStreamFile(),
+			'http://example.org/broken.versatiles',
+		).catch((error: unknown) => error);
+
+		expect(thrown).toBeInstanceOf(Error);
+		expect((thrown as Error).message).toContain('error accessing bucket stream');
+		expect((thrown as Error).cause).toBeInstanceOf(Error);
+		expect(((thrown as Error).cause as Error).message).toBe('bucket unavailable');
+	});
+});
 
 describe('ContainerCache', () => {
 	it('stores and retrieves entries', () => {
