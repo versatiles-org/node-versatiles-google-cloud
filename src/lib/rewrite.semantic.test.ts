@@ -276,6 +276,55 @@ describe('rule ordering', () => {
 	});
 });
 
+describe('replacement must repeat the parameter modifier', () => {
+	/**
+	 * Registration only validates that both sides parse. A replacement that
+	 * drops the "?" of an optional parameter therefore compiles fine and fails
+	 * later, at request time, but only for the requests where the parameter is
+	 * absent — so it survives casual testing. README.md documented exactly this
+	 * mistake in its example config until it was corrected.
+	 */
+	const SEARCH = '/apps:any((?!.*\\.[^/]+$).*)?';
+
+	it('registers a mismatched replacement without complaining', () => {
+		expect(() => new Rewrite({ [SEARCH]: '/apps:any/index.html' })).not.toThrow();
+	});
+
+	it('throws at match time when the omitted parameter is absent', () => {
+		const rewrite = new Rewrite({ [SEARCH]: '/apps:any/index.html' }, { cache: false });
+		// Present -> works, which is why the bug hides.
+		expect(rewrite.match('/apps/editor')).toBe('/apps/editor/index.html');
+		// Absent -> the replacement demands a value that was never captured.
+		expect(() => rewrite.match('/apps')).toThrow(/Expected "any" to be a string/);
+	});
+
+	it('works for every input once the modifier is repeated', () => {
+		const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` }, { cache: false });
+		expect(rewrite.match('/apps')).toBe('/apps/index.html');
+		expect(rewrite.match('/apps/editor')).toBe('/apps/editor/index.html');
+	});
+});
+
+describe('anchoring the extensionless-path rule below a prefix', () => {
+	// The separator-less form also captures sibling prefixes; adding "/" before
+	// the parameter on both sides confines the rule to /apps without losing the
+	// bare "/apps" case. This is the form the README recommends.
+	const SEARCH = '/apps/:any((?!.*\\.[^/]+$).*)?';
+	const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` }, { cache: false });
+
+	it('still rewrites the prefix itself and paths below it', () => {
+		expect(rewrite.match('/apps')).toBe('/apps/index.html');
+		expect(rewrite.match('/apps/editor')).toBe('/apps/editor/index.html');
+		expect(rewrite.match('/apps/editor/settings')).toBe('/apps/editor/settings/index.html');
+	});
+
+	it('leaves files and sibling prefixes alone', () => {
+		expect(rewrite.match('/apps/editor/bundle.js')).toBeNull();
+		expect(rewrite.match('/appsX')).toBeNull();
+		expect(rewrite.match('/apps-admin')).toBeNull();
+	});
+});
+
 describe('invalid rules', () => {
 	it('rejects a malformed search pattern and names both sides', () => {
 		expect(() => new Rewrite({ '/old/::id': '/new' })).toThrow(
