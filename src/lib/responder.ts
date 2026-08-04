@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { ENCODINGS, acceptEncoding, findBestEncoding } from './encoding.js';
 import { recompress } from './recompress.js';
 import { ResponseHeaders } from './response_headers.js';
+import { log, traceFieldFrom } from './logger.js';
 
 /**
  * Interface defining the structure and methods of a Responder.
@@ -34,11 +35,15 @@ export class Responder {
 
 	readonly #responseHeaders: ResponseHeaders;
 
+	/** Groups this request's entries together in Cloud Logging. */
+	readonly #trace?: string;
+
 	public constructor(options: ResponderOptions) {
 		this.#time = Date.now();
 		this.#options = options;
 		this.#responderState = ResponderState.Initialised;
 		this.#responseHeaders = new ResponseHeaders();
+		this.#trace = traceFieldFrom(this.getRequestHeader('x-cloud-trace-context'));
 	}
 
 	public get fastRecompression(): boolean {
@@ -221,6 +226,10 @@ export class Responder {
 	public log(message: string): void {
 		if (!this.#options.verbose) return;
 		const time = Date.now() - this.#time;
-		console.log(`  #${this.#options.requestNo} (${time}ms) ${message}`);
+		log('DEBUG', `  #${this.#options.requestNo} (${time}ms) ${message}`, {
+			requestNo: this.#options.requestNo,
+			durationMs: time,
+			trace: this.#trace,
+		});
 	}
 }

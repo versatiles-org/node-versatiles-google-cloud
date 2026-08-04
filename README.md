@@ -438,59 +438,67 @@ subgraph 0["src"]
 1["index.ts"]
 subgraph 2["lib"]
 3["config.ts"]
-4["server.ts"]
-subgraph 5["bucket"]
-6["index.ts"]
-7["abstract.ts"]
-C["bucket_google.ts"]
-D["metadata.ts"]
-E["bucket_local.ts"]
+4["logger.ts"]
+5["server.ts"]
+subgraph 6["bucket"]
+7["index.ts"]
+8["abstract.ts"]
+D["bucket_google.ts"]
+E["metadata.ts"]
+F["bucket_local.ts"]
 end
-8["conditional.ts"]
-9["range.ts"]
-A["recompress.ts"]
-B["encoding.ts"]
-F["readiness.ts"]
-G["responder.ts"]
-H["response_headers.ts"]
-I["rewrite.ts"]
-subgraph J["versatiles"]
-K["index.ts"]
-L["cache.ts"]
-M["versatiles.ts"]
+9["conditional.ts"]
+A["range.ts"]
+B["recompress.ts"]
+C["encoding.ts"]
+G["readiness.ts"]
+H["responder.ts"]
+I["response_headers.ts"]
+J["rewrite.ts"]
+subgraph K["versatiles"]
+L["index.ts"]
+M["cache.ts"]
+N["versatiles.ts"]
 end
-N["shutdown.ts"]
+O["shutdown.ts"]
 end
 end
 1-->3
 1-->4
-1-->N
-4-->6
-4-->F
-4-->G
-4-->I
-4-->K
-6-->7
-6-->C
-6-->E
+1-->5
+1-->O
+5-->7
+5-->4
+5-->G
+5-->H
+5-->J
+5-->L
 7-->8
-7-->9
-7-->A
-A-->B
-C-->7
-C-->D
-E-->7
-E-->D
-G-->B
-G-->A
-G-->H
+7-->D
+7-->F
+8-->9
+8-->A
+8-->B
+B-->C
+D-->4
+D-->8
+D-->E
+F-->8
+F-->E
+H-->C
+H-->4
 H-->B
-K-->L
-L-->6
+H-->I
+I-->C
+J-->4
 L-->M
-M-->8
+M-->7
+M-->N
+N-->9
+N-->4
+O-->4
 
-class 0,2,5,J subgraphs;
+class 0,2,6,K subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 

@@ -3,6 +3,7 @@ import { guessStyle } from '@versatiles/style';
 import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { ifNoneMatchMatches } from '../conditional.js';
+import { log } from '../logger.js';
 import type { Header as VersatilesHeader, Reader as VersatilesReader } from '@versatiles/container';
 import type { Responder } from '../responder.js';
 
@@ -149,7 +150,9 @@ export class Versatiles {
 		} catch (error) {
 			// Log the details server-side but do not leak internal error messages
 			// (which can echo malformed metadata) to the client.
-			console.error('style.json generation failed:', error);
+			log('ERROR', 'style.json generation failed', {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			responder.error(500, 'internal server error');
 		}
 

@@ -9,6 +9,7 @@ import {
 import type { ReadStreamOptions } from './abstract.js';
 import { Storage } from '@google-cloud/storage';
 import { BucketFileMetadata } from './metadata.js';
+import { log } from '../logger.js';
 
 export class BucketFileGoogle extends AbstractBucketFile {
 	readonly #file: File;
@@ -71,8 +72,11 @@ export class BucketGoogle extends AbstractBucket {
 		} catch (err) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			if ((err as any)?.response?.data?.error === 'invalid_grant') {
-				console.error(`You are not authorized to access bucket "${this.#bucket.name}"`);
-				console.error(
+				log('ERROR', `You are not authorized to access bucket "${this.#bucket.name}"`, {
+					bucket: this.#bucket.name,
+				});
+				log(
+					'ERROR',
 					'Maybe you want to set Application Default Credentials (ADC) by running: "gcloud auth application-default login"',
 				);
 			}

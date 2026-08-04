@@ -13,6 +13,7 @@ import { ContainerCache } from './versatiles/index.js';
 import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
 import { ReadinessCheck } from './readiness.js';
+import { log, traceFieldFrom } from './logger.js';
 
 /**
  * Interface defining the options for starting the server.
@@ -86,7 +87,9 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 			// Logged, not returned: the reason can name buckets and credentials,
 			// and this endpoint is unauthenticated.
-			console.error(`readiness check failed: ${state.error ?? 'unknown error'}`);
+			log('ERROR', `readiness check failed: ${state.error ?? 'unknown error'}`, {
+				error: state.error,
+			});
 			serverResponse.status(503).type('text').send('bucket unavailable');
 		})();
 	});
@@ -180,7 +183,12 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 						responder.error(404, `file "${request.path}" not found`);
 						return;
 				}
-				console.error(error);
+				log('ERROR', `request failed: ${request.path}`, {
+					path: request.path,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+					trace: traceFieldFrom(request.headers['x-cloud-trace-context'] as string | undefined),
+				});
 				responder.error(500, 'Internal Server Error for request: ' + JSON.stringify(request.path));
 			}
 		})();
@@ -194,9 +202,9 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			const { version } = JSON.parse(
 				readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 			) as { version: string };
-			console.log(`starting server @versatiles/google-cloud v${version}`);
-			console.log(`listening on port ${port}`);
-			console.log(`you can find me at ${baseUrl}`);
+			log('INFO', `starting server @versatiles/google-cloud v${version}`, { version });
+			log('INFO', `listening on port ${port}`, { port });
+			log('INFO', `you can find me at ${baseUrl}`, { baseUrl });
 			settled = true;
 			res(server);
 		});
@@ -212,7 +220,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			// so this can arrive after the promise has already resolved — at which
 			// point rejecting is a no-op and the process would otherwise exit 0 while
 			// serving nothing. Re-throw so it becomes a fatal error instead.
-			console.error(`server error after startup: ${error.message}`);
+			log('ERROR', `server error after startup: ${error.message}`, { error: error.message });
 			server.close();
 			throw error;
 		});

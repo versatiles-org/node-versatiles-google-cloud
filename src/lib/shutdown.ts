@@ -1,4 +1,5 @@
 import type { Server } from 'http';
+import { log as writeLog } from './logger.js';
 
 /**
  * How long in-flight requests are given to finish before the process exits
@@ -34,7 +35,7 @@ export interface ShutdownOptions {
 export function installGracefulShutdown(server: Server, options: ShutdownOptions = {}): () => void {
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const signals = options.signals ?? (['SIGTERM', 'SIGINT'] as NodeJS.Signals[]);
-	const log = options.log ?? ((message: string): void => console.log(message));
+	const log = options.log ?? ((message: string): void => writeLog('INFO', message));
 	const exit = options.exit ?? ((code: number): void => process.exit(code));
 
 	let shuttingDown = false;

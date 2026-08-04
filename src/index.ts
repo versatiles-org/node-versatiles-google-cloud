@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { startServer } from './lib/server.js';
 import { loadConfig, type ConfigFile } from './lib/config.js';
 import { installGracefulShutdown } from './lib/shutdown.js';
+import { log } from './lib/logger.js';
 
 /**
  * Entry point for the VersaTiles Google Cloud CLI application.
@@ -72,7 +73,7 @@ program
 				const errorMessage = String(
 					typeof error == 'object' && error != null && 'message' in error ? error.message : error,
 				);
-				console.error(errorMessage);
+				log('ERROR', errorMessage);
 				process.exit(1);
 			}
 		}
@@ -85,7 +86,7 @@ program
 		// --port or config value still wins, since that is a deliberate choice.
 		const portFromEnv = process.env.PORT;
 		if (portFromEnv !== undefined && !/^\d+$/.test(portFromEnv.trim())) {
-			console.error(`Error: PORT must be a number, but is "${portFromEnv}".`);
+			log('ERROR', `Error: PORT must be a number, but is "${portFromEnv}".`);
 			process.exit(1);
 		}
 
@@ -105,7 +106,8 @@ program
 
 		// Validate that bucket is provided (unless using local directory)
 		if (!bucket && !localDirectory) {
-			console.error(
+			log(
+				'ERROR',
 				'Error: bucket-name is required unless --local-directory is specified.\n' +
 					'Provide bucket-name as argument or in config file.',
 			);
@@ -179,7 +181,7 @@ program
 			const errorMessage = String(
 				typeof error == 'object' && error != null && 'message' in error ? error.message : error,
 			);
-			console.error(`Error starting the server: ${errorMessage}`);
+			log('ERROR', `Error starting the server: ${errorMessage}`, { error: errorMessage });
 			process.exit(1);
 		}
 	});

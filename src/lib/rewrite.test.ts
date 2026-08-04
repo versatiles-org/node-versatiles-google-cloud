@@ -184,9 +184,10 @@ describe('Rewrite', () => {
 			);
 
 			expect(rewrite.match('/old')).toBe('/new');
+			// One string rather than two arguments: log lines are emitted as a single
+			// message so they can be serialised as structured JSON under Cloud Run.
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[Rewrite]',
-				'rule "/old" matched, rewriting "/old" to "/new"',
+				'[Rewrite] rule "/old" matched, rewriting "/old" to "/new"',
 			);
 		});
 
@@ -199,9 +200,10 @@ describe('Rewrite', () => {
 			);
 
 			expect(rewrite.match('/old')).toBe('/new');
+			// One string rather than two arguments: log lines are emitted as a single
+			// message so they can be serialised as structured JSON under Cloud Run.
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[Rewrite]',
-				'rule "/old" matched, rewriting "/old" to "/new"',
+				'[Rewrite] rule "/old" matched, rewriting "/old" to "/new"',
 			);
 		});
 

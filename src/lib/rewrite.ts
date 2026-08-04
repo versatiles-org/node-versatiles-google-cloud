@@ -1,4 +1,5 @@
 import { compile, match } from 'path-to-regexp';
+import { log } from './logger.js';
 
 /**
  * A compiled Rule containing search and replacement patterns to be
@@ -158,6 +159,6 @@ export class Rewrite {
 			return;
 		}
 
-		console.log('[Rewrite]', ...args);
+		log('DEBUG', ['[Rewrite]', ...args].map(String).join(' '));
 	}
 }
