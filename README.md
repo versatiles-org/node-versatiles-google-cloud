@@ -13,7 +13,9 @@ E.g. for data journalists, academia, ...
 > It is strongly recommended:
 >
 > - always use a CDN in front of this server and
-> - not to modify/overwrite existing files in the bucket, as this could result in corrupted data being delivered!
+> - to publish an updated tile set under a new name rather than overwriting one in place.
+>
+> Overwriting a container no longer serves corrupt tiles — see [Container caching](#container-caching) — but CDN and browser caches keep serving the previous tiles until they expire, which is a week by default. Clients can therefore see a mix of old and new tiles for some time after an in-place replacement.
 
 ## Outline:
 
@@ -200,6 +202,30 @@ Both are deliberate, and both are permitted responses to a `Range` request:
 
 > [!NOTE]
 > Ranges apply to static files only. VersaTiles containers are addressed through query parameters (`?{z}/{x}/{y}`, `?meta.json`, …), which already return exactly one tile or document, so those responses do not advertise `Accept-Ranges`.
+
+## Container caching
+
+Serving a tile requires the container's header and tile index, so re-reading them on every request would add several round trips to the bucket. Instead each container is parsed once and kept in memory — up to 100 of them, least-recently-used first — and only the tile bytes themselves are fetched per request.
+
+### Replacing a container is safe
+
+Cached index offsets describe one specific revision of a file. Resolving them against a container that has since been overwritten would return unrelated bytes, and the result would look like a perfectly valid tile.
+
+That cannot happen: **every read names the revision its index came from**. Cloud Storage serves that exact generation or refuses the read; for a local directory the file's identity is re-checked before each read. If the container has been replaced, the read fails, the stale index is discarded, and the request is retried against the current revision. The client sees a correct tile, not a corrupt one, and no error.
+
+### How quickly a replacement is noticed
+
+| Bucket configuration                    | Detected                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Object versioning **off** (the default) | Immediately — the previous generation is gone, so the next read fails and the index is reread                       |
+| Object versioning **on**                | Within 30 seconds — the previous generation still exists, so reads keep succeeding until a background check notices |
+
+The background check runs at most once every 30 seconds per container and never blocks a response, because a cached container is safe to serve regardless. With versioning enabled, a replacement can therefore serve the **previous** container for up to that interval — stale, but never inconsistent.
+
+> [!NOTE]
+> This is not the dominant source of staleness. Tile responses are sent with `cache-control: max-age=86400`, so a CDN in front of this server keeps serving the old tiles for up to a day regardless of what the origin does — and static files are sent with `max-age=604800`, a week, unless the object overrides it. Publishing under a new name avoids the problem entirely.
+>
+> Clients cannot shorten this: `Cache-Control: no-cache` on a request is ignored, both here and typically at the CDN. Letting an unauthenticated caller force a cache bypass would turn each request into a metadata lookup plus a full index read against the bucket.
 
 ## Configuration file
 
