@@ -69,6 +69,24 @@ describe('VersaTiles', () => {
 			expect(response.end).toHaveBeenCalledWith();
 		});
 
+		// The coordinate pattern was only anchored at the start, so anything after
+		// the coordinates was ignored and "?13/1870/2252<anything>" returned the
+		// same tile. Behind a CDN that is an unbounded set of cache keys for one
+		// response.
+		it('should reject trailing characters after tile coordinates', async () => {
+			const message =
+				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"';
+
+			for (const query of [
+				'?13/1870/2252junk',
+				'?13/1870/2252/99',
+				'?13/1870/2252.',
+				'?13/1870/2252-',
+			]) {
+				await checkError(query, 400, message);
+			}
+		});
+
 		it('should handle wrong requests correctly', async () => {
 			await checkError(
 				'?bathtub',
