@@ -180,6 +180,13 @@ export class Responder {
 		this.#responderState = ResponderState.HeaderSend;
 	}
 
+	/** A single request header value, or undefined when it was not sent. */
+	public getRequestHeader(name: string): string | undefined {
+		const value = this.#options.requestHeaders[name];
+		if (value === undefined) return undefined;
+		return Array.isArray(value) ? value[0] : value;
+	}
+
 	public acceptEncoding(encoding: EncodingTools): boolean {
 		return acceptEncoding(this.#options.requestHeaders, encoding);
 	}

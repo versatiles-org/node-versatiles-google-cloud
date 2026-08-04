@@ -121,11 +121,14 @@ export class BufferStream extends Writable {
 export class DirectStream extends Writable {
 	readonly #responder: Responder;
 
+	readonly #status: number;
+
 	#headersSent = false;
 
-	public constructor(responder: Responder) {
+	public constructor(responder: Responder, status = 200) {
 		super();
 		this.#responder = responder;
+		this.#status = status;
 	}
 
 	public _write(
@@ -145,9 +148,25 @@ export class DirectStream extends Writable {
 
 	#sendHeadersOnce(): void {
 		if (this.#headersSent) return;
-		this.#responder.sendHeaders(200);
+		this.#responder.sendHeaders(this.#status);
 		this.#headersSent = true;
 	}
+}
+
+/**
+ * Streams a body to the client exactly as stored, skipping content negotiation.
+ *
+ * Used for byte-range responses: the bytes transferred must correspond to the
+ * offsets named in `Content-Range`, so recompressing them — which the normal
+ * path would do whenever the client accepts a better encoding — would produce a
+ * body that does not match the range it claims to be.
+ */
+export async function streamUnmodified(
+	responder: Responder,
+	body: Readable,
+	status: number,
+): Promise<void> {
+	await pipeline([body, new DirectStream(responder, status)]);
 }
 
 /**

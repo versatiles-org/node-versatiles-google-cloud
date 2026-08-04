@@ -64,7 +64,9 @@ export class MockedBucketFile extends AbstractBucketFile {
 			}
 		} else {
 			if (range) {
-				buffer = this.#file.content.subarray(range.start, range.end);
+				// "end" is inclusive, as it is for fs.createReadStream and for the
+				// Google Cloud Storage client, while subarray's end is exclusive.
+				buffer = this.#file.content.subarray(range.start, range.end + 1);
 			} else {
 				buffer = this.#file.content.subarray();
 			}

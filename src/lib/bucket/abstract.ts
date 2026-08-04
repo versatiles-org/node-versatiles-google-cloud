@@ -1,7 +1,8 @@
 import type { Readable } from 'stream';
 import type { BucketFileMetadata } from './metadata.js';
 import type { Responder } from '../responder.js';
-import { recompress } from '../recompress.js';
+import { recompress, streamUnmodified } from '../recompress.js';
+import { parseByteRange } from '../range.js';
 import { posix } from 'path';
 
 /**
@@ -49,8 +50,64 @@ export abstract class AbstractBucketFile {
 		responder.log(`metadata: ${metadata.toString()}`);
 
 		metadata.setHeaders(responder.headers);
+		responder.headers.set('accept-ranges', 'bytes');
+
+		if (await this.#serveRange(responder)) return;
 
 		await recompress(responder, this.createReadStream());
+	}
+
+	/**
+	 * Answers a `Range` request, if one was made and can be satisfied.
+	 *
+	 * @returns true when the response has been sent, false to fall through to a
+	 * normal full-body response — which is always a valid answer to a Range
+	 * request, and is what happens for absent, malformed or multi-range headers.
+	 */
+	async #serveRange(responder: Responder): Promise<boolean> {
+		const rangeHeader = responder.getRequestHeader('range');
+		if (rangeHeader === undefined) return false;
+
+		// Ranges are resolved against the stored size, so without a known
+		// content-length there is nothing to resolve them against.
+		const sizeHeader = responder.headers.get('content-length');
+		if (sizeHeader === undefined) return false;
+
+		const size = Number(sizeHeader);
+		if (!Number.isInteger(size)) return false;
+
+		const range = parseByteRange(rangeHeader, size);
+		if (range === null) return false;
+
+		// The representation served no longer depends on Accept-Encoding, but the
+		// resource is still negotiable, so caches must keep varying on it.
+		responder.headers.set('vary', 'accept-encoding');
+
+		if (range === 'unsatisfiable') {
+			responder.log(`range not satisfiable: ${rangeHeader} of ${size}`);
+			responder.headers.remove('content-encoding');
+			responder.headers.set('content-length', '0');
+			responder.headers.set('content-range', `bytes */${size}`);
+			responder.sendHeaders(416);
+			await responder.end();
+			return true;
+		}
+
+		const length = range.end - range.start + 1;
+		responder.headers.set('content-range', `bytes ${range.start}-${range.end}/${size}`);
+		responder.headers.set('content-length', String(length));
+
+		responder.log(`serve range ${range.start}-${range.end}/${size}`);
+
+		// Deliberately not via recompress(): a range names byte offsets in the
+		// stored representation, so the body must pass through unmodified.
+		await streamUnmodified(
+			responder,
+			this.createReadStream({ start: range.start, end: range.end }),
+			206,
+		);
+
+		return true;
 	}
 
 	public abstract exists(): Promise<boolean>;
