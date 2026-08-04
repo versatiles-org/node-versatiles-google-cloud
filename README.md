@@ -330,45 +330,47 @@ subgraph 2["lib"]
 subgraph 5["bucket"]
 6["index.ts"]
 7["abstract.ts"]
-A["bucket_google.ts"]
-B["metadata.ts"]
-C["bucket_local.ts"]
+B["bucket_google.ts"]
+C["metadata.ts"]
+D["bucket_local.ts"]
 end
-8["recompress.ts"]
-9["encoding.ts"]
-D["responder.ts"]
-E["response_headers.ts"]
-F["rewrite.ts"]
-subgraph G["versatiles"]
-H["index.ts"]
-I["cache.ts"]
-J["versatiles.ts"]
+8["range.ts"]
+9["recompress.ts"]
+A["encoding.ts"]
+E["responder.ts"]
+F["response_headers.ts"]
+G["rewrite.ts"]
+subgraph H["versatiles"]
+I["index.ts"]
+J["cache.ts"]
+K["versatiles.ts"]
 end
 end
 end
 1-->3
 1-->4
 4-->6
-4-->D
-4-->F
-4-->H
+4-->E
+4-->G
+4-->I
 6-->7
-6-->A
-6-->C
+6-->B
+6-->D
 7-->8
-8-->9
-A-->7
-A-->B
-C-->7
-C-->B
-D-->9
-D-->8
-D-->E
+7-->9
+9-->A
+B-->7
+B-->C
+D-->7
+D-->C
+E-->A
 E-->9
-H-->I
+E-->F
+F-->A
 I-->J
+J-->K
 
-class 0,2,5,G subgraphs;
+class 0,2,5,H subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 
