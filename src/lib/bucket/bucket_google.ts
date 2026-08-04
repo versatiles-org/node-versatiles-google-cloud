@@ -1,6 +1,12 @@
 import type { Readable } from 'stream';
 import type { Bucket, File } from '@google-cloud/storage';
-import { AbstractBucket, AbstractBucketFile, normalizeBucketPath } from './abstract.js';
+import {
+	AbstractBucket,
+	AbstractBucketFile,
+	StaleRevisionError,
+	normalizeBucketPath,
+} from './abstract.js';
+import type { ReadStreamOptions } from './abstract.js';
 import { Storage } from '@google-cloud/storage';
 import { BucketFileMetadata } from './metadata.js';
 
@@ -27,12 +33,26 @@ export class BucketFileGoogle extends AbstractBucketFile {
 			filename: metadata.name,
 			mtime: metadata.timeCreated,
 			size: metadata.size,
+			version: metadata.generation == null ? undefined : String(metadata.generation),
 		});
 	}
 
 	// Create a readable stream for the file
-	public createReadStream(opt?: { start: number; end: number }): Readable {
-		return this.#file.createReadStream(opt);
+	public createReadStream(opt?: ReadStreamOptions): Readable {
+		if (opt?.version === undefined) return this.#file.createReadStream(opt);
+
+		// A File built with a generation sends "generation=<n>" on the download, so
+		// Cloud Storage serves that exact revision or nothing. Overwriting an object
+		// removes the previous generation unless versioning is enabled, so the read
+		// then fails with 404 — which means "stale", not "missing".
+		const { start, end } = opt;
+		const pinned = this.#file.bucket.file(this.#file.name, { generation: opt.version });
+
+		return pinned.createReadStream({ start, end }).on('error', function (this: Readable, error) {
+			if ((error as { code?: number }).code === 404) {
+				this.destroy(new StaleRevisionError());
+			}
+		});
 	}
 }
 

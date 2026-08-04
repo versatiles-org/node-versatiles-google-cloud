@@ -1,9 +1,24 @@
-import { AbstractBucket, AbstractBucketFile, PathTraversalError } from './abstract.js';
+import {
+	AbstractBucket,
+	AbstractBucketFile,
+	PathTraversalError,
+	StaleRevisionError,
+} from './abstract.js';
+import type { ReadStreamOptions } from './abstract.js';
 import type { Readable } from 'stream';
 import { access, stat } from 'fs/promises';
-import { createReadStream } from 'fs';
+import { createReadStream, statSync } from 'fs';
+import type { Stats } from 'fs';
 import { resolve, sep } from 'path';
 import { BucketFileMetadata } from './metadata.js';
+
+/**
+ * Identifies one revision of a local file. The inode is included so a file
+ * replaced by rename is detected even when size and timestamp coincide.
+ */
+function versionOf(stats: Pick<Stats, 'ino' | 'mtimeMs' | 'size'>): string {
+	return `${stats.ino}:${stats.mtimeMs}:${stats.size}`;
+}
 
 export class BucketFileLocal extends AbstractBucketFile {
 	readonly #filename: string;
@@ -40,13 +55,22 @@ export class BucketFileLocal extends AbstractBucketFile {
 			filename: this.#filename,
 			mtime: statResult.mtime,
 			size: statResult.size,
+			version: versionOf(statResult),
 		});
 	}
 
 	// Create a readable stream for the file
-	public createReadStream(opt?: { start: number; end: number }): Readable {
+	public createReadStream(opt?: ReadStreamOptions): Readable {
 		const safePath = this.#validatePath();
-		return createReadStream(safePath, opt);
+
+		if (opt?.version !== undefined && versionOf(statSync(safePath)) !== opt.version) {
+			// Replaced since its index was read, so the cached offsets describe bytes
+			// that are no longer there.
+			throw new StaleRevisionError();
+		}
+
+		const { start, end } = opt ?? {};
+		return createReadStream(safePath, opt === undefined ? undefined : { start, end });
 	}
 }
 

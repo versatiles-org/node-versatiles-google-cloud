@@ -19,6 +19,35 @@ export class PathTraversalError extends Error {
 }
 
 /**
+ * Thrown when a read pinned to a revision can no longer be served, because the
+ * file has been replaced since that revision was read.
+ *
+ * Distinguished from other read failures so the caller can drop its cached tile
+ * index and retry against the current revision, rather than surfacing an error
+ * for something that is merely out of date.
+ */
+export class StaleRevisionError extends Error {
+	public constructor(message = 'file changed since its index was read') {
+		super(message);
+		this.name = 'StaleRevisionError';
+	}
+}
+
+/** Options for reading part of a file, optionally pinned to one revision. */
+export interface ReadStreamOptions {
+	start: number;
+	end: number;
+	/**
+	 * Read only this revision. Tile-index offsets are cached across requests, so
+	 * resolving them against a file that has since been overwritten would return
+	 * unrelated bytes — a corrupt tile served as if it were valid. Pinning makes
+	 * that impossible: the read either returns the bytes the index describes, or
+	 * fails with {@link StaleRevisionError}.
+	 */
+	version?: string;
+}
+
+/**
  * Normalises a client-supplied object path and rejects anything that escapes
  * the root it will be resolved against.
  *
@@ -122,7 +151,7 @@ export abstract class AbstractBucketFile {
 
 	public abstract getMetadata(): Promise<BucketFileMetadata>;
 
-	public abstract createReadStream(opt?: { start: number; end: number }): Readable;
+	public abstract createReadStream(opt?: ReadStreamOptions): Readable;
 }
 
 export abstract class AbstractBucket {

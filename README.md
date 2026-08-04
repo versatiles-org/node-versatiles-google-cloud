@@ -434,6 +434,7 @@ F-->9
 F-->G
 G-->A
 J-->K
+K-->6
 K-->L
 
 class 0,2,5,I subgraphs;

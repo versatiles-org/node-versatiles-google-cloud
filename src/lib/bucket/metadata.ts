@@ -22,6 +22,7 @@ export class BucketFileMetadata {
 		contentType: string;
 		etag: string;
 		size?: string;
+		version?: string;
 	};
 
 	public constructor(
@@ -32,6 +33,7 @@ export class BucketFileMetadata {
 			filename?: string;
 			mtime?: Date | string;
 			size?: number | string;
+			version?: string;
 		} = {},
 	) {
 		let size: string | undefined;
@@ -48,11 +50,21 @@ export class BucketFileMetadata {
 				options.etag ?? this.generateHash(options.filename, options.size, options.mtime),
 			),
 			size,
+			version: options.version,
 		};
 	}
 
 	public get etag(): string {
 		return this.#header.etag;
+	}
+
+	/**
+	 * Opaque token identifying this exact revision of the file, used to pin reads
+	 * so cached tile-index offsets are never resolved against different bytes.
+	 * Undefined when the backend cannot identify a revision.
+	 */
+	public get version(): string | undefined {
+		return this.#header.version;
 	}
 
 	public setHeaders(headers: ResponseHeaders): void {

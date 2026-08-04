@@ -49,6 +49,11 @@ export class Responder {
 		return this.#responseHeaders;
 	}
 
+	/** Whether the response has already begun, so its status can no longer change. */
+	public get headersSent(): boolean {
+		return this.#responderState >= ResponderState.HeaderSend;
+	}
+
 	public get verbose(): boolean {
 		return this.#options.verbose;
 	}

@@ -6,6 +6,7 @@ import {
 	BucketGoogle,
 	BucketLocal,
 	PathTraversalError,
+	StaleRevisionError,
 	normalizeBucketPath,
 } from './bucket/index.js';
 import { ContainerCache } from './versatiles/index.js';
@@ -141,8 +142,22 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				const file = bucket.getFile(bucketPrefix + filename);
 
 				if (filename.endsWith('.versatiles')) {
-					const container = await containerCache.getVersatiles(file);
-					await container.serve(search, baseUrl + filename, responder);
+					// Reads are pinned to the revision the tile index came from, so a
+					// container replaced since then fails loudly instead of returning
+					// bytes that do not match the index. Drop the cached index and try
+					// once more against the current revision.
+					try {
+						const container = await containerCache.getVersatiles(file);
+						await container.serve(search, baseUrl + filename, responder);
+					} catch (error) {
+						if (!(error instanceof StaleRevisionError) || responder.headersSent) throw error;
+
+						responder.log('container changed while serving; retrying with a fresh index');
+						containerCache.invalidate(file.name);
+
+						const container = await containerCache.getVersatiles(file);
+						await container.serve(search, baseUrl + filename, responder);
+					}
 				} else {
 					await file.serve(responder);
 				}
