@@ -9,8 +9,13 @@ updates:
         patterns: ['*']
     versioning-strategy: increase-if-necessary
     ignore:
+      # The rewrite syntax documented in README.md ("Pattern syntax") relies on
+      # custom matching parameters such as ":z(\d+)", which path-to-regexp
+      # removed in v7 with no replacement. Upgrading past 6.x is therefore a
+      # breaking change to user configuration, not a mechanical bump.
+      # Patches and minors within 6.x are still wanted, e.g. for security fixes.
       - dependency-name: path-to-regexp
-        versions: ['<=8.3.x'] # waiting for full regex support in path-to-regexp
+        versions: ['>=7.0.0']
 
   - package-ecosystem: github-actions
     directory: /
