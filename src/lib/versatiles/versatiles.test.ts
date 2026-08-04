@@ -8,18 +8,18 @@ import { getVersatiles } from './cache.js';
 import { it, describe, expect, vi } from 'vitest';
 import { MockedBucketFile } from '../bucket/bucket.mock.js';
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
 
-const filename = new URL('../../../testdata/island.versatiles', import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter is percent-encoded, so any path
+// component containing a space (or other encoded character) would not resolve.
+const filename = fileURLToPath(new URL('../../../testdata/island.versatiles', import.meta.url));
 
 vi.spyOn(console, 'error').mockReturnValue();
 
 describe('VersaTiles', () => {
 	describe('serve', () => {
 		it('should handle preview request correctly', async () => {
-			const html = readFileSync(
-				new URL('../../../static/preview.html', import.meta.url).pathname,
-				'utf8',
-			);
+			const html = readFileSync(new URL('../../../static/preview.html', import.meta.url), 'utf8');
 			checkResponse('?preview', 200, html, {
 				...defaultHeader,
 				'content-length': '' + html.length,

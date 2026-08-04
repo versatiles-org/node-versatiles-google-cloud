@@ -1,5 +1,6 @@
 import { vi, it, describe, beforeEach, expect } from 'vitest';
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { BucketFileMetadata } from './metadata.js';
 import type {
 	BucketFileLocal as BucketFileLocalType,
@@ -24,7 +25,9 @@ const { access, stat } = await import('fs/promises');
 const { createReadStream } = await import('fs');
 const { BucketLocal, BucketFileLocal } = await import('./bucket_local.js');
 
-const projectPath = new URL('../../../', import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter is percent-encoded, so any path
+// component containing a space (or other encoded character) would not resolve.
+const projectPath = fileURLToPath(new URL('../../../', import.meta.url));
 
 describe('BucketFileLocal', () => {
 	const basePath = projectPath;

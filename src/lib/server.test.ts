@@ -4,6 +4,7 @@ import { AbstractBucket, AbstractBucketFile } from './bucket/abstract.js';
 import { BucketFileMetadata } from './bucket/metadata.js';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { Readable } from 'stream';
 import { startServer } from './server.js';
 import type { Server } from 'http';
@@ -48,7 +49,9 @@ class ErroringBucket extends AbstractBucket {
 	}
 }
 
-const basePath = new URL('../../', import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter is percent-encoded, so any path
+// component containing a space (or other encoded character) would not resolve.
+const basePath = fileURLToPath(new URL('../../', import.meta.url));
 
 interface MockedServerOptions {
 	bucket?: AbstractBucket | string;
