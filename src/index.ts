@@ -76,8 +76,22 @@ program
 			}
 		}
 
-		// Merge options with precedence: CLI > config > defaults
-		const port = cmdOptions.port != null ? Number(cmdOptions.port) : (config.port ?? 8080);
+		// Merge options with precedence: CLI > config > environment > defaults.
+		//
+		// Cloud Run (and Heroku, Fly, …) tell a container which port to listen on
+		// through PORT, and route no traffic to a container that binds a different
+		// one. Honouring it means a deployment needs no extra flag; an explicit
+		// --port or config value still wins, since that is a deliberate choice.
+		const portFromEnv = process.env.PORT;
+		if (portFromEnv !== undefined && !/^\d+$/.test(portFromEnv.trim())) {
+			console.error(`Error: PORT must be a number, but is "${portFromEnv}".`);
+			process.exit(1);
+		}
+
+		const port =
+			cmdOptions.port != null
+				? Number(cmdOptions.port)
+				: (config.port ?? (portFromEnv === undefined ? 8080 : Number(portFromEnv)));
 		const baseUrl = (cmdOptions.baseUrl ?? config.baseUrl ?? `http://localhost:${port}/`) as string;
 		const bucketPrefix = (cmdOptions.directory ?? config.directory ?? '') as string;
 		const fastRecompression = (cmdOptions.fastRecompression ??
@@ -141,8 +155,11 @@ program
 		}
 
 		try {
-			// Start the server with the provided options
-			void startServer({
+			// Awaited, not discarded: startServer is async, so a floating promise
+			// would make the catch below unreachable for every real failure — bad
+			// credentials, a missing bucket, an unreadable directory, a port already
+			// in use — and surface them as an unhandled rejection instead.
+			await startServer({
 				baseUrl,
 				bucket: bucket ?? '',
 				bucketPrefix,
