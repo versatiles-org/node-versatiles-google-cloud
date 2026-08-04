@@ -75,18 +75,16 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
-    "@types/node": "^26.1.1",
-    "@types/supertest": "^7.2.0",
-    "@typescript-eslint/eslint-plugin": "^8.63.0",
-    "@typescript-eslint/parser": "^8.63.0",
-    "@versatiles/release-tool": "^2.8.1",
+    "@types/node": "^26.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.66.0",
+    "@typescript-eslint/parser": "^8.66.0",
+    "@versatiles/release-tool": "^2.8.2",
     "@vitest/coverage-v8": "^4.1.10",
-    "eslint": "^10.6.0",
-    "prettier": "^3.9.4",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.0",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.5",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.63.0",
+    "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"
   },
   "overrides": {
@@ -94,7 +92,7 @@
     "uuid": "^11.1.1"
   },
   "allowScripts": {
-    "esbuild@0.28.1": true,
-    "fsevents@2.3.3": true
+    "esbuild": true,
+    "fsevents": true
   }
 }
