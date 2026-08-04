@@ -71,6 +71,29 @@ export class Responder {
 		await recompress(this, content);
 	}
 
+	/**
+	 * Sends a status with no body and no content headers, for responses that are
+	 * defined to carry no content (e.g. 204 No Content).
+	 *
+	 * Distinct from `error()`: that one declares `content-type: text/plain` and
+	 * writes a message, both of which a 204 must not carry. Node discards the
+	 * body silently, so routing a 204 through `error()` produced a response whose
+	 * message never reached the client while the code appeared to send one.
+	 */
+	public sendEmpty(status: number): void {
+		this.log(`respond ${status} without body`);
+
+		if (this.#responderState >= ResponderState.HeaderSend) {
+			this.log(`cannot send ${status}: headers already sent, destroying response`);
+			this.#options.response.destroy();
+			this.#responderState = ResponderState.Finished;
+			return;
+		}
+
+		this.#options.response.writeHead(status).end();
+		this.#responderState = ResponderState.Finished;
+	}
+
 	public error(code: number, message: string): void {
 		this.log(`error ${code}: ${message}`);
 

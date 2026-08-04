@@ -117,9 +117,12 @@ export class Versatiles {
 
 		const tile = await this.#container.getTile(z, x, y);
 
-		// Return error for invalid queries
+		// An absent tile is a normal, expected outcome for a sparse container, not
+		// an error: answer 204 No Content. The explanation goes to the log, since
+		// a 204 carries no body to put it in.
 		if (tile == null) {
-			responder.error(204, `no map tile at ${z}/${x}/${y}`);
+			responder.log(`no map tile at ${z}/${x}/${y}`);
+			responder.sendEmpty(204);
 		} else {
 			responder.log(`return tile ${z}/${x}/${y}`);
 			await responder.respond(tile, this.#header.tileMime, this.#header.tileCompression);
