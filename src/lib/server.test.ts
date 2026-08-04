@@ -390,6 +390,85 @@ describe('Server', () => {
 		});
 	});
 
+	describe('liveness and readiness', () => {
+		/** A bucket that starts healthy and can be broken afterwards. */
+		class FlakyBucket extends AbstractBucket {
+			public failing = false;
+			public checks = 0;
+
+			public async check(): Promise<void> {
+				this.checks++;
+				if (this.failing) throw new Error('credentials expired');
+				await Promise.resolve();
+			}
+
+			public getFile(): AbstractBucketFile {
+				return new ErroringBucketFile();
+			}
+		}
+
+		let bucket: FlakyBucket;
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			bucket = new FlakyBucket();
+			server = await MockedServer.create({ bucket });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		// Liveness must not depend on the bucket: a Cloud Storage problem should
+		// take instances out of rotation, not have them killed and restarted.
+		it('healthcheck stays ok while the bucket is failing', async () => {
+			bucket.failing = true;
+			const response = await server.get('/healthcheck');
+
+			expect(response.status).toBe(200);
+			expect(response.text).toBe('ok');
+
+			bucket.failing = false;
+		});
+
+		it('reports ready while the bucket is reachable', async () => {
+			const response = await server.get('/readiness');
+
+			expect(response.status).toBe(200);
+			expect(response.text).toBe('ok');
+		});
+
+		it('reports 503 once the bucket stops answering', async () => {
+			// A fresh server, so the startup check does not prime the cache with a
+			// success that would still be valid here.
+			const flaky = new FlakyBucket();
+			const isolated = await MockedServer.create({ bucket: flaky });
+
+			flaky.failing = true;
+			const response = await isolated.get('/readiness');
+
+			expect(response.status).toBe(503);
+			expect(response.text).toBe('bucket unavailable');
+			// The reason may name buckets or credentials, so it is logged only.
+			expect(response.text).not.toContain('credentials expired');
+
+			await isolated.close();
+		});
+
+		it('does not probe the bucket on every readiness request', async () => {
+			const flaky = new FlakyBucket();
+			const isolated = await MockedServer.create({ bucket: flaky });
+
+			const before = flaky.checks;
+			for (let i = 0; i < 5; i++) await isolated.get('/readiness');
+
+			// At most one further check beyond whatever startup already did.
+			expect(flaky.checks - before).toBeLessThanOrEqual(1);
+
+			await isolated.close();
+		});
+	});
+
 	describe('range requests', () => {
 		const CONTENT = '0123456789abcdefghijklmnopqrstuvwxyz'; // 36 bytes
 		let server: MockedServer;
