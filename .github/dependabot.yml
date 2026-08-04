@@ -17,6 +17,12 @@ updates:
       - dependency-name: path-to-regexp
         versions: ['>=7.0.0']
 
+      # @typescript-eslint/parser declares a peer range of ">=4.8.4 <6.1.0", so
+      # TypeScript 7 cannot be installed alongside it — npm fails the whole
+      # install with ERESOLVE. Unignore once typescript-eslint supports it.
+      - dependency-name: typescript
+        versions: ['>=7.0.0']
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
