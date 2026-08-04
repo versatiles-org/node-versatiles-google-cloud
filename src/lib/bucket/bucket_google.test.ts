@@ -12,6 +12,13 @@ const pinnedFile = {
 
 const bucketFile = vi.fn().mockReturnValue(pinnedFile);
 
+/**
+ * A stream that ends immediately. A bare `new Readable()` has no `_read()`, so
+ * anything that actually consumes it — such as the pipe used for pinned reads —
+ * fails with ERR_METHOD_NOT_IMPLEMENTED.
+ */
+const emptyStream = (): Readable => Readable.from([]);
+
 const mockFile = {
 	name: 'test.txt',
 	getMetadata: vi.fn(),
@@ -38,6 +45,7 @@ const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 
 describe('BucketFileGoogle', () => {
 	beforeEach(() => {
+		vi.clearAllMocks();
 		vi.mocked(mockFile.getMetadata).mockImplementation(() =>
 			Promise.resolve([
 				{
@@ -51,11 +59,8 @@ describe('BucketFileGoogle', () => {
 				},
 			]),
 		);
-		mockFile.createReadStream.mockReturnValue(new Readable());
-		pinnedFile.createReadStream.mockReturnValue(new Readable());
-		vi.clearAllMocks();
-		mockFile.createReadStream.mockReturnValue(new Readable());
-		pinnedFile.createReadStream.mockReturnValue(new Readable());
+		mockFile.createReadStream.mockReturnValue(emptyStream());
+		pinnedFile.createReadStream.mockReturnValue(emptyStream());
 		bucketFile.mockReturnValue(pinnedFile);
 	});
 
