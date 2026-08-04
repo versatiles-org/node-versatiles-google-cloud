@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { startServer } from './lib/server.js';
 import { loadConfig, type ConfigFile } from './lib/config.js';
+import { installGracefulShutdown } from './lib/shutdown.js';
 
 /**
  * Entry point for the VersaTiles Google Cloud CLI application.
@@ -159,7 +160,7 @@ program
 			// would make the catch below unreachable for every real failure — bad
 			// credentials, a missing bucket, an unreadable directory, a port already
 			// in use — and surface them as an unhandled rejection instead.
-			await startServer({
+			const server = await startServer({
 				baseUrl,
 				bucket: bucket ?? '',
 				bucketPrefix,
@@ -169,6 +170,10 @@ program
 				rewriteRules,
 				verbose,
 			});
+
+			// Registered here rather than inside startServer: these are process-wide
+			// handlers, and startServer is called repeatedly by the tests.
+			if (server !== null) installGracefulShutdown(server);
 		} catch (error: unknown) {
 			// Handle errors during server initialization
 			const errorMessage = String(
