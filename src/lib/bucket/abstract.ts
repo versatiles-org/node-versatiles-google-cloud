@@ -3,6 +3,7 @@ import type { BucketFileMetadata } from './metadata.js';
 import type { Responder } from '../responder.js';
 import { recompress, streamUnmodified } from '../recompress.js';
 import { ifRangeMatches, parseByteRange } from '../range.js';
+import { ifNoneMatchMatches } from '../conditional.js';
 import { posix } from 'path';
 
 /**
@@ -80,6 +81,17 @@ export abstract class AbstractBucketFile {
 
 		metadata.setHeaders(responder.headers);
 		responder.headers.set('accept-ranges', 'bytes');
+
+		// Evaluated before Range, as RFC 9110 §13.2.1 requires: if the client's
+		// copy is still current there is nothing to send it, ranged or otherwise.
+		const ifNoneMatch = responder.getRequestHeader('if-none-match');
+		if (
+			ifNoneMatch !== undefined &&
+			ifNoneMatchMatches(ifNoneMatch, responder.headers.get('etag'))
+		) {
+			await responder.sendNotModified();
+			return;
+		}
 
 		if (await this.#serveRange(responder)) return;
 

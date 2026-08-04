@@ -420,50 +420,52 @@ subgraph 2["lib"]
 subgraph 5["bucket"]
 6["index.ts"]
 7["abstract.ts"]
-B["bucket_google.ts"]
-C["metadata.ts"]
-D["bucket_local.ts"]
+C["bucket_google.ts"]
+D["metadata.ts"]
+E["bucket_local.ts"]
 end
-8["range.ts"]
-9["recompress.ts"]
-A["encoding.ts"]
-E["readiness.ts"]
-F["responder.ts"]
-G["response_headers.ts"]
-H["rewrite.ts"]
-subgraph I["versatiles"]
-J["index.ts"]
-K["cache.ts"]
-L["versatiles.ts"]
+8["conditional.ts"]
+9["range.ts"]
+A["recompress.ts"]
+B["encoding.ts"]
+F["readiness.ts"]
+G["responder.ts"]
+H["response_headers.ts"]
+I["rewrite.ts"]
+subgraph J["versatiles"]
+K["index.ts"]
+L["cache.ts"]
+M["versatiles.ts"]
 end
 end
 end
 1-->3
 1-->4
 4-->6
-4-->E
 4-->F
-4-->H
-4-->J
+4-->G
+4-->I
+4-->K
 6-->7
-6-->B
-6-->D
+6-->C
+6-->E
 7-->8
 7-->9
-9-->A
-B-->7
-B-->C
-D-->7
-D-->C
-F-->A
-F-->9
-F-->G
+7-->A
+A-->B
+C-->7
+C-->D
+E-->7
+E-->D
+G-->B
 G-->A
-J-->K
-K-->6
+G-->H
+H-->B
 K-->L
+L-->6
+L-->M
 
-class 0,2,5,I subgraphs;
+class 0,2,5,J subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;
 ```
 

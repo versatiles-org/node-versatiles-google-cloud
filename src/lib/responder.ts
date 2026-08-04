@@ -99,6 +99,24 @@ export class Responder {
 		this.#responderState = ResponderState.Finished;
 	}
 
+	/**
+	 * Answers a conditional request whose validator still matches, telling the
+	 * client to reuse the copy it already has.
+	 *
+	 * Headers that describe a body are dropped, since a 304 carries none; the
+	 * validators and caching headers are kept, as they would be on a 200.
+	 */
+	public async sendNotModified(): Promise<void> {
+		this.log('respond 304 not modified');
+
+		this.#responseHeaders.remove('content-type');
+		this.#responseHeaders.remove('content-length');
+		this.#responseHeaders.remove('content-encoding');
+
+		this.sendHeaders(304);
+		await this.end();
+	}
+
 	public error(code: number, message: string): void {
 		this.log(`error ${code}: ${message}`);
 
