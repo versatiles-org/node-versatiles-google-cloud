@@ -111,6 +111,46 @@ export class BufferStream extends Writable {
 }
 
 /**
+ * Forwards a stream straight to the responder without buffering it first.
+ *
+ * Used when nothing needs recompressing and the body size is already known, so
+ * there is nothing for buffering to compute. Headers are sent lazily on the
+ * first chunk, so a source that fails before producing any data can still be
+ * answered with an error status.
+ */
+export class DirectStream extends Writable {
+	readonly #responder: Responder;
+
+	#headersSent = false;
+
+	public constructor(responder: Responder) {
+		super();
+		this.#responder = responder;
+	}
+
+	public _write(
+		chunk: Buffer,
+		encoding: BufferEncoding,
+		callback: (error?: Error | null | undefined) => void,
+	): void {
+		this.#sendHeadersOnce();
+		this.#responder.write(chunk, callback);
+	}
+
+	public _final(callback: (error?: Error | null | undefined) => void): void {
+		this.#responder.log('directstream - finish stream');
+		this.#sendHeadersOnce();
+		this.#responder.end(callback);
+	}
+
+	#sendHeadersOnce(): void {
+		if (this.#headersSent) return;
+		this.#responder.sendHeaders(200);
+		this.#headersSent = true;
+	}
+}
+
+/**
  * Recompresses a given body (Buffer or Readable stream) using the best available encoding.
  * @param responder - The ResponderInterface instance handling the response.
  * @param body - The body to recompress, either as a Buffer or a Readable stream.
@@ -176,8 +216,18 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 		responder.headers.remove('content-length');
 	}
 
-	// Add the BufferStream to the pipeline and execute the pipeline
-	const writeStream = new BufferStream(responder);
+	// When nothing needs recompressing and the size is already known (set from
+	// bucket metadata), buffering only recomputes a content-length that is
+	// already correct. Above the buffer threshold it is worse than useless:
+	// #prepareStreamMode() deletes that known content-length and falls back to
+	// chunked encoding. Forwarding directly keeps content-length at any size and
+	// removes the per-request buffer, which is what bounds memory under load.
+	const canForwardDirectly =
+		transformStreams.length === 0 && responder.headers.get('content-length') !== undefined;
+
+	const writeStream = canForwardDirectly
+		? new DirectStream(responder)
+		: new BufferStream(responder);
 
 	await pipeline([readStream, ...transformStreams, writeStream]);
 
