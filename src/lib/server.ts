@@ -2,7 +2,12 @@ import type { Server } from 'http';
 import type { AbstractBucket } from './bucket/index.js';
 import express from 'express';
 import { Responder } from './responder.js';
-import { BucketGoogle, BucketLocal, PathTraversalError } from './bucket/index.js';
+import {
+	BucketGoogle,
+	BucketLocal,
+	PathTraversalError,
+	normalizeBucketPath,
+} from './bucket/index.js';
 import { getVersatiles } from './versatiles/index.js';
 import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
@@ -91,6 +96,11 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 					responder.error(400, 'invalid URL encoding in request path');
 					return;
 				}
+
+				// Confine the request to the configured prefix. This has to happen
+				// before bucketPrefix is prepended, while ".." segments are still
+				// attributable to the client. Throws PathTraversalError, handled below.
+				filename = normalizeBucketPath(filename);
 
 				responder.log(`request file: ${bucketPrefix + filename}`);
 

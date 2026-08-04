@@ -1,6 +1,6 @@
 import type { Readable } from 'stream';
 import type { Bucket, File } from '@google-cloud/storage';
-import { AbstractBucket, AbstractBucketFile } from './abstract.js';
+import { AbstractBucket, AbstractBucketFile, normalizeBucketPath } from './abstract.js';
 import { Storage } from '@google-cloud/storage';
 import { BucketFileMetadata } from './metadata.js';
 
@@ -67,6 +67,10 @@ export class BucketGoogle extends AbstractBucket {
 	}
 
 	public getFile(relativePath: string): BucketFileGoogle {
-		return new BucketFileGoogle(this.#bucket.file(relativePath));
+		// Mirrors the check in BucketLocal so both backends reject the same
+		// inputs. GCS treats object names literally, so "../" is not traversal
+		// there — but relying on that leaves the guarantee resting on a third
+		// party's naming semantics rather than on anything this code enforces.
+		return new BucketFileGoogle(this.#bucket.file(normalizeBucketPath(relativePath)));
 	}
 }
