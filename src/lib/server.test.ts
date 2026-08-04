@@ -66,6 +66,7 @@ interface MockedResponse {
 	contentEncoding?: string;
 	contentLength: number;
 	contentType?: string;
+	headers: http.IncomingHttpHeaders;
 	rawBuffer: Buffer;
 	buffer: Buffer;
 	status: number;
@@ -157,6 +158,7 @@ class MockedServer {
 							contentEncoding,
 							contentLength: Number(response.headers['content-length']),
 							contentType,
+							headers: response.headers,
 							rawBuffer,
 							buffer,
 							status: response.statusCode ?? 0,
@@ -388,6 +390,98 @@ describe('Server', () => {
 		it('still resolves "." and ".." that stay inside the prefix', async () => {
 			const response = await server.get('/./preview.html');
 			expect(response.status).toBe(200);
+		});
+	});
+
+	describe('range requests', () => {
+		const CONTENT = '0123456789abcdefghijklmnopqrstuvwxyz'; // 36 bytes
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({
+				bucket: new MockedBucket([{ name: 'alpha.txt', content: Buffer.from(CONTENT) }]),
+				rewriteRules: {},
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		const range = async (value: string): Promise<MockedResponse> =>
+			server.get('/alpha.txt', { Range: value, 'Accept-Encoding': 'gzip' });
+
+		it('advertises range support on a full response', async () => {
+			const response = await server.get('/alpha.txt');
+			expect(response.status).toBe(200);
+			expect(response.headers['accept-ranges']).toBe('bytes');
+		});
+
+		it('serves an explicit range as 206', async () => {
+			const response = await range('bytes=10-19');
+
+			expect(response.status).toBe(206);
+			expect(response.text).toBe('abcdefghij');
+			expect(response.headers['content-range']).toBe('bytes 10-19/36');
+			expect(response.contentLength).toBe(10);
+		});
+
+		it('serves an open-ended and a suffix range', async () => {
+			const open = await range('bytes=30-');
+			expect(open.status).toBe(206);
+			expect(open.text).toBe('uvwxyz');
+			expect(open.headers['content-range']).toBe('bytes 30-35/36');
+
+			const suffix = await range('bytes=-6');
+			expect(suffix.status).toBe(206);
+			expect(suffix.text).toBe('uvwxyz');
+			expect(suffix.headers['content-range']).toBe('bytes 30-35/36');
+		});
+
+		it('clamps a range that runs past the end', async () => {
+			const response = await range('bytes=0-999');
+
+			expect(response.status).toBe(206);
+			expect(response.text).toBe(CONTENT);
+			expect(response.headers['content-range']).toBe('bytes 0-35/36');
+		});
+
+		it('answers an unsatisfiable range with 416 and no body', async () => {
+			const response = await range('bytes=36-40');
+
+			expect(response.status).toBe(416);
+			expect(response.text).toBe('');
+			expect(response.headers['content-range']).toBe('bytes */36');
+		});
+
+		// A byte range names offsets in the stored representation, so a range
+		// response must never be recompressed — the body would no longer match the
+		// offsets in Content-Range. The client asks for gzip in every case here.
+		it('never encodes a range response', async () => {
+			for (const value of ['bytes=0-9', 'bytes=30-', 'bytes=-6']) {
+				const response = await range(value);
+				expect(response.status, value).toBe(206);
+				expect(response.headers['content-encoding'], value).toBeUndefined();
+			}
+		});
+
+		it('still negotiates encoding for a full response', async () => {
+			const response = await server.get('/alpha.txt', { 'Accept-Encoding': 'gzip' });
+
+			expect(response.status).toBe(200);
+			expect(response.contentEncoding).toBe('gzip');
+			expect(response.text).toBe(CONTENT);
+		});
+
+		// Ignoring a Range header and sending the whole representation is always
+		// permitted, and is simpler than emitting multipart/byteranges.
+		it('falls back to the full body for ranges it will not serve', async () => {
+			for (const value of ['bytes=9-0', 'bytes=0-4,10-14', 'items=0-9', 'bytes=-']) {
+				const response = await range(value);
+				expect(response.status, value).toBe(200);
+				expect(response.text, value).toBe(CONTENT);
+				expect(response.headers['content-range'], value).toBeUndefined();
+			}
 		});
 	});
 
