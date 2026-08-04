@@ -97,13 +97,18 @@ describe('Rewrite', () => {
 			expect(result1).toBe(result2);
 		});
 
-		it('should cache null results', () => {
+		// Non-matching paths are deliberately NOT cached: they are the unbounded,
+		// attacker-controlled half of the input space, so caching them would let
+		// any client fill the cache with misses.
+		it('should not cache null results', () => {
 			const rewrite = new Rewrite({
 				'/old': '/new',
 			});
 
 			expect(rewrite.match('/nonexistent')).toBeNull();
 			expect(rewrite.match('/nonexistent')).toBeNull();
+			expect(rewrite.cacheHas('/nonexistent')).toBe(false);
+			expect(rewrite.cacheSize).toBe(0);
 		});
 
 		it('should work with cache disabled', () => {
