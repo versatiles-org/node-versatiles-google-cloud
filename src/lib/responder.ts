@@ -88,13 +88,19 @@ export class Responder {
 		this.#responderState = ResponderState.Finished;
 	}
 
-	public write(buffer: Buffer, callback: () => void): void {
+	/**
+	 * Writes a chunk to the response.
+	 *
+	 * A write error is handed to `callback`, never thrown: this runs inside a
+	 * stream callback, so a throw here escapes the request's try/catch and
+	 * surfaces as an uncaught exception. Both callers are `Writable._write`
+	 * implementations, so passing the error on lets the stream fail normally
+	 * and the pipeline in `recompress()` reject.
+	 */
+	public write(buffer: Buffer, callback: (error?: Error | null) => void): void {
 		if (this.#responderState < ResponderState.HeaderSend) throw Error('Headers not send yet');
 
-		this.#options.response.write(buffer, (error) => {
-			if (error) throw Error();
-			callback();
-		});
+		this.#options.response.write(buffer, callback);
 	}
 
 	public end(): Promise<void>;

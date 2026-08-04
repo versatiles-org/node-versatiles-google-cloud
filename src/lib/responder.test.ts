@@ -164,6 +164,29 @@ describe('Responder', () => {
 			expect(responder.response.end).not.toHaveBeenCalledWith('too late');
 		});
 
+		// A write error must reach the callback rather than being thrown. write()
+		// runs inside a stream callback, so a throw there escapes the request's
+		// try/catch and becomes an uncaught exception instead of a 500.
+		it('should hand a write error to the callback instead of throwing', async () => {
+			const responder = getMockedResponder();
+			responder.sendHeaders(200);
+
+			const failure = new Error('socket closed');
+			vi.spyOn(responder.response, 'write').mockImplementation(((
+				_chunk: unknown,
+				cb: (error?: Error | null) => void,
+			) => {
+				cb(failure);
+				return true;
+			}) as unknown as typeof responder.response.write);
+
+			const received = await new Promise<Error | null | undefined>((resolve) => {
+				expect(() => responder.write(Buffer.from('Test'), resolve)).not.toThrow();
+			});
+
+			expect(received).toBe(failure);
+		});
+
 		it('should throw error when trying to send headers after they are already sent', () => {
 			const responder = getMockedResponder();
 			responder.sendHeaders(200);
