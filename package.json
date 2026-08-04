@@ -42,7 +42,7 @@
   "author": "yetzt <node@yetzt.me>, Michael Kreil <versatiles@michael-kreil.de>",
   "license": "Unlicense",
   "engines": {
-    "node": ">= 20"
+    "node": ">= 22"
   },
   "keywords": [
     "cloudtiles",
