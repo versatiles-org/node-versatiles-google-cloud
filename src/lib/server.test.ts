@@ -549,6 +549,51 @@ describe('Server', () => {
 			expect(response.text).toBe(CONTENT);
 		});
 
+		// If-Range exists so that a client resuming an interrupted download of a
+		// file that changed in the meantime does not splice together bytes from
+		// two versions. A stale validator must yield the whole representation.
+		describe('conditional ranges', () => {
+			const conditional = async (ifRange: string): Promise<MockedResponse> =>
+				server.get('/alpha.txt', { Range: 'bytes=10-19', 'If-Range': ifRange });
+
+			it('serves the range when the validator still matches', async () => {
+				const { headers } = await server.get('/alpha.txt');
+				const etag = headers.etag as string;
+
+				const response = await conditional(etag);
+
+				expect(response.status).toBe(206);
+				expect(response.text).toBe('abcdefghij');
+				expect(response.headers['content-range']).toBe('bytes 10-19/36');
+			});
+
+			it('serves the full body when the validator is stale', async () => {
+				const response = await conditional('some-older-etag');
+
+				expect(response.status).toBe(200);
+				expect(response.text).toBe(CONTENT);
+				expect(response.headers['content-range']).toBeUndefined();
+			});
+
+			it('serves the full body for a weak validator or a date', async () => {
+				const { headers } = await server.get('/alpha.txt');
+				const etag = headers.etag as string;
+
+				for (const value of [`W/"${etag}"`, 'Tue, 04 Aug 2026 12:00:00 GMT']) {
+					const response = await conditional(value);
+					expect(response.status, value).toBe(200);
+					expect(response.text, value).toBe(CONTENT);
+				}
+			});
+
+			it('ignores If-Range when no Range was requested', async () => {
+				const response = await server.get('/alpha.txt', { 'If-Range': 'some-older-etag' });
+
+				expect(response.status).toBe(200);
+				expect(response.text).toBe(CONTENT);
+			});
+		});
+
 		// Ignoring a Range header and sending the whole representation is always
 		// permitted, and is simpler than emitting multipart/byteranges.
 		it('falls back to the full body for ranges it will not serve', async () => {

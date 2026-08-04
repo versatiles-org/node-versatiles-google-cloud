@@ -1,8 +1,49 @@
 import { describe, it, expect } from 'vitest';
-import { parseByteRange } from './range.js';
+import { ifRangeMatches, parseByteRange } from './range.js';
 import type { ByteRange } from './range.js';
 
 const SIZE = 100;
+
+describe('ifRangeMatches', () => {
+	const ETAG = 'abc123';
+
+	it('matches the current entity-tag', () => {
+		expect(ifRangeMatches(ETAG, ETAG)).toBe(true);
+	});
+
+	it('tolerates either side being quoted', () => {
+		expect(ifRangeMatches(`"${ETAG}"`, ETAG)).toBe(true);
+		expect(ifRangeMatches(ETAG, `"${ETAG}"`)).toBe(true);
+		expect(ifRangeMatches(`"${ETAG}"`, `"${ETAG}"`)).toBe(true);
+	});
+
+	it('ignores surrounding whitespace', () => {
+		expect(ifRangeMatches(`  ${ETAG}  `, ETAG)).toBe(true);
+	});
+
+	it('does not match a different entity-tag', () => {
+		expect(ifRangeMatches('somethingelse', ETAG)).toBe(false);
+		expect(ifRangeMatches(`"${ETAG}x"`, ETAG)).toBe(false);
+	});
+
+	// A weak tag does not promise byte-for-byte equality, so it can never justify
+	// serving a partial response.
+	it('never matches a weak entity-tag', () => {
+		expect(ifRangeMatches(`W/"${ETAG}"`, ETAG)).toBe(false);
+		expect(ifRangeMatches(`W/${ETAG}`, ETAG)).toBe(false);
+	});
+
+	// The date form cannot be checked: no Last-Modified is sent to compare with.
+	it('does not match an HTTP-date', () => {
+		expect(ifRangeMatches('Tue, 04 Aug 2026 12:00:00 GMT', ETAG)).toBe(false);
+	});
+
+	it('does not match when there is no etag or the value is empty', () => {
+		expect(ifRangeMatches(ETAG, undefined)).toBe(false);
+		expect(ifRangeMatches('', ETAG)).toBe(false);
+		expect(ifRangeMatches('   ', ETAG)).toBe(false);
+	});
+});
 
 describe('parseByteRange', () => {
 	it('resolves an explicit range', () => {
