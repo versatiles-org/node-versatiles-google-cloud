@@ -4,7 +4,6 @@ import type { File } from '@google-cloud/storage';
 
 const mockFile = {
 	name: 'test.txt',
-	exists: vi.fn(),
 	getMetadata: vi.fn(),
 	createReadStream: vi.fn(),
 } as unknown as Mocked<File>;
@@ -28,7 +27,6 @@ const { BucketGoogle, BucketFileGoogle } = await import('./bucket_google.js');
 
 describe('BucketFileGoogle', () => {
 	beforeEach(() => {
-		vi.mocked(mockFile.exists).mockImplementation(() => Promise.resolve([true]));
 		vi.mocked(mockFile.getMetadata).mockImplementation(() =>
 			Promise.resolve([
 				{
@@ -42,11 +40,6 @@ describe('BucketFileGoogle', () => {
 			]),
 		);
 		mockFile.createReadStream.mockReturnValue(new Readable());
-	});
-
-	it('exists should return true when file exists', async () => {
-		const file = new BucketFileGoogle(mockFile);
-		await expect(file.exists()).resolves.toBe(true);
 	});
 
 	it('getMetadata should return BucketFileMetadata instance with correct properties', async () => {

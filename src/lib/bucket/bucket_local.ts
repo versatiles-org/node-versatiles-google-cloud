@@ -1,6 +1,6 @@
 import { AbstractBucket, AbstractBucketFile, PathTraversalError } from './abstract.js';
 import type { Readable } from 'stream';
-import { access, constants, stat } from 'fs/promises';
+import { access, stat } from 'fs/promises';
 import { createReadStream } from 'fs';
 import { resolve, sep } from 'path';
 import { BucketFileMetadata } from './metadata.js';
@@ -26,17 +26,6 @@ export class BucketFileLocal extends AbstractBucketFile {
 
 	public get name(): string {
 		return this.#filename;
-	}
-
-	// Check if the file exists
-	public async exists(): Promise<boolean> {
-		const safePath = this.#validatePath();
-		try {
-			await access(safePath, constants.R_OK);
-			return true;
-		} catch (_) {
-			return false;
-		}
 	}
 
 	// Get metadata for the file

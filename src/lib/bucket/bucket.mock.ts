@@ -34,10 +34,6 @@ export class MockedBucketFile extends AbstractBucketFile {
 		return this.#file.name;
 	}
 
-	public async exists(): Promise<boolean> {
-		return Boolean(this.#file);
-	}
-
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		if (!this.#file) throw new FileNotFoundError();
 		return new BucketFileMetadata({

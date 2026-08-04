@@ -110,8 +110,6 @@ export abstract class AbstractBucketFile {
 		return true;
 	}
 
-	public abstract exists(): Promise<boolean>;
-
 	public abstract getMetadata(): Promise<BucketFileMetadata>;
 
 	public abstract createReadStream(opt?: { start: number; end: number }): Readable;

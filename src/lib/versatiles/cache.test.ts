@@ -24,10 +24,6 @@ class ErroringStreamFile extends AbstractBucketFile {
 		return 'broken.versatiles';
 	}
 
-	public async exists(): Promise<boolean> {
-		return true;
-	}
-
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		return new BucketFileMetadata({ filename: 'broken.versatiles', size: 100 });
 	}

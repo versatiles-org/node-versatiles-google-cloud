@@ -16,12 +16,6 @@ export class BucketFileGoogle extends AbstractBucketFile {
 		return this.#file.name;
 	}
 
-	// Check if the file exists
-	public async exists(): Promise<boolean> {
-		const [exists] = await this.#file.exists();
-		return exists;
-	}
-
 	// Get metadata for the file
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		const [metadata] = await this.#file.getMetadata();

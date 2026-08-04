@@ -25,9 +25,6 @@ class ErroringBucketFile extends AbstractBucketFile {
 	public get name(): string {
 		return 'erroring.bin';
 	}
-	public async exists(): Promise<boolean> {
-		return true;
-	}
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		return new BucketFileMetadata({ filename: 'erroring.bin', size: 100 });
 	}

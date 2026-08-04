@@ -21,7 +21,7 @@ vi.mock('fs', () => ({
 	createReadStream: vi.fn(),
 }));
 
-const { access, stat } = await import('fs/promises');
+const { stat } = await import('fs/promises');
 const { createReadStream } = await import('fs');
 const { BucketLocal, BucketFileLocal } = await import('./bucket_local.js');
 
@@ -37,16 +37,6 @@ describe('BucketFileLocal', () => {
 
 	beforeEach(() => {
 		file = new BucketFileLocal(basePath, relativePath);
-	});
-
-	it('exists should return true when file is accessible', async () => {
-		vi.mocked(access).mockResolvedValue(undefined);
-		await expect(file.exists()).resolves.toBe(true);
-	});
-
-	it('exists should return false when file is not accessible', async () => {
-		vi.mocked(access).mockRejectedValue(new Error('File not found'));
-		await expect(file.exists()).resolves.toBe(false);
 	});
 
 	it('getMetadata should return instance of BucketFileMetadata', async () => {
@@ -90,7 +80,7 @@ describe('BucketLocal', () => {
 
 	it('getFile should throw on path traversal attempts when accessing file', async () => {
 		const file1 = bucket.getFile('../package.json');
-		await expect(file1.exists()).rejects.toThrow('Path traversal attempt detected');
+		await expect(file1.getMetadata()).rejects.toThrow('Path traversal attempt detected');
 
 		const file2 = bucket.getFile('../../etc/passwd');
 		expect(() => file2.createReadStream()).toThrow('Path traversal attempt detected');
@@ -99,10 +89,10 @@ describe('BucketLocal', () => {
 		await expect(file3.getMetadata()).rejects.toThrow('Path traversal attempt detected');
 	});
 
-	it('getFile should allow valid nested paths', async () => {
-		vi.mocked(access).mockResolvedValue(undefined);
+	it('getFile should allow valid nested paths', () => {
 		const file = bucket.getFile('subdir/../other/file.txt');
 		expect(file.name).toBe(resolve(bucketPath, 'other/file.txt'));
-		await expect(file.exists()).resolves.toBe(true);
+		// Resolves inside the base directory, so the path check lets it through.
+		expect(() => file.createReadStream()).not.toThrow();
 	});
 });
