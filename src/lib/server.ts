@@ -87,11 +87,17 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				const parsedUrl = new URL(url, 'http://example.org');
 				const { pathname, search } = parsedUrl;
 
+				// Only leading slashes are stripped. Colons used to be stripped too,
+				// but that ran before decoding: "/a:b.txt" silently served "ab.txt"
+				// while "/a%3Ab.txt" served "a:b.txt" — the same path, encoded two
+				// ways, resolving to two different files. It offered no protection
+				// either, since the encoded form always passed through untouched.
+				//
 				// decodeURIComponent throws URIError on malformed escapes such as
 				// "/%zz". That is a malformed request, not a server fault.
 				let filename: string;
 				try {
-					filename = decodeURIComponent(pathname.replace(/^\/+|:/g, ''));
+					filename = decodeURIComponent(pathname.replace(/^\/+/, ''));
 				} catch {
 					responder.error(400, 'invalid URL encoding in request path');
 					return;
