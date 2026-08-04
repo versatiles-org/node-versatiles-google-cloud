@@ -137,6 +137,49 @@ Single-page applications usually need every route that is not a file to fall bac
 >
 > This still rewrites `/apps` itself to `/apps/index.html`, but leaves `/apps-admin` and `/appsX` untouched.
 
+## Range requests
+
+Static files are served with `Accept-Ranges: bytes`, so clients can request part of a file instead of the whole thing — used for resumable downloads, seeking in audio and video, and PDF viewers that fetch a page at a time.
+
+A request carrying a `Range` header is answered with `206 Partial Content` and a `Content-Range` header:
+
+```console
+$ curl -r 0-9 -i https://public.domain.com/video.mp4
+HTTP/1.1 206 Partial Content
+content-length: 10
+content-type: video/mp4
+accept-ranges: bytes
+content-range: bytes 0-9/5242880
+```
+
+Three forms are understood, all relative to the stored file:
+
+| Header        | Meaning                      |
+| ------------- | ---------------------------- |
+| `bytes=0-999` | the first 1000 bytes         |
+| `bytes=1000-` | everything from byte 1000 on |
+| `bytes=-500`  | the last 500 bytes           |
+
+A range whose end runs past the file is not an error — it is clamped to the last byte. A range that *starts* beyond the end of the file cannot be satisfied:
+
+```console
+$ curl -H 'Range: bytes=99999999-' -i https://public.domain.com/video.mp4
+HTTP/1.1 416 Range Not Satisfiable
+content-length: 0
+accept-ranges: bytes
+content-range: bytes */5242880
+```
+
+### Limitations
+
+Both are deliberate, and both are permitted responses to a `Range` request:
+
+- **One range per request.** A header naming several ranges (`bytes=0-9,20-29`) is ignored and the full file is returned, rather than answered with a `multipart/byteranges` body. Malformed headers and units other than `bytes` are ignored the same way.
+- **Range responses are never compressed.** Byte offsets refer to the file as stored, so a compressed body would not match the offsets in `Content-Range`. A request with both `Range` and `Accept-Encoding: gzip` therefore receives the raw bytes. Requests without a `Range` header are still compressed according to `accept-encoding` as usual.
+
+> [!NOTE]
+> Ranges apply to static files only. VersaTiles containers are addressed through query parameters (`?{z}/{x}/{y}`, `?meta.json`, …), which already return exactly one tile or document, so those responses do not advertise `Accept-Ranges`.
+
 ## Configuration file
 
 Instead of passing all options via command line arguments, you can use a configuration file with the `-c` or `--config` option:
