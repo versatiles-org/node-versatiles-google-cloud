@@ -390,6 +390,53 @@ describe('Server', () => {
 		});
 	});
 
+	describe('colons in paths', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({
+				bucket: new MockedBucket([
+					{ name: 'ab.txt', content: Buffer.from('WITHOUT COLON') },
+					{ name: 'a:b.txt', content: Buffer.from('WITH COLON') },
+				]),
+				rewriteRules: {},
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		// Colons were stripped before decoding, so "/a:b.txt" silently served the
+		// contents of "ab.txt" with a 200 — a different file than the one asked
+		// for, with nothing to signal the substitution.
+		it('does not silently resolve a colon path to a different file', async () => {
+			const response = await server.get('/a:b.txt');
+			expect(response.status).toBe(200);
+			expect(response.text).toBe('WITH COLON');
+		});
+
+		it('treats an encoded colon identically to a literal one', async () => {
+			const literal = await server.get('/a:b.txt');
+			const encoded = await server.get('/a%3Ab.txt');
+
+			expect(encoded.status).toBe(literal.status);
+			expect(encoded.text).toBe(literal.text);
+			expect(encoded.text).toBe('WITH COLON');
+		});
+
+		it('still serves a colon-free path unchanged', async () => {
+			const response = await server.get('/ab.txt');
+			expect(response.status).toBe(200);
+			expect(response.text).toBe('WITHOUT COLON');
+		});
+
+		it('reports a missing colon path as not found instead of resolving elsewhere', async () => {
+			const response = await server.get('/no:such.txt');
+			expect(response.status).toBe(404);
+		});
+	});
+
 	describe('compressed responses', () => {
 		const content = Buffer.from(
 			"Look again at that dot. That's here. That's home. That's us. On it everyone you love, everyone you know, everyone you ever heard of, every human being who ever was, lived out their lives.",
