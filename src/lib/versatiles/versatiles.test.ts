@@ -4,7 +4,7 @@ import { createHash } from 'crypto';
 import { Container } from '@versatiles/container';
 import { defaultHeader } from '../response_headers.mock.js';
 import { getMockedResponder } from '../responder.mock.js';
-import { getVersatiles } from './cache.js';
+import { ContainerCache } from './cache.js';
 import { it, describe, expect, vi } from 'vitest';
 import { MockedBucketFile } from '../bucket/bucket.mock.js';
 import { readFileSync } from 'fs';
@@ -96,13 +96,13 @@ describe('VersaTiles', () => {
 		});
 
 		it('should respond 500 when style.json generation fails on invalid metadata', async () => {
-			// Build a fresh container (unique name to bypass the module cache) whose
-			// metadata is not valid JSON, so sendStyle's JSON.parse throws.
+			// Build a container whose metadata is not valid JSON, so sendStyle's
+			// JSON.parse throws.
 			const spy = vi
 				.spyOn(Container.prototype, 'getMetadata')
 				.mockResolvedValue('this is not json');
-			const mockFile = new MockedBucketFile({ name: 'broken-meta.versatiles', filename });
-			const versatiles = await getVersatiles(mockFile);
+			const mockFile = new MockedBucketFile({ name: 'osm.versatiles', filename });
+			const versatiles = await new ContainerCache().getVersatiles(mockFile);
 			spy.mockRestore();
 
 			const responder = getMockedResponder({ fastRecompression: true });
@@ -120,7 +120,7 @@ describe('VersaTiles', () => {
 		async function runQuery(query: string): Promise<MockedResponse> {
 			const mockFile = new MockedBucketFile({ name: 'osm.versatiles', filename });
 
-			const versatiles = await getVersatiles(mockFile);
+			const versatiles = await new ContainerCache().getVersatiles(mockFile);
 
 			const mockResponder = getMockedResponder({
 				fastRecompression: true,

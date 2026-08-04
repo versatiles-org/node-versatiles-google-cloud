@@ -1,1 +1,1 @@
-export { getVersatiles } from './cache.js';
+export { ContainerCache } from './cache.js';

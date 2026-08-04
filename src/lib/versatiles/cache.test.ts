@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Readable } from 'stream';
 import { fileURLToPath } from 'url';
-import { ContainerCache, getVersatiles } from './cache.js';
+import { ContainerCache } from './cache.js';
 import { AbstractBucketFile } from '../bucket/abstract.js';
 import { BucketFileMetadata } from '../bucket/metadata.js';
 import { MockedBucketFile } from '../bucket/bucket.mock.js';
@@ -49,8 +49,9 @@ describe('cached containers hold no server-specific state', () => {
 	it('uses the url given per request, not the one the cache was populated with', async () => {
 		const file = new MockedBucketFile({ name: 'shared.versatiles', filename: CONTAINER });
 
-		const first = await getVersatiles(file);
-		const second = await getVersatiles(file);
+		const cache = new ContainerCache();
+		const first = await cache.getVersatiles(file);
+		const second = await cache.getVersatiles(file);
 
 		// Same cached instance, so a baked-in url would be shared.
 		expect(second).toBe(first);
@@ -78,9 +79,9 @@ describe('getVersatiles', () => {
 	// Rejecting with a string would lose the stack and slip past `instanceof
 	// Error` checks in callers such as the request handler in server.ts.
 	it('rejects with an Error carrying the original cause when the stream fails', async () => {
-		const thrown: unknown = await getVersatiles(new ErroringStreamFile()).catch(
-			(error: unknown) => error,
-		);
+		const thrown: unknown = await new ContainerCache()
+			.getVersatiles(new ErroringStreamFile())
+			.catch((error: unknown) => error);
 
 		expect(thrown).toBeInstanceOf(Error);
 		expect((thrown as Error).message).toContain('error accessing bucket stream');

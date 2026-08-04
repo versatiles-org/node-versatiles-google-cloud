@@ -8,7 +8,7 @@ import {
 	PathTraversalError,
 	normalizeBucketPath,
 } from './bucket/index.js';
-import { getVersatiles } from './versatiles/index.js';
+import { ContainerCache } from './versatiles/index.js';
 import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
 
@@ -38,6 +38,10 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 
 	const rewrite = new Rewrite(rewriteRules, { verbose, cache: true });
 	const baseUrl = new URL(opt.baseUrl).href;
+
+	// Owned by this server rather than shared module-wide, so several servers in
+	// one process (as the tests create) cannot read each other's entries.
+	const containerCache = new ContainerCache();
 
 	// Initialize the bucket based on the provided options
 	let bucket: AbstractBucket;
@@ -113,7 +117,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 				const file = bucket.getFile(bucketPrefix + filename);
 
 				if (filename.endsWith('.versatiles')) {
-					const container = await getVersatiles(file);
+					const container = await containerCache.getVersatiles(file);
 					await container.serve(search, baseUrl + filename, responder);
 				} else {
 					await file.serve(responder);

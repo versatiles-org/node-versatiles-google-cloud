@@ -47,35 +47,39 @@ export class ContainerCache {
 			this.#map.delete(oldest);
 		}
 	}
-}
 
-const containerCache = new ContainerCache();
-
-/**
- * Returns a parsed container for a file, reusing a cached one when the file has
- * not changed.
- *
- * Cached instances are shared, so they must hold only state derived from the
- * file itself. Anything server-specific — notably the public URL used to build
- * style.json — is supplied per request instead, since the cache key is the
- * filename and cannot distinguish two servers reading the same file.
- */
-export async function getVersatiles(file: AbstractBucketFile): Promise<Versatiles> {
-	const metadata = await file.getMetadata();
-
-	let container = containerCache.get(file.name);
-
-	if (container != null) {
-		if (container.etag !== metadata.etag) container = undefined;
+	/** Discards every cached container. */
+	public clear(): void {
+		this.#map.clear();
 	}
 
-	if (container == null) {
-		const reader = buildReader(file);
-		container = await Versatiles.fromReader(reader, metadata.etag);
-		containerCache.set(file.name, container);
-	}
+	/**
+	 * Returns a parsed container for a file, reusing a cached one while the file
+	 * is unchanged.
+	 *
+	 * Cached instances are shared between requests, so they hold only state
+	 * derived from the file itself. Anything server-specific — notably the public
+	 * URL used to build style.json — is supplied per request instead, since the
+	 * cache key is the filename and cannot distinguish two servers reading the
+	 * same file.
+	 */
+	public async getVersatiles(file: AbstractBucketFile): Promise<Versatiles> {
+		const metadata = await file.getMetadata();
 
-	return container;
+		let container = this.get(file.name);
+
+		if (container != null) {
+			if (container.etag !== metadata.etag) container = undefined;
+		}
+
+		if (container == null) {
+			const reader = buildReader(file);
+			container = await Versatiles.fromReader(reader, metadata.etag);
+			this.set(file.name, container);
+		}
+
+		return container;
+	}
 }
 
 function buildReader(file: AbstractBucketFile): VersatilesReader {
