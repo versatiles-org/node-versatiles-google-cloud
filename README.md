@@ -38,9 +38,49 @@ CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
 
 ## Path rewriting
 
-You can define path rewriting rules to map public URLs to different paths in the bucket. Use the `-r` or `--rewrite-rule` option to specify rules in the format `/public/path /bucket/path`.
+You can define path rewriting rules to map public URLs to different paths in the bucket. Use the `-r` or `--rewrite-rule` option to specify rules in the format `/public/path /bucket/path`, or the `rewriteRules` key in a [configuration file](#configuration-file).
 
-Rules can use custom pattern matching by utilizing [Custom Matching Parameters](https://github.com/pillarjs/path-to-regexp/tree/6.x?tab=readme-ov-file#custom-matching-parameters). For example, the rule `/tiles/:source.versatiles /data/:source.versatiles` will rewrite requests like `/tiles/osm.versatiles` to `/data/osm.versatiles`.
+For example, the rule `/tiles/:source.versatiles /data/:source.versatiles` rewrites requests like `/tiles/osm.versatiles` to `/data/osm.versatiles`.
+
+### Pattern syntax
+
+Both sides of a rule must start with `/`. The left side is a pattern matched against the request path; the right side is a template that may reference any parameter captured on the left.
+
+| Token       | Matches                                   | Example                                                         |
+| ----------- | ----------------------------------------- | --------------------------------------------------------------- |
+| literal     | itself                                    | `/tiles` matches `/tiles`                                       |
+| `:name`     | exactly one path segment                  | `/tiles/:name` matches `/tiles/osm`, but not `/tiles/a/b`       |
+| `:name?`    | an optional single segment                | `/api/:version?/users` matches `/api/users` and `/api/v1/users` |
+| `:name+`    | one or more segments                      | `/files/:path+` matches `/files/a` and `/files/a/b/c`           |
+| `:name(re)` | text matching the regular expression `re` | `/tiles/:z(\d+)` matches `/tiles/14`, but not `/tiles/osm`      |
+| `\x`        | the literal character `x`                 | `\?` matches a literal `?`                                      |
+
+A parameter may be followed directly by literal text, which is matched as a suffix: `/tiles/:source.versatiles` captures `osm` from `/tiles/osm.versatiles`.
+
+On the right side, `:name` is replaced by the captured value.
+
+> [!IMPORTANT]
+> A parameter written with a modifier or a regular expression on the left must be written **identically on the right**, including the `?` or `+` and the expression itself. Writing `:name` on the right for a pattern declared as `:name?` on the left makes the rule fail at request time whenever the parameter is absent.
+
+### How rules are applied
+
+- Rules are tried in the order they are defined, and **the first matching rule wins**. Later rules are not consulted.
+- A pattern must match the **entire** request path, not a prefix.
+- If no rule matches, the request path is used unchanged.
+- Matching **ignores case** and tolerates a single trailing slash, so `/tiles` also matches `/Tiles` and `/tiles/`.
+- Percent-encoded characters are passed through unchanged; the path is decoded after rewriting.
+
+### Escaping special characters
+
+The characters `? + * ( ) :` and `\` are part of the pattern syntax. To match one literally, prefix it with a backslash — most commonly `\?`, since VersaTiles container queries contain a literal `?`.
+
+Whitespace separates the two sides of a `--rewrite-rule` argument, so a pattern that needs to match a space must use `\s` rather than a literal space.
+
+> [!NOTE]
+> Regular expressions in `:name(re)` are matched against paths supplied by clients. Keep them simple and avoid nested quantifiers such as `(a+)+`, which can be exploited to consume large amounts of CPU.
+
+> [!NOTE]
+> The syntax described above is the stable contract of this package. It is currently implemented on top of `path-to-regexp`, but only the documented subset is supported — patterns relying on undocumented behaviour of that library may break in a future release.
 
 ### Rewriting to VersaTiles container queries
 
@@ -49,7 +89,7 @@ The most common use case is mapping clean tile URLs to VersaTiles container quer
 The rule `/tiles/osm/:path(.+)` → `/data/osm.versatiles\?:path` uses:
 
 - `:path(.+)` — a named capture that matches one or more characters (tile coordinates, metadata paths, etc.)
-- `\?` — a literal `?` character (since `?` means "optional" in path-to-regexp, it must be escaped)
+- `\?` — a literal `?` character (since a bare `?` marks a parameter as optional, it must be escaped)
 
 **Example rewrites:**
 
@@ -78,12 +118,24 @@ rewriteRules:
   "/tiles/osm/:path(.+)": "/data/osm.versatiles\\?:path"
 ```
 
-### Complex matching
+### Serving `index.html` for extensionless paths
 
-You can create more complex matching patterns using regular expressions. For instance, the rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` will match any path under `/apps` that does not end with a file extension and rewrite it to serve the corresponding `index.html` file.
+Single-page applications usually need every route that is not a file to fall back to `index.html`. The rule `/apps:any((?!.*\.[^/]+$).*)? /apps:any((?!.*\.[^/]+$).*)?/index.html` matches any path under `/apps` that does not end with a file extension and rewrites it to the corresponding `index.html`:
 
-> [!NOTE]
-> When using regular expressions in rewrite rules, ensure that white-space-matches are defined using thier specific form (`\s`) since standard white spaces (` `) are used to separate source and destination (`-r "<source> <destination>"`).
+| Request path             | Rewritten to                         |
+| ------------------------ | ------------------------------------ |
+| `/apps/editor`           | `/apps/editor/index.html`            |
+| `/apps/editor/settings`  | `/apps/editor/settings/index.html`   |
+| `/apps/editor/bundle.js` | *(unchanged — has a file extension)* |
+
+> [!WARNING]
+> There is no separator between the `/apps` literal and the parameter, so this rule also matches sibling paths that merely start with the same characters — `/apps-admin` and `/appsX` are rewritten too. To match only below `/apps`, put a `/` before the parameter on both sides:
+>
+> ```
+> /apps/:any((?!.*\.[^/]+$).*)? /apps/:any((?!.*\.[^/]+$).*)?/index.html
+> ```
+>
+> This still rewrites `/apps` itself to `/apps/index.html`, but leaves `/apps-admin` and `/appsX` untouched.
 
 ## Configuration file
 
@@ -119,7 +171,7 @@ verbose: false
 rewriteRules:
   "/tiles/:name": "/geodata/:name.versatiles"
   "/tiles/osm/:path(.+)": "/data/osm.versatiles\\?:path"
-  "/apps:any((?!.*\\.[^/]+$).*)?": "/apps:any/index.html"
+  "/apps/:any((?!.*\\.[^/]+$).*)?": "/apps/:any((?!.*\\.[^/]+$).*)?/index.html"
 ```
 
 **JSON** (`config.json`):
@@ -244,14 +296,16 @@ Options:
                                   instead. Useful for local development and
                                   testing.
   -p, --port <port>               Set the server port. Default: 8080
-  -r, --rewrite-rule <path path>  Set a rewrite rule using path-to-regexp
-                                  patterns. Both sides must start with "/".
-                                  Multiple rules can be set. Use "\?" for a
-                                  literal "?" since "?" means "optional" in
-                                  path-to-regexp. E.g. "/tiles/:path(.+)
+  -r, --rewrite-rule <path path>  Set a rewrite rule mapping a request path to a
+                                  bucket path. Both sides must start with "/".
+                                  Multiple rules can be set; the first match
+                                  wins. Use ":name" to capture a path segment,
+                                  ":name(regex)" to constrain it, and "\?" for a
+                                  literal "?". E.g. "/tiles/:path(.+)
                                   /data/map.versatiles\?:path" rewrites
                                   "/tiles/5/17/11" to
-                                  "/data/map.versatiles?5/17/11". (default: [])
+                                  "/data/map.versatiles?5/17/11". See the README
+                                  for the full pattern syntax. (default: [])
   -v, --verbose                   Enable verbose mode for detailed operational
                                   logs.
   -h, --help                      display help for command

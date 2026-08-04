@@ -50,11 +50,13 @@ program
 	.option('-p, --port <port>', 'Set the server port. Default: 8080')
 	.option(
 		`-r, --rewrite-rule <path${REWRITE_DELIMITER}path>`,
-		'Set a rewrite rule using path-to-regexp patterns. ' +
-			'Both sides must start with "/". Multiple rules can be set. ' +
-			'Use "\\?" for a literal "?" since "?" means "optional" in path-to-regexp. ' +
+		'Set a rewrite rule mapping a request path to a bucket path. ' +
+			'Both sides must start with "/". Multiple rules can be set; the first match wins. ' +
+			'Use ":name" to capture a path segment, ":name(regex)" to constrain it, ' +
+			'and "\\?" for a literal "?". ' +
 			'E.g. "/tiles/:path(.+) /data/map.versatiles\\?:path" ' +
-			'rewrites "/tiles/5/17/11" to "/data/map.versatiles?5/17/11".',
+			'rewrites "/tiles/5/17/11" to "/data/map.versatiles?5/17/11". ' +
+			'See the README for the full pattern syntax.',
 		collect,
 		[],
 	)
