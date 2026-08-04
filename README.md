@@ -32,9 +32,14 @@ E.g. for data journalists, academia, ...
 Run the following Docker Container in Google Cloud Run, e.g. by using Google Cloud Build.
 
 ```Dockerfile
-FROM node:20-alpine
-RUN npm install -g @versatiles/google-cloud
+FROM node:24-alpine
+
+RUN npm install -g "@versatiles/google-cloud"
+
+USER node
+
 EXPOSE 8080
+
 CMD npx versatiles-google-cloud -b "$BASE_URL" "$BUCKET_NAME"
 ```
 
