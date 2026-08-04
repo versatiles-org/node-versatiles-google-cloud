@@ -34,14 +34,24 @@ jobs:
       - name: Check vulnerabilities
         run: npm audit --omit=dev
 
+      # These mirror "npm run check" step by step, in the same order. Keep the
+      # two in sync: formatting and typechecking used to be missing here, so a
+      # misformatted file, or a type error in a test (tsconfig.build.json
+      # excludes *.test.ts), passed CI while "npm run check" failed locally.
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Lint
         run: npm run lint
 
-      - name: Build
-        run: npm run build
-
       - name: Tests
         run: npm run test
+
+      - name: Build
+        run: npm run build
 
   coverage:
     name: Test coverage
