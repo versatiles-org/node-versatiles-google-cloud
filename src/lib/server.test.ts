@@ -469,6 +469,73 @@ describe('Server', () => {
 		});
 	});
 
+	describe('conditional requests', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({
+				bucket: new MockedBucket([{ name: 'a.txt', content: Buffer.from('some content') }]),
+				rewriteRules: {},
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		const etagOf = async (): Promise<string> => (await server.get('/a.txt')).headers.etag as string;
+
+		it('answers 304 when the client already has the current representation', async () => {
+			const etag = await etagOf();
+			const response = await server.get('/a.txt', { 'If-None-Match': etag });
+
+			expect(response.status).toBe(304);
+			expect(response.text).toBe('');
+		});
+
+		it('accepts weak, listed and wildcard forms', async () => {
+			const etag = await etagOf();
+
+			for (const value of [`W/${etag}`, `"other", ${etag}`, '*']) {
+				const response = await server.get('/a.txt', { 'If-None-Match': value });
+				expect(response.status, value).toBe(304);
+			}
+		});
+
+		it('sends the body when the validator does not match', async () => {
+			const response = await server.get('/a.txt', { 'If-None-Match': '"stale"' });
+
+			expect(response.status).toBe(200);
+			expect(response.text).toBe('some content');
+		});
+
+		// A 304 carries no body, so headers describing one must not be sent, while
+		// the validator and caching headers are kept as they would be on a 200.
+		it('omits body headers but keeps the validator', async () => {
+			const etag = await etagOf();
+			const response = await server.get('/a.txt', { 'If-None-Match': etag });
+
+			expect(response.headers.etag).toBe(etag);
+			expect(response.headers['cache-control']).toBeDefined();
+			expect(response.headers['content-type']).toBeUndefined();
+			expect(response.headers['content-length']).toBeUndefined();
+			expect(response.headers['content-encoding']).toBeUndefined();
+		});
+
+		// RFC 9110 §13.2.1: If-None-Match is evaluated first, so a matching
+		// validator wins over a range request rather than producing a 206.
+		it('takes precedence over a Range request', async () => {
+			const etag = await etagOf();
+			const response = await server.get('/a.txt', {
+				'If-None-Match': etag,
+				Range: 'bytes=0-3',
+			});
+
+			expect(response.status).toBe(304);
+			expect(response.headers['content-range']).toBeUndefined();
+		});
+	});
+
 	describe('range requests', () => {
 		const CONTENT = '0123456789abcdefghijklmnopqrstuvwxyz'; // 36 bytes
 		let server: MockedServer;
