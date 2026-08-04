@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2026-08-04
 
+This release fixes a case where an overwritten tile container could be served as corrupt tiles, closes a bypass of the `--directory` prefix, and adds HTTP range and conditional requests. It requires Node 22 and changes every `ETag`.
+
+### ⚠ Breaking changes
+
+| Change                                                                                  | What to expect                                                                                                 |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Node 22 or newer is required** (was Node 20)                                            | Installing on Node 20 fails. Node 20 reached end of life on 2026-04-30 and is no longer tested.                  |
+| **Every `ETag` value changes**                                                            | One revalidation wave through CDN and browser caches after deploy. Tiles are re-fetched once, then settle.       |
+| **The `--directory` prefix is now enforced**                                              | Requests using `..` to reach objects outside the prefix used to succeed and now return 404. See below.           |
+| **Tile queries are matched strictly**                                                     | `?8/58/70junk`, `?8/58/70/99` and `?013/1870/2252` returned the tile; they now return 400. Use exact coordinates. |
+| **Colons in paths resolve to themselves**                                                 | `/a:b.txt` used to serve `ab.txt`; it now serves `a:b.txt`, matching what `/a%3Ab.txt` always did.               |
+| **`204 No Content` carries no `content-type`**                                            | Empty-tile responses are now bodiless as the spec requires.                                                      |
+| **Log output is JSON on Cloud Run**                                                       | Detected via `K_SERVICE`. Set `LOG_FORMAT=text` to keep plain lines, or `json` to force structured output.        |
+
+**The prefix bypass was an access-control bug.** With `--directory /public/`, a request such as `/..%2Fprivate%2Fsecret.txt` served files from outside the prefix with `200 OK`. The prefix is now a real boundary: the request path is confined before the prefix is applied, and anything escaping it is answered exactly like a missing file. If you relied on reaching objects outside your configured prefix, those requests will now fail.
+
+**Why the `ETag`s change.** They are now quoted as RFC 9110 requires, and derived from the object's content hash rather than its `ETag`. The second part means a metadata-only edit — changing `cacheControl` or storage class — no longer invalidates every cached tile, and neither does re-uploading identical bytes. The cost is a single revalidation wave when upgrading.
+
+### Highlights
+
+- **Overwriting a container no longer serves corrupt tiles.** Tile-index offsets are cached across requests; resolving them against a container that had since been replaced returned unrelated bytes as a valid-looking tile. Every read is now pinned to the revision its index came from, so a replaced container is detected and the index re-read instead. See "Container caching" in the README.
+- **HTTP range requests** (#2) — `206 Partial Content` with `Content-Range`, `416` for unsatisfiable ranges, and `If-Range` so a resumed download cannot splice together two versions of a file.
+- **Conditional requests** — every response carries an `ETag` and honours `If-None-Match` with `304`. Tile validators are derived from the container revision and coordinates, so a revalidated tile costs **no bucket read at all**.
+- **`/readiness` endpoint** — reports whether the bucket is reachable, with the result cached so probes do not drive API calls. `/healthcheck` deliberately stays dependency-free, for liveness probes that restart an instance.
+- **Graceful shutdown** — `SIGTERM` and `SIGINT` now drain in-flight requests instead of dropping them, so deploys and scale-downs no longer cut responses off mid-transfer.
+- **`PORT` is honoured**, so Cloud Run needs no `--port` flag. An explicit `--port` or config value still wins.
+- **Fewer round trips per tile.** Responses that need no recompression stream straight through instead of being buffered, which also keeps `content-length` on large files, and a cached container no longer costs a metadata lookup per request.
+
+### Upgrading
+
+1. Move to Node 22 or newer.
+2. Expect one round of cache revalidation after deploying; no action needed.
+3. If you use `--directory`, confirm nothing depends on reaching objects outside it.
+4. If you parse the server's logs, note the JSON format under Cloud Run, or set `LOG_FORMAT=text`.
+
 ### Features
 
 - implement PathTraversalError for improved path validation and error handling ([50bc282](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/50bc28236b614bf64c378de4f949cc0457d70f4c))
