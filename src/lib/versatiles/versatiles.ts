@@ -65,11 +65,14 @@ export class Versatiles {
 		}
 
 		// Extract tile coordinates from the query and serve the requested tile.
-		// Anchored at both ends: without the trailing "$", anything after the
-		// coordinates was ignored, so "?8/58/70", "?8/58/70junk" and "?8/58/70/99"
-		// all returned the same tile. Behind a CDN each of those is a separate
-		// cache key, so an unbounded set of URLs mapped onto one response.
-		const match = /^\?(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)$/.exec(query);
+		//
+		// Anchored at both ends, and each coordinate is written "0|[1-9]\d*"
+		// rather than "\d+" so that exactly one spelling addresses a given tile.
+		// With "\d+" the trailing anchor missing, "?8/58/70junk" worked; with
+		// "\d+" alone, so did "?08/58/70" and "?0000008/58/70", since parseInt
+		// discards leading zeros. Behind a CDN each spelling is its own cache key,
+		// so an unbounded set of URLs mapped onto one response.
+		const match = /^\?(?<z>0|[1-9]\d*)\/(?<x>0|[1-9]\d*)\/(?<y>0|[1-9]\d*)$/.exec(query);
 
 		if (match != null) {
 			const { z, x, y } = match.groups as { x: string; y: string; z: string };
