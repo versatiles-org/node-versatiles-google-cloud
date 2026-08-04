@@ -87,6 +87,30 @@ describe('VersaTiles', () => {
 			}
 		});
 
+		// parseInt discards leading zeros, so "\d+" let unboundedly many spellings
+		// address one tile: "?13/1870/2252", "?013/1870/2252", "?0013/..." and so
+		// on. Behind a CDN each is its own cache key for identical bytes.
+		it('should reject leading zeros in tile coordinates', async () => {
+			const message =
+				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"';
+
+			for (const query of [
+				'?013/1870/2252',
+				'?0013/1870/2252',
+				'?13/01870/2252',
+				'?13/1870/02252',
+				'?00/0/0',
+			]) {
+				await checkError(query, 400, message);
+			}
+		});
+
+		it('should still accept a zero coordinate', async () => {
+			// "0" is a legitimate coordinate; only redundant zeros are rejected.
+			const response = await runQuery('?0/0/0');
+			expect(response.writeHead).toHaveBeenCalledWith(204);
+		});
+
 		it('should handle wrong requests correctly', async () => {
 			await checkError(
 				'?bathtub',
