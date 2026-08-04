@@ -137,6 +137,27 @@ Single-page applications usually need every route that is not a file to fall bac
 >
 > This still rewrites `/apps` itself to `/apps/index.html`, but leaves `/apps-admin` and `/appsX` untouched.
 
+## Health endpoints
+
+Two endpoints are provided for load balancers and orchestrators. They answer different questions and should be wired to different probes.
+
+| Endpoint       | Question                              | Healthy | Unhealthy                |
+| -------------- | ------------------------------------- | ------- | ------------------------ |
+| `/healthcheck` | Is the process alive?                 | `200`   | no response              |
+| `/readiness`   | Should this instance receive traffic? | `200`   | `503 bucket unavailable` |
+
+`/healthcheck` checks nothing beyond the process itself and always answers `200`. Use it for liveness probes — the kind that **restart** an instance when they fail.
+
+`/readiness` reports whether the bucket is reachable, which also catches credentials that expire after startup. Use it for readiness probes and load balancer health checks — the kind that **remove** an instance from rotation.
+
+> [!IMPORTANT]
+> Do not point a liveness probe at `/readiness`. A Cloud Storage problem affects every instance at once, so restarting on that signal turns a degraded dependency into a dead service. Taking instances out of rotation is recoverable; a restart loop is not.
+
+The bucket is not contacted on every request: a successful check is cached for 30 seconds, and a failed one for 1 second so an instance returns to service promptly once the bucket is reachable again. Probes arriving together share a single check. The reason for a failure is written to the log rather than returned, since it can name buckets and credentials.
+
+> [!NOTE]
+> Both paths are handled by the server itself, so bucket objects named `healthcheck` or `readiness` at the root are not reachable.
+
 ## Range requests
 
 Static files are served with `Accept-Ranges: bytes`, so clients can request part of a file instead of the whole thing — used for resumable downloads, seeking in audio and video, and PDF viewers that fetch a page at a time.
