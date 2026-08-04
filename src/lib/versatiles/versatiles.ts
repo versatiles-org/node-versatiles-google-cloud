@@ -64,8 +64,12 @@ export class Versatiles {
 				return;
 		}
 
-		// Extract tile coordinates from the query and serve the requested tile
-		const match = /^\?(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)/.exec(query);
+		// Extract tile coordinates from the query and serve the requested tile.
+		// Anchored at both ends: without the trailing "$", anything after the
+		// coordinates was ignored, so "?8/58/70", "?8/58/70junk" and "?8/58/70/99"
+		// all returned the same tile. Behind a CDN each of those is a separate
+		// cache key, so an unbounded set of URLs mapped onto one response.
+		const match = /^\?(?<z>\d+)\/(?<x>\d+)\/(?<y>\d+)$/.exec(query);
 
 		if (match != null) {
 			const { z, x, y } = match.groups as { x: string; y: string; z: string };
