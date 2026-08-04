@@ -56,8 +56,17 @@ describe('VersaTiles', () => {
 			});
 		});
 
-		it('should handle missing tiles correctly', async () => {
-			await checkError('?13/2870/2252', 204, 'no map tile at 13/2870/2252');
+		// A 204 must carry neither a body nor a content-type. Previously this went
+		// through error(), which declared "content-type: text/plain" and passed a
+		// message that Node then discarded — so the message never reached the
+		// client despite the code appearing to send it.
+		it('should answer a missing tile with a bodiless 204', async () => {
+			const response: MockedResponse = await runQuery('?13/2870/2252');
+
+			expect(response.writeHead).toHaveBeenCalledTimes(1);
+			expect(response.writeHead).toHaveBeenCalledWith(204);
+			expect(response.end).toHaveBeenCalledTimes(1);
+			expect(response.end).toHaveBeenCalledWith();
 		});
 
 		it('should handle wrong requests correctly', async () => {

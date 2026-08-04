@@ -256,7 +256,8 @@ describe('Server', () => {
 			const response = await server.get('/geodata/test.versatiles?10/0/0');
 			expect(response.status).toBe(204);
 			expect(response.text).toBe('');
-			expect(response.contentType).toBe('text/plain');
+			// A 204 carries no content, so it must not announce a content-type.
+			expect(response.contentType).toBe('');
 		});
 
 		it('handle missing static file', async () => {
