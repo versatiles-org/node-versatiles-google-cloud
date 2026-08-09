@@ -10,6 +10,11 @@ export class ResponseHeaders {
 		// match it against known advisories.
 		server: 'versatiles-google-cloud',
 		'cache-control': 'max-age=86400', // Set default cache control header (1 day)
+		// The bucket holds whatever the operator uploaded, and its content-type
+		// comes from the object's own metadata. Without this, a browser may ignore
+		// that type and sniff the bytes instead, so an object stored as text or
+		// as an image can end up executed as script on the serving origin.
+		'x-content-type-options': 'nosniff',
 	};
 
 	public constructor(headers?: OutgoingHttpHeaders) {

@@ -229,6 +229,15 @@ describe('Server', () => {
 			expect(response.contentType).toBe('application/json');
 		});
 
+		// The bucket serves whatever the operator uploaded, so a browser must be
+		// held to the declared content-type rather than sniffing the bytes.
+		it('tells browsers not to sniff the content type', async () => {
+			for (const path of ['/static/package.json', '/geodata/test.versatiles?meta.json']) {
+				const response = await server.get(path);
+				expect(response.headers['x-content-type-options'], path).toBe('nosniff');
+			}
+		});
+
 		it('serve versatiles meta', async () => {
 			const response = await server.get('/geodata/test.versatiles?meta.json');
 			expect(response.status).toBe(200);

@@ -44,6 +44,7 @@ describe('ResponseHeaders', () => {
 		const expectedString = JSON.stringify({
 			server: defaultHeader.server,
 			'cache-control': defaultHeader['cache-control'],
+			'x-content-type-options': defaultHeader['x-content-type-options'],
 			'x-another-header': 'value',
 		});
 		expect(headers.toString()).toBe(expectedString);
