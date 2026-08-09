@@ -5,15 +5,11 @@
   "bin": {
     "versatiles-google-cloud": "dist/index.js"
   },
-  "prefix": "./",
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
     "static"
   ],
-  "eslintConfig": {
-    "root": true
-  },
   "scripts": {
     "build:node": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/index.js",
     "build": "npm run build:node && npm run doc",
