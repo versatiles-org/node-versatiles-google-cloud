@@ -88,6 +88,7 @@ program
 		if (portFromEnv !== undefined && !/^\d+$/.test(portFromEnv.trim())) {
 			log('ERROR', `Error: PORT must be a number, but is "${portFromEnv}".`);
 			process.exit(1);
+			return;
 		}
 
 		const port =
@@ -112,6 +113,7 @@ program
 					'Provide bucket-name as argument or in config file.',
 			);
 			process.exit(1);
+			return;
 		}
 
 		// CLI rewrite rules completely replace config rules (no merging)
@@ -123,12 +125,28 @@ program
 			rewriteRules = {};
 			for (const r of cliRewriteRules) {
 				const parts = String(r).split(REWRITE_DELIMITER);
-				if (parts.length !== 2)
-					throw Error(`a rewrite rule must be formatted as "$request${REWRITE_DELIMITER}$origin"`);
-				if (!parts[0].startsWith('/') || !parts[1].startsWith('/'))
-					throw Error(
-						`each side of a rewrite rule must start with a "/", e.g. "/public${REWRITE_DELIMITER}/origin", but this rule is formatted as "${String(r)}"`,
+
+				// Reported the same way as every other bad argument, rather than
+				// thrown: this runs inside commander's action handler, so a throw
+				// becomes a rejected promise that nothing awaits — the user saw an
+				// unhandled rejection with a stack trace through commander's
+				// internals instead of the one-line message meant for them.
+				if (parts.length !== 2) {
+					log(
+						'ERROR',
+						`Error: a rewrite rule must be formatted as "$request${REWRITE_DELIMITER}$origin", but this rule is formatted as "${String(r)}".`,
 					);
+					process.exit(1);
+					return;
+				}
+				if (!parts[0].startsWith('/') || !parts[1].startsWith('/')) {
+					log(
+						'ERROR',
+						`Error: each side of a rewrite rule must start with a "/", e.g. "/public${REWRITE_DELIMITER}/origin", but this rule is formatted as "${String(r)}".`,
+					);
+					process.exit(1);
+					return;
+				}
 				rewriteRules[parts[0]] = parts[1];
 			}
 		} else {
@@ -188,5 +206,15 @@ program
 
 // Prevent running the CLI program during tests
 if (process.env.NODE_ENV !== 'test') {
-	program.parse();
+	// parseAsync, not parse: the action handler is async, and parse() returns
+	// without awaiting it. Anything that escapes the handler would otherwise
+	// become an unhandled rejection — printed as a stack trace, with no chance
+	// to report it as the error it is.
+	program.parseAsync().catch((error: unknown) => {
+		const errorMessage = String(
+			typeof error == 'object' && error != null && 'message' in error ? error.message : error,
+		);
+		log('ERROR', errorMessage, { error: errorMessage });
+		process.exit(1);
+	});
 }

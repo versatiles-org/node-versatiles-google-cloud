@@ -30,6 +30,11 @@ describe('index.ts', () => {
 
 	beforeEach(() => {
 		mockedStartServer.mockReset();
+		// Cleared alongside it, so "was this reported?" asks about this test only:
+		// these spies are installed once for the whole file, and a call recorded by
+		// an earlier test would otherwise satisfy a later test's assertion.
+		vi.mocked(process.exit).mockClear();
+		vi.mocked(console.error).mockClear();
 		mkdirSync(testDir, { recursive: true });
 	});
 
@@ -114,6 +119,37 @@ describe('index.ts', () => {
 			rewriteRules: {
 				'/tiles/osm/:path(.+)': '/download.versatiles.org/osm.versatiles\\?:path',
 			},
+		});
+	});
+
+	// These used to throw inside commander's async action handler, which
+	// program.parse() never awaited, so the user got an unhandled rejection with
+	// a stack trace through commander internals rather than the message.
+	describe('malformed rewrite rules', () => {
+		it('exits with error when a rule has no delimiter', async () => {
+			await run('test-bucket', '-r', '/a/b');
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('a rewrite rule must be formatted as'),
+			);
+			expect(mockedStartServer).not.toHaveBeenCalled();
+		});
+
+		it('exits with error when a side does not start with a slash', async () => {
+			await run('test-bucket', '-r', 'public origin');
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('each side of a rewrite rule must start with a "/"'),
+			);
+			expect(mockedStartServer).not.toHaveBeenCalled();
+		});
+
+		it('reports the offending rule', async () => {
+			await run('test-bucket', '-r', '/a /b /c');
+
+			expect(console.error).toHaveBeenCalledWith(expect.stringContaining('"/a /b /c"'));
 		});
 	});
 
