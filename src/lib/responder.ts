@@ -155,7 +155,23 @@ export class Responder {
 			return;
 		}
 
-		this.#options.response.writeHead(code, { 'content-type': 'text/plain' }).end(message);
+		// A fixed header set rather than the accumulated one: whatever was
+		// collected describes the resource that could not be served, and an etag
+		// or content-encoding left over from it would describe this message
+		// instead.
+		//
+		// "no-store" because the alternative is worse in both directions. Without
+		// any directive a CDN is free to apply its own heuristics, so a 404 for an
+		// object that is uploaded a minute later can be served for hours; with a
+		// max-age it would be guaranteed to. Errors here are cheap to recompute —
+		// a rejected path never reaches the bucket at all.
+		this.#options.response
+			.writeHead(code, {
+				'cache-control': 'no-store',
+				'content-type': 'text/plain',
+				'x-content-type-options': 'nosniff',
+			})
+			.end(message);
 		this.#responderState = ResponderState.Finished;
 	}
 

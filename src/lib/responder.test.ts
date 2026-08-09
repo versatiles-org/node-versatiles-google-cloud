@@ -2,7 +2,7 @@ import type { MockedResponder } from './responder.mock.js';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 import { getMockedResponder } from './responder.mock.js';
 import { vi, it, describe, beforeEach, expect } from 'vitest';
-import { defaultHeader } from './response_headers.mock.js';
+import { defaultHeader, errorHeader } from './response_headers.mock.js';
 
 describe('Responder', () => {
 	it('should get request number', () => {
@@ -28,10 +28,28 @@ describe('Responder', () => {
 		responder.error(errorCode, errorMessage);
 
 		expect(responder.response.writeHead).toHaveBeenCalledTimes(1);
-		expect(responder.response.writeHead(errorCode, { 'content-type': 'text/plaine' }));
+		expect(responder.response.writeHead).toHaveBeenCalledWith(errorCode, errorHeader);
 
 		expect(responder.response.end).toHaveBeenCalledTimes(1);
 		expect(responder.response.end).toHaveBeenCalledWith(errorMessage);
+	});
+
+	// Without a directive of its own an error inherits whatever heuristics the
+	// CDN applies, so a 404 for an object uploaded a minute later can be served
+	// long after it exists. The headers gathered for the resource that failed are
+	// dropped too, so no stale validator describes the message.
+	it('should keep error responses out of caches', () => {
+		const responder = getMockedResponder({ responseHeaders: { etag: '"of-the-resource"' } });
+		responder.error(500, 'Internal Server Error');
+
+		const [, headers] = vi.mocked(responder.response.writeHead).mock.calls[0] as [
+			number,
+			Record<string, string>,
+		];
+
+		expect(headers['cache-control']).toBe('no-store');
+		expect(headers['x-content-type-options']).toBe('nosniff');
+		expect(headers.etag).toBeUndefined();
 	});
 
 	it('should respond correctly with raw text content', async () => {

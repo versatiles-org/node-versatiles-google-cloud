@@ -299,6 +299,16 @@ describe('Server', () => {
 			expect(response.contentType).toBe('text/plain');
 		});
 
+		// An object may well be uploaded a moment later, so a cached 404 outlives
+		// its truth. Recomputing one is cheap — a missing file is answered without
+		// ever transferring a body.
+		it('keeps errors out of caches', async () => {
+			const response = await server.get('/static/missing/file');
+			expect(response.headers['cache-control']).toBe('no-store');
+			expect(response.headers['x-content-type-options']).toBe('nosniff');
+			expect(response.headers.etag).toBeUndefined();
+		});
+
 		it('handle wrong versatiles request', async () => {
 			const response = await server.get('/geodata/test.versatiles?everest');
 			expect(response.status).toBe(400);

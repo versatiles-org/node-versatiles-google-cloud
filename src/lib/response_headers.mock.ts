@@ -4,3 +4,14 @@ export const defaultHeader = {
 	vary: 'accept-encoding',
 	'x-content-type-options': 'nosniff',
 };
+
+/**
+ * The fixed header set `Responder.error()` writes. It does not build on
+ * `defaultHeader`: an error response deliberately discards the headers
+ * accumulated for the resource it failed to serve.
+ */
+export const errorHeader = {
+	'cache-control': 'no-store',
+	'content-type': 'text/plain',
+	'x-content-type-options': 'nosniff',
+};

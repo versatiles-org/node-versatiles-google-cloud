@@ -2,7 +2,7 @@ import type { MockedResponse } from '../responder.mock.js';
 import type { Response } from 'express';
 import { createHash } from 'crypto';
 import { Container } from '@versatiles/container';
-import { defaultHeader } from '../response_headers.mock.js';
+import { defaultHeader, errorHeader } from '../response_headers.mock.js';
 import { getMockedResponder } from '../responder.mock.js';
 import { ContainerCache } from './cache.js';
 import { it, describe, expect, vi } from 'vitest';
@@ -243,9 +243,7 @@ describe('VersaTiles', () => {
 			const responder = getMockedResponder({ fastRecompression: true });
 			await versatiles.serve('?style.json', 'https://example.org/data/map.versatiles', responder);
 
-			expect(responder.response.writeHead).toHaveBeenCalledWith(500, {
-				'content-type': 'text/plain',
-			});
+			expect(responder.response.writeHead).toHaveBeenCalledWith(500, errorHeader);
 			const endMock = vi.mocked(responder.response.end);
 			expect(endMock).toHaveBeenCalledTimes(1);
 			// Client gets a generic message; internal details are not leaked.
@@ -298,7 +296,7 @@ describe('VersaTiles', () => {
 			const response: Response = await runQuery(query);
 
 			expect(response.writeHead).toHaveBeenCalledTimes(1);
-			expect(response.writeHead).toHaveBeenCalledWith(status, { 'content-type': 'text/plain' });
+			expect(response.writeHead).toHaveBeenCalledWith(status, errorHeader);
 
 			expect(response.end).toHaveBeenCalledTimes(1);
 			expect(response.end).toHaveBeenCalledWith(message);
