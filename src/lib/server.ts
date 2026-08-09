@@ -114,6 +114,10 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 			requestNo++;
 			const responder = new Responder({
 				fastRecompression,
+				// Express routes HEAD to this GET handler when no HEAD route is
+				// registered, so without this the whole body would be read from the
+				// bucket, compressed, and then discarded by Node.
+				isHeadRequest: request.method === 'HEAD',
 				requestHeaders: request.headers,
 				requestNo,
 				response,

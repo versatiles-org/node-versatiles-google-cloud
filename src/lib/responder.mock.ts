@@ -38,6 +38,7 @@ export function getResponseSink(): MockedResponse {
 
 export function getMockedResponder(options?: {
 	fastRecompression?: boolean;
+	isHeadRequest?: boolean;
 	requestHeaders?: IncomingHttpHeaders;
 	responseHeaders?: OutgoingHttpHeaders;
 	requestNo?: number;
@@ -49,6 +50,7 @@ export function getMockedResponder(options?: {
 
 	const responder = new Responder({
 		fastRecompression: options.fastRecompression ?? false,
+		isHeadRequest: options.isHeadRequest ?? false,
 		requestHeaders: options.requestHeaders ?? { 'accept-encoding': 'gzip, br' },
 		requestNo: options.requestNo ?? 5,
 		response,

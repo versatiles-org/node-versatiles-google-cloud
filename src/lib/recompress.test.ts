@@ -188,6 +188,61 @@ describe('recompress', () => {
 		});
 	});
 
+	// Node discards the body of a HEAD response, so producing one is pure waste:
+	// the object is read out of the bucket and compressed only to be thrown away.
+	describe('HEAD responses are not produced', () => {
+		it('never reads the source and never compresses', async () => {
+			const compress = vi.spyOn(ENCODINGS.br, 'compressStream');
+			try {
+				let bytesRead = 0;
+				const source = Readable.from(testBuffer);
+				source.on('data', (chunk: Buffer) => (bytesRead += chunk.length));
+
+				const responder = getMockedResponder({
+					isHeadRequest: true,
+					requestHeaders: { 'accept-encoding': 'br' },
+					responseHeaders: { 'content-type': 'text/plain' },
+				});
+
+				await recompress(responder, source);
+
+				expect(bytesRead).toBe(0);
+				expect(compress).not.toHaveBeenCalled();
+				expect(responder.response.getBuffer().length).toBe(0);
+				expect(source.destroyed).toBe(true);
+			} finally {
+				compress.mockRestore();
+			}
+		});
+
+		it('drops content-length it cannot know without compressing', async () => {
+			const responder = getMockedResponder({
+				isHeadRequest: true,
+				requestHeaders: { 'accept-encoding': 'br' },
+				responseHeaders: { 'content-type': 'text/plain', 'content-length': '90' },
+			});
+
+			await recompress(responder, Readable.from(testBuffer));
+
+			const headers = getWriteHeadHeaders(responder);
+			expect(headers['content-encoding']).toBe('br');
+			expect(headers['content-length']).toBeUndefined();
+		});
+
+		it('reports the exact length when nothing would alter the bytes', async () => {
+			const responder = getMockedResponder({
+				isHeadRequest: true,
+				requestHeaders: { 'accept-encoding': 'identity' },
+				responseHeaders: { 'content-type': 'text/plain' },
+			});
+
+			await recompress(responder, testBuffer);
+
+			const headers = getWriteHeadHeaders(responder);
+			expect(headers['content-length']).toBe(String(testBuffer.length));
+		});
+	});
+
 	describe('direct forwarding when no recompression is needed', () => {
 		it('keeps the known content-length instead of buffering', async () => {
 			const responder = getMockedResponder({

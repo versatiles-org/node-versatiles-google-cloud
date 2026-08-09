@@ -11,6 +11,11 @@ import { log, traceFieldFrom } from './logger.js';
  */
 export interface ResponderOptions {
 	fastRecompression: boolean; // Flag for fast recompression mode
+	/**
+	 * Whether the client asked for headers only. Node discards the body of a HEAD
+	 * response anyway, so this exists to avoid producing one in the first place.
+	 */
+	isHeadRequest?: boolean;
 	response: Response; // The Express response object
 	requestHeaders: IncomingHttpHeaders;
 	requestNo: number; // The current request number for logging
@@ -48,6 +53,11 @@ export class Responder {
 
 	public get fastRecompression(): boolean {
 		return this.#options.fastRecompression;
+	}
+
+	/** Whether this response is to carry headers only. */
+	public get isHeadRequest(): boolean {
+		return this.#options.isHeadRequest ?? false;
 	}
 
 	public get headers(): ResponseHeaders {

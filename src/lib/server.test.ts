@@ -125,13 +125,29 @@ class MockedServer {
 		return me;
 	}
 
+	/**
+	 * Issues a HEAD request. Node discards the body of a HEAD response, so the
+	 * returned buffers are always empty and only the headers carry information.
+	 */
+	public async head(urlString: string, headers?: Record<string, string>): Promise<MockedResponse> {
+		return this.request(urlString, headers, 'HEAD');
+	}
+
 	public async get(urlString: string, headers?: Record<string, string>): Promise<MockedResponse> {
+		return this.request(urlString, headers, 'GET');
+	}
+
+	private async request(
+		urlString: string,
+		headers: Record<string, string> | undefined,
+		method: 'GET' | 'HEAD',
+	): Promise<MockedResponse> {
 		const { port } = this.#server?.address() as AddressInfo;
 		const url = new URL(urlString, new URL(`http://localhost:${port}`));
 
 		return new Promise((resolvePromise, rejectPromise) => {
 			http
-				.get(url, { headers }, (response) => {
+				.request(url, { headers, method }, (response) => {
 					const data: Buffer[] = [];
 					response.on('data', (chunk: Buffer) => {
 						data.push(chunk);
@@ -142,10 +158,13 @@ class MockedServer {
 						const contentType = (response.headers['content-type'] ?? '').replace(/;.*/, '');
 
 						let buffer: Buffer;
-						// Opting out of decoding is what lets a test assert on a body this
-						// harness cannot decode — an object stored under an encoding the
-						// server forwards without understanding it.
-						if (this.#opt.returnRawBuffer) {
+						// A HEAD response has no body to decode, whatever its
+						// content-encoding says the body would have been.
+						//
+						// Opting out of decoding is likewise what lets a test assert on a
+						// body this harness cannot decode — an object stored under an
+						// encoding the server forwards without understanding it.
+						if (method === 'HEAD' || this.#opt.returnRawBuffer) {
 							buffer = rawBuffer.subarray();
 						} else {
 							switch (contentEncoding) {
@@ -414,6 +433,85 @@ describe('Server', () => {
 			expect(response.status).toBe(200);
 			expect(response.headers['content-encoding']).toBe('compress');
 			expect(response.rawBuffer).toStrictEqual(stored);
+		});
+	});
+
+	// Express routes HEAD to the GET handler, so a HEAD used to read the whole
+	// object out of the bucket and compress it, only for Node to discard the
+	// result. The headers must still describe what the GET would return.
+	describe('HEAD requests', () => {
+		const content = Buffer.from('a static file, long enough to be worth compressing. '.repeat(40));
+
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({
+				rewriteRules: {},
+				bucket: new MockedBucket([
+					{ name: 'a.txt', content },
+					{ name: 'test.versatiles', filename: resolve(basePath, 'testdata/island.versatiles') },
+				]),
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('answers with the headers a GET would send, and no body', async () => {
+			const head = await server.head('/a.txt', { 'Accept-Encoding': 'identity' });
+			const get = await server.get('/a.txt', { 'Accept-Encoding': 'identity' });
+
+			expect(head.status).toBe(200);
+			expect(head.rawBuffer.length).toBe(0);
+
+			for (const key of ['content-type', 'content-length', 'etag', 'cache-control', 'vary']) {
+				expect(head.headers[key], key).toBe(get.headers[key]);
+			}
+		});
+
+		// Reporting a length would mean compressing the body to find out, which is
+		// the work being avoided. RFC 9110 permits omitting it.
+		it('omits content-length when the body would have been recompressed', async () => {
+			const head = await server.head('/a.txt', { 'Accept-Encoding': 'br' });
+
+			expect(head.status).toBe(200);
+			expect(head.headers['content-encoding']).toBe('br');
+			expect(head.headers['content-length']).toBeUndefined();
+			expect(head.rawBuffer.length).toBe(0);
+		});
+
+		it('reports the exact length of a container response that needs no recompression', async () => {
+			const head = await server.head('/test.versatiles?preview', {
+				'Accept-Encoding': 'identity',
+			});
+			const get = await server.get('/test.versatiles?preview', { 'Accept-Encoding': 'identity' });
+
+			expect(head.status).toBe(200);
+			expect(head.headers['content-length']).toBe(get.headers['content-length']);
+			expect(head.rawBuffer.length).toBe(0);
+		});
+
+		it('answers a range request without transferring the range', async () => {
+			const head = await server.head('/a.txt', { Range: 'bytes=0-9' });
+
+			expect(head.status).toBe(206);
+			// Unchanged bytes, so this one is exact and worth reporting.
+			expect(head.headers['content-length']).toBe('10');
+			expect(head.headers['content-range']).toBe(`bytes 0-9/${content.length}`);
+			expect(head.rawBuffer.length).toBe(0);
+		});
+
+		it('still answers 404 for a missing file', async () => {
+			const head = await server.head('/missing.txt');
+			expect(head.status).toBe(404);
+		});
+
+		it('still answers 304 when the validator matches', async () => {
+			const etag = (await server.get('/a.txt')).headers.etag as string;
+			const head = await server.head('/a.txt', { 'If-None-Match': etag });
+
+			expect(head.status).toBe(304);
 		});
 	});
 

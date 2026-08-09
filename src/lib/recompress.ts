@@ -166,7 +166,28 @@ export async function streamUnmodified(
 	body: Readable,
 	status: number,
 ): Promise<void> {
+	// Nothing here alters the body, so the headers already describe it exactly —
+	// including content-length. Reading the bytes would only feed them to a
+	// response that discards them.
+	if (responder.isHeadRequest) {
+		body.destroy();
+		await sendHeadersOnly(responder, status);
+		return;
+	}
+
 	await pipeline([body, new DirectStream(responder, status)]);
+}
+
+/**
+ * Completes a response that carries headers only.
+ *
+ * A HEAD response must otherwise look exactly like the GET it stands in for, so
+ * the headers are sent as they were assembled and nothing else is written.
+ */
+async function sendHeadersOnly(responder: Responder, status: number): Promise<void> {
+	responder.log(`respond ${status} with headers only`);
+	responder.sendHeaders(status);
+	await responder.end();
 }
 
 /**
@@ -236,6 +257,27 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 	} else {
 		const knownSize = Number(responder.headers.get('content-length'));
 		if (Number.isInteger(knownSize)) sizeHint = knownSize;
+	}
+
+	// A HEAD asks what a GET would return, not for the bytes themselves — and
+	// Node discards the body of a HEAD response regardless. Producing one means
+	// reading the whole object out of the bucket and compressing it for nothing,
+	// so the answer is given here, before any compressor is allocated.
+	if (responder.isHeadRequest) {
+		if (encodingIn !== encodingOut) {
+			// What the compressed body would measure cannot be known without
+			// compressing it. RFC 9110 §9.3.2 lets a HEAD omit content-length, which
+			// is the honest answer; a guess would be worse than none.
+			responder.headers.remove('content-length');
+		} else if (Buffer.isBuffer(body)) {
+			// Passed through unchanged, so the buffer's own length is exactly what
+			// the GET would report — and nothing else here knows it.
+			responder.headers.set('content-length', String(body.length));
+		}
+
+		readStream.destroy();
+		await sendHeadersOnly(responder, 200);
+		return;
 	}
 
 	// Prepare the streams for the pipeline
