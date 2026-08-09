@@ -18,33 +18,25 @@ type Rule = {
 
 type Options = {
 	verbose?: boolean;
-	cache?: boolean;
-	cacheLimit?: number;
 };
-
-/**
- * Upper bound for the number of entries kept in the rewrite cache. Request
- * paths are attacker-controlled, so an unbounded cache would grow without
- * limit under a wildcard rule and exhaust memory. Least-recently-used entries
- * are evicted once this limit is exceeded.
- */
-const DEFAULT_CACHE_LIMIT = 1000;
 
 const DEFAULT_OPTIONS: Options = {
 	verbose: false,
-	cache: true,
-	cacheLimit: DEFAULT_CACHE_LIMIT,
 };
 
 /**
  * Rewrite manager that applies URL rewrite rules based on provided patterns.
+ *
+ * Results are deliberately not memoised. Matching is a handful of compiled
+ * regular expressions, run once per request and immediately followed by a
+ * bucket round trip that costs orders of magnitude more — while the key would
+ * have to be the whole URL, query string included, because rules match the
+ * literal "?" of a container query. Under the tile-serving workload this
+ * package exists for, every request is then a distinct key: a cache would evict
+ * as fast as it filled, paying for its own bookkeeping and never returning a
+ * hit.
  */
 export class Rewrite {
-	/**
-	 * Cache for storing previously rewritten URLs.
-	 */
-	#cache = new Map<string, string>();
-
 	/**
 	 * Compiled rewrite rules.
 	 */
@@ -97,15 +89,6 @@ export class Rewrite {
 	 * @returns The rewritten path or null if no rules matched.
 	 */
 	match(path: string): string | null {
-		if (this.options.cache && this.#cache.has(path)) {
-			const cached = this.#cache.get(path)!;
-			// Mark as most-recently-used by re-inserting at the end of the Map.
-			this.#cache.delete(path);
-			this.#cache.set(path, cached);
-			this.#log(`cache hit for "${path}" => "${cached}"`);
-			return cached;
-		}
-
 		for (const rule of this.#rules) {
 			const matched = rule.search.resolve(path);
 			if (!matched) {
@@ -113,9 +96,6 @@ export class Rewrite {
 			}
 
 			const target = rule.replacement.compile(matched.params);
-			if (this.options.cache) {
-				this.#cacheSet(path, target);
-			}
 
 			this.#log(`rule "${rule.search.raw}" matched, rewriting "${path}" to "${target}"`);
 
@@ -123,35 +103,6 @@ export class Rewrite {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Current number of cached entries. Exposed for monitoring and testing.
-	 */
-	public get cacheSize(): number {
-		return this.#cache.size;
-	}
-
-	/**
-	 * Whether a path is currently cached. Exposed for monitoring and testing.
-	 */
-	public cacheHas(path: string): boolean {
-		return this.#cache.has(path);
-	}
-
-	/**
-	 * Stores a cache entry, evicting the least-recently-used entry once the
-	 * configured cache limit is exceeded.
-	 */
-	#cacheSet(path: string, target: string): void {
-		this.#cache.set(path, target);
-
-		const limit = this.options.cacheLimit ?? DEFAULT_CACHE_LIMIT;
-		while (this.#cache.size > limit) {
-			const oldest = this.#cache.keys().next().value;
-			if (oldest === undefined) break;
-			this.#cache.delete(oldest);
-		}
 	}
 
 	#log(...args: unknown[]): void {

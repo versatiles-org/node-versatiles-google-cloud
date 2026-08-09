@@ -229,19 +229,12 @@ describe('rewrite semantics', () => {
 				expect(() => new Rewrite({ [search]: replacement })).not.toThrow();
 			});
 
-			// The cache must be a pure memoisation layer: enabling it may not
-			// change any result. Both modes are asserted against the same table.
-			for (const cache of [false, true]) {
-				describe(`cache ${cache ? 'enabled' : 'disabled'}`, () => {
-					for (const [input, expected] of cases) {
-						it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
-							const rewrite = new Rewrite({ [search]: replacement }, { cache });
-							expect(rewrite.match(input)).toBe(expected);
-							// Repeat: a second call must agree with the first, whether it
-							// was served from the cache or recomputed.
-							expect(rewrite.match(input)).toBe(expected);
-						});
-					}
+			for (const [input, expected] of cases) {
+				it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
+					const rewrite = new Rewrite({ [search]: replacement });
+					expect(rewrite.match(input)).toBe(expected);
+					// Repeat: matching holds no state, so a second call must agree.
+					expect(rewrite.match(input)).toBe(expected);
 				});
 			}
 		});
@@ -292,7 +285,7 @@ describe('replacement must repeat the parameter modifier', () => {
 	});
 
 	it('throws at match time when the omitted parameter is absent', () => {
-		const rewrite = new Rewrite({ [SEARCH]: '/apps:any/index.html' }, { cache: false });
+		const rewrite = new Rewrite({ [SEARCH]: '/apps:any/index.html' });
 		// Present -> works, which is why the bug hides.
 		expect(rewrite.match('/apps/editor')).toBe('/apps/editor/index.html');
 		// Absent -> the replacement demands a value that was never captured.
@@ -300,7 +293,7 @@ describe('replacement must repeat the parameter modifier', () => {
 	});
 
 	it('works for every input once the modifier is repeated', () => {
-		const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` }, { cache: false });
+		const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` });
 		expect(rewrite.match('/apps')).toBe('/apps/index.html');
 		expect(rewrite.match('/apps/editor')).toBe('/apps/editor/index.html');
 	});
@@ -311,7 +304,7 @@ describe('anchoring the extensionless-path rule below a prefix', () => {
 	// the parameter on both sides confines the rule to /apps without losing the
 	// bare "/apps" case. This is the form the README recommends.
 	const SEARCH = '/apps/:any((?!.*\\.[^/]+$).*)?';
-	const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` }, { cache: false });
+	const rewrite = new Rewrite({ [SEARCH]: `${SEARCH}/index.html` });
 
 	it('still rewrites the prefix itself and paths below it', () => {
 		expect(rewrite.match('/apps')).toBe('/apps/index.html');

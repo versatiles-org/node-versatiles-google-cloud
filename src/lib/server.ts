@@ -39,7 +39,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	let bucketPrefix = opt.bucketPrefix.replace(/^\/+|\/+$/g, '');
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
-	const rewrite = new Rewrite(rewriteRules, { verbose, cache: true });
+	const rewrite = new Rewrite(rewriteRules, { verbose });
 
 	// Forced to end in "/", because it is concatenated with a slash-less
 	// filename below. URL only supplies that slash when the path is empty, so

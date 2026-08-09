@@ -83,84 +83,31 @@ describe('Rewrite', () => {
 		});
 	});
 
-	describe('caching', () => {
-		it('should cache results by default', () => {
-			const rewrite = new Rewrite({
-				'/old/:id': '/new/:id',
-			});
+	// Matching holds no state between requests, so the same input has to give the
+	// same answer however many times it is asked, and an unbounded stream of
+	// distinct paths has to leave nothing behind.
+	describe('repeated matching', () => {
+		it('gives the same answer every time', () => {
+			const rewrite = new Rewrite({ '/old/:id': '/new/:id' });
 
-			const result1 = rewrite.match('/old/123');
-			const result2 = rewrite.match('/old/123');
-
-			expect(result1).toBe('/new/123');
-			expect(result2).toBe('/new/123');
-			expect(result1).toBe(result2);
-		});
-
-		// Non-matching paths are deliberately NOT cached: they are the unbounded,
-		// attacker-controlled half of the input space, so caching them would let
-		// any client fill the cache with misses.
-		it('should not cache null results', () => {
-			const rewrite = new Rewrite({
-				'/old': '/new',
-			});
-
-			expect(rewrite.match('/nonexistent')).toBeNull();
-			expect(rewrite.match('/nonexistent')).toBeNull();
-			expect(rewrite.cacheHas('/nonexistent')).toBe(false);
-			expect(rewrite.cacheSize).toBe(0);
-		});
-
-		it('should work with cache disabled', () => {
-			const rewrite = new Rewrite(
-				{
-					'/old/:id': '/new/:id',
-				},
-				{ cache: false },
-			);
-
+			expect(rewrite.match('/old/123')).toBe('/new/123');
 			expect(rewrite.match('/old/123')).toBe('/new/123');
 			expect(rewrite.match('/old/456')).toBe('/new/456');
 		});
 
-		it('should work with explicit cache enabled', () => {
-			const rewrite = new Rewrite(
-				{
-					'/old': '/new',
-				},
-				{ cache: true },
-			);
+		it('keeps reporting a non-match as a non-match', () => {
+			const rewrite = new Rewrite({ '/old': '/new' });
 
-			expect(rewrite.match('/old')).toBe('/new');
-			expect(rewrite.match('/old')).toBe('/new');
+			expect(rewrite.match('/nonexistent')).toBeNull();
+			expect(rewrite.match('/nonexistent')).toBeNull();
 		});
 
-		it('should bound the cache size and evict least-recently-used entries', () => {
-			const rewrite = new Rewrite({ '/t/:id(.+)': '/d/:id' }, { cache: true, cacheLimit: 3 });
+		it('stays correct across many distinct paths', () => {
+			const rewrite = new Rewrite({ '/t/:id(.+)': '/d/:id' });
 
-			// Fill the cache to its limit.
-			for (const id of ['a', 'b', 'c']) rewrite.match(`/t/${id}`);
-			expect(rewrite.cacheSize).toBe(3);
+			for (let i = 0; i < 1000; i++) expect(rewrite.match(`/t/${i}`)).toBe(`/d/${i}`);
 
-			// Touch "a" so it becomes most-recently-used; "b" is now the oldest.
-			rewrite.match('/t/a');
-
-			// Inserting a new entry must evict "b", keeping the cache at the limit.
-			rewrite.match('/t/d');
-			expect(rewrite.cacheSize).toBe(3);
-			expect(rewrite.cacheHas('/t/b')).toBe(false);
-			expect(rewrite.cacheHas('/t/a')).toBe(true);
-			expect(rewrite.cacheHas('/t/c')).toBe(true);
-			expect(rewrite.cacheHas('/t/d')).toBe(true);
-
-			// Results remain correct after eviction.
-			expect(rewrite.match('/t/b')).toBe('/d/b');
-		});
-
-		it('should not grow the cache beyond the limit under many distinct paths', () => {
-			const rewrite = new Rewrite({ '/t/:id(.+)': '/d/:id' }, { cache: true, cacheLimit: 10 });
-			for (let i = 0; i < 1000; i++) rewrite.match(`/t/${i}`);
-			expect(rewrite.cacheSize).toBe(10);
+			expect(rewrite.match('/t/0')).toBe('/d/0');
 		});
 	});
 
@@ -181,22 +128,6 @@ describe('Rewrite', () => {
 					'/old': '/new',
 				},
 				{ verbose: true },
-			);
-
-			expect(rewrite.match('/old')).toBe('/new');
-			// One string rather than two arguments: log lines are emitted as a single
-			// message so they can be serialised as structured JSON under Cloud Run.
-			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[Rewrite] rule "/old" matched, rewriting "/old" to "/new"',
-			);
-		});
-
-		it('should accept combined options and log rewrites', () => {
-			const rewrite = new Rewrite(
-				{
-					'/old': '/new',
-				},
-				{ verbose: true, cache: false },
 			);
 
 			expect(rewrite.match('/old')).toBe('/new');
