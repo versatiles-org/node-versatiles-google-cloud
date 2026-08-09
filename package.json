@@ -27,7 +27,7 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "upgrade": "vrt deps-upgrade; code=$?; npm pkg set dependencies.path-to-regexp=^6.3.0 devDependencies.typescript=^6.0.3; npm install; exit $code"
+    "upgrade": "vrt deps-upgrade --ignore path-to-regexp --ignore typescript"
   },
   "repository": {
     "type": "git",
