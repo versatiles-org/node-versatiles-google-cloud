@@ -10,9 +10,9 @@ import {
 	normalizeBucketPath,
 } from './bucket/index.js';
 import { ContainerCache } from './versatiles/index.js';
-import { readFileSync } from 'fs';
 import { Rewrite } from './rewrite.js';
 import { ReadinessCheck } from './readiness.js';
+import { packageVersion } from './version.js';
 import { log, traceFieldFrom } from './logger.js';
 
 /**
@@ -57,6 +57,10 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	}
 
 	await bucket.check();
+
+	// Read once, at startup: /readiness reports it on every probe, and an
+	// unreadable package.json should fail the server rather than a request.
+	const version = packageVersion();
 
 	let requestNo = 0;
 
@@ -199,9 +203,6 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 		let settled = false;
 
 		const server = app.listen(port, () => {
-			const { version } = JSON.parse(
-				readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
-			) as { version: string };
 			log('INFO', `starting server @versatiles/google-cloud v${version}`, { version });
 			log('INFO', `listening on port ${port}`, { port });
 			log('INFO', `you can find me at ${baseUrl}`, { baseUrl });
