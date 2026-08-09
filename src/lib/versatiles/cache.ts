@@ -41,6 +41,9 @@ export class ContainerCache {
 
 	readonly #refreshAfter = new Map<string, number>();
 
+	/** Loads that have been started but have not yet produced a container. */
+	readonly #inFlight = new Map<string, Promise<Versatiles>>();
+
 	readonly #limit: number;
 
 	readonly #refreshIntervalMs: number;
@@ -85,6 +88,7 @@ export class ContainerCache {
 	public clear(): void {
 		this.#map.clear();
 		this.#refreshAfter.clear();
+		this.#inFlight.clear();
 	}
 
 	/**
@@ -102,6 +106,12 @@ export class ContainerCache {
 	 * URL used to build style.json — is supplied per request instead, since the
 	 * cache key is the filename and cannot distinguish two servers reading the
 	 * same file.
+	 *
+	 * On a miss, callers arriving while the first load is still running join it
+	 * rather than starting their own. Without that, a cold start — or the moment
+	 * just after `invalidate()` drops a replaced container — turns however many
+	 * requests are in flight for one container into that many metadata lookups
+	 * and full index reads, all producing the same result.
 	 */
 	public async getVersatiles(file: AbstractBucketFile): Promise<Versatiles> {
 		const cached = this.get(file.name);
@@ -111,6 +121,19 @@ export class ContainerCache {
 			return cached.container;
 		}
 
+		const pending = this.#inFlight.get(file.name);
+		if (pending !== undefined) return pending;
+
+		// The finally-wrapped promise is the one stored, so a failed load clears
+		// the entry instead of being handed to every later caller.
+		const promise = this.#load(file).finally(() => this.#inFlight.delete(file.name));
+		this.#inFlight.set(file.name, promise);
+
+		return promise;
+	}
+
+	/** Reads a container's header and tile index, and caches the result. */
+	async #load(file: AbstractBucketFile): Promise<Versatiles> {
 		const metadata = await file.getMetadata();
 		const version = metadata.version;
 		const container = await Versatiles.fromReader(buildReader(file, version), metadata.etag);
@@ -125,6 +148,12 @@ export class ContainerCache {
 	public invalidate(name: string): void {
 		this.#map.delete(name);
 		this.#refreshAfter.delete(name);
+		// A load already running was started against the revision being discarded,
+		// so joining it would hand back the very index that just turned out to be
+		// stale. Forgetting it here makes the next caller start a fresh one; the
+		// orphaned load still caches its result, which the same staleness check
+		// then discards again.
+		this.#inFlight.delete(name);
 	}
 
 	/**

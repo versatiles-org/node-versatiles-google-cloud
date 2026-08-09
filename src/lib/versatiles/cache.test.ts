@@ -205,6 +205,53 @@ describe('background refresh', () => {
 	});
 });
 
+// Reading a container means a metadata lookup plus its whole tile index. On a
+// cold start every request for one container arrives before any of them has
+// finished, so without sharing they each do that work to reach the same answer.
+describe('concurrent loads are shared', () => {
+	it('reads the index once for callers arriving together', async () => {
+		const file = new VersionedFile();
+		const cache = new ContainerCache();
+
+		const containers = await Promise.all(
+			Array.from({ length: 10 }, () => cache.getVersatiles(file)),
+		);
+
+		expect(file.metadataCalls).toBe(1);
+		// The same instance, so they also share the parsed index behind it.
+		for (const container of containers) expect(container).toBe(containers[0]);
+	});
+
+	// A rejected load must not be handed to everyone who asks later.
+	it('does not keep a failed load', async () => {
+		const file = new VersionedFile();
+		const cache = new ContainerCache();
+		const failure = new Error('bucket unavailable');
+		const spy = vi.spyOn(file, 'getMetadata').mockRejectedValueOnce(failure);
+
+		await expect(cache.getVersatiles(file)).rejects.toBe(failure);
+
+		spy.mockRestore();
+		await expect(cache.getVersatiles(file)).resolves.toBeDefined();
+	});
+
+	// The stale-revision retry invalidates and immediately re-reads. Joining a
+	// load started before the replacement would hand back the very index that
+	// just proved stale.
+	it('starts a fresh load after the entry is invalidated', async () => {
+		const file = new VersionedFile();
+		const cache = new ContainerCache();
+
+		const first = cache.getVersatiles(file);
+		cache.invalidate(file.name);
+		const second = cache.getVersatiles(file);
+
+		await Promise.all([first, second]);
+
+		expect(file.metadataCalls).toBe(2);
+	});
+});
+
 describe('getVersatiles', () => {
 	// Rejecting with a string would lose the stack and slip past `instanceof
 	// Error` checks in callers such as the request handler in server.ts.
