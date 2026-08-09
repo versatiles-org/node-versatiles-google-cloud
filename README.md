@@ -221,6 +221,14 @@ Both are deliberate, and both are permitted responses to a `Range` request:
 > [!NOTE]
 > Ranges apply to static files only. VersaTiles containers are addressed through query parameters (`?{z}/{x}/{y}`, `?meta.json`, …), which already return exactly one tile or document, so those responses do not advertise `Accept-Ranges`.
 
+## Pre-compressed objects
+
+An object may be stored already compressed, with its `Content-Encoding` set in the bucket. Such objects are read exactly as stored, never decompressed on the way out of Cloud Storage — the size recorded for an object counts its stored bytes, so anything else would send a `Content-Length` describing a body the client does not receive, and byte ranges would name offsets into a representation that no longer exists.
+
+From there the usual negotiation applies: a client accepting `gzip` gets the stored bytes untouched, one accepting `br` gets them transcoded, and one accepting neither gets them decompressed.
+
+`gzip` and `br` are the encodings this server understands. An object stored under any other encoding is forwarded exactly as it is, still labelled with its `Content-Encoding`, rather than being negotiated — there is nothing to negotiate with bytes we cannot decode.
+
 ## Conditional requests
 
 Every response carries an `ETag`, so a client or CDN that already holds a copy can revalidate instead of downloading it again:
@@ -471,9 +479,9 @@ E["metadata.ts"]
 F["bucket_local.ts"]
 end
 9["conditional.ts"]
-A["range.ts"]
-B["recompress.ts"]
-C["encoding.ts"]
+A["encoding.ts"]
+B["range.ts"]
+C["recompress.ts"]
 G["readiness.ts"]
 H["responder.ts"]
 I["response_headers.ts"]
@@ -504,17 +512,18 @@ end
 8-->9
 8-->A
 8-->B
-B-->C
+8-->C
+C-->A
 D-->4
 D-->8
 D-->E
 F-->8
 F-->E
-H-->C
+H-->A
 H-->4
-H-->B
+H-->C
 H-->I
-I-->C
+I-->A
 J-->4
 L-->M
 M-->7

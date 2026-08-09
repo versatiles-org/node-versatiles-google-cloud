@@ -19,6 +19,7 @@ function toEntityTag(value: string): string {
 export class BucketFileMetadata {
 	readonly #header: {
 		cacheControl?: string;
+		contentEncoding?: string;
 		contentType: string;
 		etag: string;
 		size?: string;
@@ -28,6 +29,12 @@ export class BucketFileMetadata {
 	public constructor(
 		options: {
 			cacheControl?: string;
+			/**
+			 * The encoding the bytes are stored under, when the backend records one.
+			 * Kept out of `contentType`'s fallback chain deliberately: it describes
+			 * how the bytes are wrapped, not what they represent.
+			 */
+			contentEncoding?: string;
 			contentType?: string;
 			etag?: string;
 			filename?: string;
@@ -48,8 +55,17 @@ export class BucketFileMetadata {
 		} else {
 			size = options.size;
 		}
+		// "identity" is the explicit way of saying "not encoded", so it is dropped
+		// here rather than announced: sending it would put every plain object
+		// through the encoding machinery for no reason.
+		const contentEncoding = options.contentEncoding?.trim();
+
 		this.#header = {
 			cacheControl: options.cacheControl ?? 'max-age=604800',
+			contentEncoding:
+				contentEncoding == null || contentEncoding === '' || /^identity$/i.test(contentEncoding)
+					? undefined
+					: contentEncoding,
 			contentType:
 				options.contentType ?? lookup(options.filename ?? '') ?? 'application/octet-stream',
 			// Content hash first: an object's etag also changes when only its
@@ -81,11 +97,21 @@ export class BucketFileMetadata {
 		return this.#header.version;
 	}
 
+	/**
+	 * The encoding the stored bytes are wrapped in, or undefined when they are
+	 * not encoded. Callers need this to decide whether the body can be negotiated
+	 * at all — an encoding this server cannot decode has to be forwarded as-is.
+	 */
+	public get contentEncoding(): string | undefined {
+		return this.#header.contentEncoding;
+	}
+
 	public setHeaders(headers: ResponseHeaders): void {
 		const header = this.#header;
 
 		if (header.size != null) headers.set('content-length', header.size);
 		if (header.cacheControl != null) headers.set('cache-control', header.cacheControl);
+		if (header.contentEncoding != null) headers.set('content-encoding', header.contentEncoding);
 		headers.set('etag', header.etag);
 		headers.set('content-type', header.contentType);
 	}
@@ -94,6 +120,7 @@ export class BucketFileMetadata {
 		return JSON.stringify({
 			contentLength: this.#header.size,
 			cacheControl: this.#header.cacheControl,
+			contentEncoding: this.#header.contentEncoding,
 			etag: this.#header.etag,
 			contentType: this.#header.contentType,
 		});

@@ -99,6 +99,23 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 };
 
 /**
+ * Whether a stored `content-encoding` is one this server can decode.
+ *
+ * `parseContentEncoding` throws on anything else, which is right for a value
+ * this server produced itself but not for one read out of bucket metadata: an
+ * object may legitimately be stored under an encoding we do not implement, and
+ * that should be forwarded untouched rather than turned into a 500.
+ *
+ * An absent or empty value counts as known — it simply means "not encoded".
+ */
+export function isKnownContentEncoding(contentEncoding: string | undefined): boolean {
+	if (contentEncoding == null) return true;
+
+	const name = contentEncoding.trim().toLowerCase();
+	return name === '' || name === 'identity' || name === 'br' || name === 'gzip';
+}
+
+/**
  * Parses the content encoding from the given HTTP headers and returns the corresponding encoding tools.
  * @param headers - The outgoing HTTP headers.
  * @returns The corresponding `EncodingTools` based on the content encoding header.
@@ -113,7 +130,11 @@ export function parseContentEncoding(contentEncoding?: string): EncodingTools {
 
 	const contentEncodingString = contentEncoding.trim().toLowerCase();
 	switch (contentEncodingString) {
+		// "identity" is the explicit spelling of "no encoding applied". Cloud
+		// Storage records it on objects uploaded that way, so it can arrive here
+		// from object metadata rather than from anything this server wrote.
 		case '':
+		case 'identity':
 			return ENCODINGS.raw;
 		case 'br':
 			return ENCODINGS.br;

@@ -3,15 +3,20 @@ import { AbstractBucket, AbstractBucketFile } from './abstract.js';
 import { openSync, readFileSync, readSync, statSync } from 'fs';
 import { BucketFileMetadata } from './metadata.js';
 
+/** The encoding the mocked object is stored under, as Cloud Storage records it. */
+interface MockedContentEncoding {
+	contentEncoding?: string;
+}
+
 export type MocketBucketFileInterface =
-	| {
+	| (MockedContentEncoding & {
 			name: string;
 			content: Buffer;
-	  }
-	| {
+	  })
+	| (MockedContentEncoding & {
 			name: string;
 			filename: string;
-	  };
+	  });
 
 class FileNotFoundError extends Error {
 	public code = 404;
@@ -37,7 +42,9 @@ export class MockedBucketFile extends AbstractBucketFile {
 	public async getMetadata(): Promise<BucketFileMetadata> {
 		if (!this.#file) throw new FileNotFoundError();
 		return new BucketFileMetadata({
+			contentEncoding: this.#file.contentEncoding,
 			filename: this.#file.name,
+			// The stored byte count, which for an encoded object is the encoded one.
 			size:
 				'filename' in this.#file ? statSync(this.#file.filename).size : this.#file.content.length,
 		});

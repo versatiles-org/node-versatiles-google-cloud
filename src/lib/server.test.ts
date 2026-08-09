@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { Readable } from 'stream';
 import { startServer } from './server.js';
 import type { Server } from 'http';
-import { brotliDecompressSync, gunzipSync } from 'zlib';
+import { brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 import type { AddressInfo } from 'net';
 import http from 'http';
 
@@ -142,20 +142,27 @@ class MockedServer {
 						const contentType = (response.headers['content-type'] ?? '').replace(/;.*/, '');
 
 						let buffer: Buffer;
-						switch (contentEncoding) {
-							case undefined:
-								buffer = rawBuffer.subarray();
-								break;
-							case 'gzip':
-								buffer = gunzipSync(rawBuffer);
-								break;
-							case 'br':
-								buffer = brotliDecompressSync(rawBuffer);
-								break;
-							default:
-								console.log('ERROR:', { contentEncoding });
-								rejectPromise('unknown encoding: ' + contentEncoding);
-								return;
+						// Opting out of decoding is what lets a test assert on a body this
+						// harness cannot decode — an object stored under an encoding the
+						// server forwards without understanding it.
+						if (this.#opt.returnRawBuffer) {
+							buffer = rawBuffer.subarray();
+						} else {
+							switch (contentEncoding) {
+								case undefined:
+									buffer = rawBuffer.subarray();
+									break;
+								case 'gzip':
+									buffer = gunzipSync(rawBuffer);
+									break;
+								case 'br':
+									buffer = brotliDecompressSync(rawBuffer);
+									break;
+								default:
+									console.log('ERROR:', { contentEncoding });
+									rejectPromise('unknown encoding: ' + contentEncoding);
+									return;
+							}
 						}
 
 						resolvePromise({
@@ -344,6 +351,69 @@ describe('Server', () => {
 			expect(source.tiles).toStrictEqual([
 				'http://localhost:8080/maps/geodata/test.versatiles?{z}/{x}/{y}',
 			]);
+		});
+	});
+
+	// An object may be stored already compressed. Its recorded size counts the
+	// stored bytes, so the body has to be the stored bytes too — otherwise the
+	// content-length describes something the client never receives.
+	describe('objects stored with a content encoding', () => {
+		const payload = Buffer.from('{"stored":"compressed"}'.repeat(20));
+		const stored = gzipSync(payload);
+
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({
+				rewriteRules: {},
+				returnRawBuffer: true,
+				bucket: new MockedBucket([
+					{ name: 'gz.json', content: stored, contentEncoding: 'gzip' },
+					// An encoding this server cannot decode.
+					{ name: 'odd.bin', content: stored, contentEncoding: 'compress' },
+				]),
+			});
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('serves the stored bytes to a client that accepts them', async () => {
+			const response = await server.get('/gz.json', { 'Accept-Encoding': 'gzip' });
+
+			expect(response.status).toBe(200);
+			expect(response.headers['content-encoding']).toBe('gzip');
+			// The stored count, and the body it actually describes.
+			expect(response.headers['content-length']).toBe(String(stored.length));
+			expect(response.rawBuffer).toStrictEqual(stored);
+			expect(gunzipSync(response.rawBuffer)).toStrictEqual(payload);
+		});
+
+		it('decodes for a client that accepts nothing', async () => {
+			const response = await server.get('/gz.json', { 'Accept-Encoding': 'identity' });
+
+			expect(response.status).toBe(200);
+			expect(response.headers['content-encoding']).toBeUndefined();
+			expect(response.rawBuffer).toStrictEqual(payload);
+		});
+
+		it('transcodes for a client that prefers something else', async () => {
+			const response = await server.get('/gz.json', { 'Accept-Encoding': 'br' });
+
+			expect(response.status).toBe(200);
+			expect(response.headers['content-encoding']).toBe('br');
+			expect(brotliDecompressSync(response.rawBuffer)).toStrictEqual(payload);
+		});
+
+		// Unknown to this server, but perfectly serveable: forwarded as stored,
+		// still labelled. Negotiating it would mean decoding it first.
+		it('forwards an encoding it cannot decode', async () => {
+			const response = await server.get('/odd.bin', { 'Accept-Encoding': 'gzip, br' });
+
+			expect(response.status).toBe(200);
+			expect(response.headers['content-encoding']).toBe('compress');
+			expect(response.rawBuffer).toStrictEqual(stored);
 		});
 	});
 
@@ -802,7 +872,9 @@ describe('Server', () => {
 
 		beforeAll(async () => {
 			const bucket = new MockedBucket([{ name: 'test.txt', content }]);
-			server = await MockedServer.create({ bucket, returnRawBuffer: true });
+			// Not returnRawBuffer: this block compares the decoded body against the
+			// original, and reads rawBuffer only for its length.
+			server = await MockedServer.create({ bucket });
 		});
 
 		afterAll(async () => {

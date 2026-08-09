@@ -77,7 +77,11 @@ describe('BucketFileGoogle', () => {
 		it('reads the live object when no version is given', () => {
 			new BucketFileGoogle(mockFile).createReadStream({ start: 0, end: 9 });
 
-			expect(mockFile.createReadStream).toHaveBeenCalledWith({ start: 0, end: 9 });
+			expect(mockFile.createReadStream).toHaveBeenCalledWith({
+				start: 0,
+				end: 9,
+				decompress: false,
+			});
 			expect(bucketFile).not.toHaveBeenCalled();
 		});
 
@@ -86,7 +90,11 @@ describe('BucketFileGoogle', () => {
 
 			expect(bucketFile).toHaveBeenCalledWith('test.txt', { generation: '17253' });
 			// The version is a read precondition, not a byte range.
-			expect(pinnedFile.createReadStream).toHaveBeenCalledWith({ start: 4, end: 9 });
+			expect(pinnedFile.createReadStream).toHaveBeenCalledWith({
+				start: 4,
+				end: 9,
+				decompress: false,
+			});
 			expect(mockFile.createReadStream).not.toHaveBeenCalled();
 		});
 
@@ -146,8 +154,8 @@ describe('BucketFileGoogle', () => {
 		const metadata = await file.getMetadata();
 		expect(JSON.parse(metadata.toString())).toStrictEqual({
 			cacheControl: 'no-cache',
-			contentLength: '1024',
 			contentType: 'text/plain',
+			contentLength: '1024',
 			etag: '"etag123"',
 		});
 	});
@@ -156,6 +164,56 @@ describe('BucketFileGoogle', () => {
 		const file = new BucketFileGoogle(mockFile);
 		const stream = file.createReadStream();
 		expect(stream).toBeInstanceOf(Readable);
+	});
+
+	// An object stored with an encoding is served exactly as stored. The client
+	// gunzips such objects by default, which would leave the compressed byte
+	// count from "size" describing a body that is no longer compressed.
+	describe('stored content encoding', () => {
+		const withEncoding = (contentEncoding?: string): void => {
+			vi.mocked(mockFile.getMetadata).mockResolvedValue([
+				{
+					cacheControl: 'no-cache',
+					contentEncoding,
+					contentType: 'application/json',
+					etag: 'etag123',
+					name: 'test.json',
+					size: '1024',
+				},
+			] as unknown as Awaited<ReturnType<typeof mockFile.getMetadata>>);
+		};
+
+		it('reports the stored encoding', async () => {
+			withEncoding('gzip');
+
+			const metadata = await new BucketFileGoogle(mockFile).getMetadata();
+
+			expect(metadata.contentEncoding).toBe('gzip');
+			expect(JSON.parse(metadata.toString())).toMatchObject({
+				contentEncoding: 'gzip',
+				// The stored, compressed count — which is what the stream now delivers.
+				contentLength: '1024',
+			});
+		});
+
+		it('never lets the client decompress on the way past', () => {
+			new BucketFileGoogle(mockFile).createReadStream();
+
+			expect(mockFile.createReadStream).toHaveBeenCalledWith({ decompress: false });
+		});
+
+		// "identity" says the bytes are not encoded, so announcing it would send
+		// every plain object through the encoding machinery for nothing.
+		it.each([undefined, '', 'identity', 'IDENTITY'])(
+			'treats %j as no encoding at all',
+			async (contentEncoding) => {
+				withEncoding(contentEncoding);
+
+				const metadata = await new BucketFileGoogle(mockFile).getMetadata();
+
+				expect(metadata.contentEncoding).toBeUndefined();
+			},
+		);
 	});
 });
 

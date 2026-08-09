@@ -4,6 +4,7 @@ import type { Responder } from '../responder.js';
 import { recompress, streamUnmodified } from '../recompress.js';
 import { ifRangeMatches, parseByteRange } from '../range.js';
 import { ifNoneMatchMatches } from '../conditional.js';
+import { isKnownContentEncoding } from '../encoding.js';
 import { posix } from 'path';
 
 /**
@@ -94,6 +95,16 @@ export abstract class AbstractBucketFile {
 		}
 
 		if (await this.#serveRange(responder)) return;
+
+		// An encoding this server cannot decode leaves nothing to negotiate: the
+		// bytes can only be forwarded as stored, with the header that says what
+		// they are. recompress() would throw on the unknown value and turn a
+		// perfectly serveable object into a 500.
+		if (!isKnownContentEncoding(metadata.contentEncoding)) {
+			responder.log(`serving unchanged: unsupported encoding ${metadata.contentEncoding}`);
+			await streamUnmodified(responder, this.createReadStream(), 200);
+			return;
+		}
 
 		await recompress(responder, this.createReadStream());
 	}
