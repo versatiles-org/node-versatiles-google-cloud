@@ -4,8 +4,20 @@
 		<meta charset="utf-8" />
 		<title>VersaTiles</title>
 		<meta name="viewport" content="width=device-width" />
-		<script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
-		<link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+		<!--
+			Served from the VersaTiles CDN rather than a public package mirror. These
+			run on the same origin as the tiles a preview is inspecting, so whoever
+			controls them controls that page; keeping them on infrastructure this
+			project runs is the difference between one trust boundary and two.
+
+			No integrity hash: the URLs carry no version and are updated in place, so
+			a pinned hash would break every preview on the next upstream refresh.
+		-->
+		<script src="https://tiles.versatiles.org/assets/lib/maplibre-gl/maplibre-gl.js"></script>
+		<link
+			href="https://tiles.versatiles.org/assets/lib/maplibre-gl/maplibre-gl.css"
+			rel="stylesheet"
+		/>
 		<style>
 			body {
 				margin: 0;
