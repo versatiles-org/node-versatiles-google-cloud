@@ -177,8 +177,15 @@ export class Versatiles {
 		// An absent tile is a normal, expected outcome for a sparse container, not
 		// an error: answer 204 No Content. The explanation goes to the log, since
 		// a 204 carries no body to put it in.
+		//
+		// It keeps the validator and cache-control set above, so a CDN can cache
+		// and revalidate it like any tile — a sparse container has vastly more
+		// absent tiles than present ones, and each uncacheable one is a permanent
+		// origin hit. The empty body does not depend on accept-encoding, but the
+		// resource is still negotiable, so caches must keep varying on it.
 		if (tile == null) {
 			responder.log(`no map tile at ${z}/${x}/${y}`);
+			responder.headers.set('vary', 'accept-encoding');
 			responder.sendEmpty(204);
 		} else {
 			responder.log(`return tile ${z}/${x}/${y}`);

@@ -236,6 +236,16 @@ This covers static files and every container response — tiles, `meta.json`, `t
 
 A container's validators are derived from the container's revision plus what was requested, so they change automatically when the container is replaced and never need to be tracked separately. For tiles this is known **before** the tile is read, so a revalidated tile costs no bucket read at all.
 
+Tiles a container does not contain are included. A sparse container has far more absent tiles than present ones, so the `204 No Content` answering each of them carries a validator and `cache-control` like any other tile, and a CDN caches and revalidates it the same way:
+
+```console
+$ curl -i https://public.domain.com/map.versatiles?14/0/0
+HTTP/1.1 204 No Content
+cache-control: max-age=86400
+etag: "4689…"
+vary: accept-encoding
+```
+
 `If-None-Match` is evaluated before `Range`: a client whose copy is still current gets a `304` rather than a `206`.
 
 ## Container caching

@@ -64,9 +64,50 @@ describe('VersaTiles', () => {
 			const response: MockedResponse = await runQuery('?13/2870/2252');
 
 			expect(response.writeHead).toHaveBeenCalledTimes(1);
-			expect(response.writeHead).toHaveBeenCalledWith(204);
+
+			const [status, headers] = vi.mocked(response.writeHead).mock.calls[0] as [
+				number,
+				Record<string, string>,
+			];
+
+			expect(status).toBe(204);
+			expect(headers['content-type']).toBeUndefined();
+			expect(headers['content-length']).toBeUndefined();
+			expect(headers['content-encoding']).toBeUndefined();
+
 			expect(response.end).toHaveBeenCalledTimes(1);
 			expect(response.end).toHaveBeenCalledWith();
+		});
+
+		// Without a validator the client has nothing to revalidate with, so the
+		// if-none-match check above could never fire; without cache-control a CDN
+		// re-asks the origin for every absent tile, of which a sparse container has
+		// far more than present ones.
+		it('should let a missing tile be cached and revalidated', async () => {
+			const response: MockedResponse = await runQuery('?13/2870/2252');
+
+			const [, headers] = vi.mocked(response.writeHead).mock.calls[0] as [
+				number,
+				Record<string, string>,
+			];
+
+			expect(headers).toMatchObject({
+				'cache-control': 'max-age=86400',
+				etag: expect.stringMatching(/^"/) as unknown as string,
+				vary: 'accept-encoding',
+			});
+		});
+
+		it('should answer 304 when the client already holds a missing tile', async () => {
+			const first: MockedResponse = await runQuery('?13/2870/2252');
+			const [, headers] = vi.mocked(first.writeHead).mock.calls[0] as [
+				number,
+				Record<string, string>,
+			];
+
+			const second = await runQuery('?13/2870/2252', { 'if-none-match': headers.etag });
+
+			expect(second.writeHead).toHaveBeenCalledWith(304, expect.anything());
 		});
 
 		// The coordinate pattern was only anchored at the start, so anything after
@@ -108,7 +149,7 @@ describe('VersaTiles', () => {
 		it('should still accept a zero coordinate', async () => {
 			// "0" is a legitimate coordinate; only redundant zeros are rejected.
 			const response = await runQuery('?0/0/0');
-			expect(response.writeHead).toHaveBeenCalledWith(204);
+			expect(response.writeHead).toHaveBeenCalledWith(204, expect.anything());
 		});
 
 		// Everything a container serves is determined by its revision plus what was

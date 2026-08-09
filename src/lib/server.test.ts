@@ -266,6 +266,23 @@ describe('Server', () => {
 			expect(response.contentType).toBe('');
 		});
 
+		// A sparse container has far more absent tiles than present ones, so an
+		// uncacheable 204 means a permanent origin hit for each of them.
+		it('lets a missing versatiles tile be cached and revalidated', async () => {
+			const response = await server.get('/geodata/test.versatiles?10/0/0');
+			expect(response.status).toBe(204);
+			expect(response.headers['cache-control']).toBe('max-age=86400');
+			expect(response.headers.vary).toBe('accept-encoding');
+
+			const etag = response.headers.etag;
+			expect(etag).toMatch(/^"/);
+
+			const revalidated = await server.get('/geodata/test.versatiles?10/0/0', {
+				'If-None-Match': etag as string,
+			});
+			expect(revalidated.status).toBe(304);
+		});
+
 		it('handle missing static file', async () => {
 			const response = await server.get('/static/missing/file');
 			expect(response.status).toBe(404);

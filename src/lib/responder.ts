@@ -82,13 +82,32 @@ export class Responder {
 	}
 
 	/**
-	 * Sends a status with no body and no content headers, for responses that are
-	 * defined to carry no content (e.g. 204 No Content).
+	 * Drops the headers that describe a body, for responses defined to carry none.
+	 *
+	 * Everything else is kept: the validator and the caching headers apply to the
+	 * resource, not to the bytes of this particular response, and a client or CDN
+	 * needs them just as much when the answer is empty.
+	 */
+	#removeContentHeaders(): void {
+		this.#responseHeaders.remove('content-type');
+		this.#responseHeaders.remove('content-length');
+		this.#responseHeaders.remove('content-encoding');
+	}
+
+	/**
+	 * Sends a status with no body, for responses that are defined to carry no
+	 * content (e.g. 204 No Content).
 	 *
 	 * Distinct from `error()`: that one declares `content-type: text/plain` and
 	 * writes a message, both of which a 204 must not carry. Node discards the
 	 * body silently, so routing a 204 through `error()` produced a response whose
 	 * message never reached the client while the code appeared to send one.
+	 *
+	 * The accumulated headers are sent, minus the ones describing a body. Writing
+	 * the status alone used to strip the validator and `cache-control` too, which
+	 * made an absent tile uncacheable — every one of them a permanent origin hit
+	 * for a sparse container — and left the caller's `if-none-match` check unable
+	 * to ever fire, since the client was never given a tag to send back.
 	 */
 	public sendEmpty(status: number): void {
 		this.log(`respond ${status} without body`);
@@ -100,7 +119,10 @@ export class Responder {
 			return;
 		}
 
-		this.#options.response.writeHead(status).end();
+		this.#removeContentHeaders();
+
+		this.sendHeaders(status);
+		this.#options.response.end();
 		this.#responderState = ResponderState.Finished;
 	}
 
@@ -114,9 +136,7 @@ export class Responder {
 	public async sendNotModified(): Promise<void> {
 		this.log('respond 304 not modified');
 
-		this.#responseHeaders.remove('content-type');
-		this.#responseHeaders.remove('content-length');
-		this.#responseHeaders.remove('content-encoding');
+		this.#removeContentHeaders();
 
 		this.sendHeaders(304);
 		await this.end();
