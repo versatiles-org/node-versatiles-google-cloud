@@ -8,12 +8,11 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"declaration": true,
-		"allowJs": true,
 		"noEmit": true,
 		"allowImportingTsExtensions": true,
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true
 	},
-	"include": ["src/**/*.ts", "*.ts", "jest.config.js"]
+	"include": ["src/**/*.ts", "*.ts"]
 }

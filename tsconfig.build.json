@@ -7,5 +7,8 @@
 		"rootDir": "src"
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["src/**/*.test.ts"]
+	// Mocks are excluded alongside the tests they exist for. Only *.test.ts was
+	// listed, so the mocks compiled into dist and were published — scaffolding
+	// shipped to every consumer, and importable as if it were part of the API.
+	"exclude": ["src/**/*.test.ts", "src/**/*.mock.ts"]
 }
