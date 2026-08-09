@@ -16,6 +16,22 @@ export interface ConfigFile {
 }
 
 /**
+ * Whether a value is a port a server can actually bind.
+ *
+ * Node enforces this range itself, but not until `listen()` is called, by which
+ * point the failure reads like an internal fault ("options.port should be >= 0
+ * and < 65536. Received type number (NaN)") rather than the bad argument it is.
+ * Checking here lets every source of a port — CLI, config file, environment —
+ * be rejected the same way, before anything else is set up.
+ *
+ * Zero is deliberately allowed: it asks the OS for any free port, which is how
+ * the tests start servers without colliding.
+ */
+export function isValidPort(value: unknown): value is number {
+	return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 65535;
+}
+
+/**
  * Whether a config file carries no settings at all: empty, whitespace, comments,
  * YAML document markers, or an explicit null.
  */
@@ -115,8 +131,8 @@ function validateConfig(config: Record<string, unknown>, path: string): ConfigFi
 	}
 
 	if ('port' in config) {
-		if (typeof config.port !== 'number' || !Number.isInteger(config.port)) {
-			throw new Error(`Config file "${path}": "port" must be an integer`);
+		if (!isValidPort(config.port)) {
+			throw new Error(`Config file "${path}": "port" must be an integer between 0 and 65535`);
 		}
 		result.port = config.port;
 	}

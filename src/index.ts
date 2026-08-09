@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { startServer } from './lib/server.js';
-import { loadConfig, type ConfigFile } from './lib/config.js';
+import { isValidPort, loadConfig, type ConfigFile } from './lib/config.js';
 import { installGracefulShutdown } from './lib/shutdown.js';
 import { log } from './lib/logger.js';
 
@@ -24,6 +24,29 @@ const REWRITE_DELIMITER = ' ';
 function collect(v: string, m: string[]): string[] {
 	m.push(v);
 	return m;
+}
+
+/**
+ * Reads a port written as text, from a CLI argument or an environment variable.
+ *
+ * Returns null for anything that is not a plain decimal port, so the caller can
+ * report which source was at fault. Only digits are accepted: Number() would
+ * otherwise take "0x1f" and "1e3" as ports, and an empty string as 0 —
+ * spellings nobody types on purpose, each silently binding something other than
+ * what was written. Surrounding whitespace is tolerated, as it always has been
+ * for PORT: it survives shell quoting and container manifests too easily to
+ * treat as a typo.
+ */
+function parsePort(value: string): number | null {
+	if (!/^\d+$/.test(value.trim())) return null;
+
+	const port = Number(value.trim());
+	return isValidPort(port) ? port : null;
+}
+
+/** Message shared by every source of a port, so all three read alike. */
+function portError(source: string, value: string): string {
+	return `Error: ${source} must be an integer between 0 and 65535, but is "${value}".`;
 }
 
 program
@@ -75,6 +98,7 @@ program
 				);
 				log('ERROR', errorMessage);
 				process.exit(1);
+				return;
 			}
 		}
 
@@ -84,17 +108,37 @@ program
 		// through PORT, and route no traffic to a container that binds a different
 		// one. Honouring it means a deployment needs no extra flag; an explicit
 		// --port or config value still wins, since that is a deliberate choice.
+		//
+		// Every source is checked here rather than left to listen(): an unusable
+		// port used to reach Node as NaN and surface as "options.port should be
+		// >= 0 and < 65536", which reads like a fault in this program rather than
+		// a typo in the argument that caused it. PORT is validated even when it is
+		// overridden, since a malformed one is a deployment mistake either way.
 		const portFromEnv = process.env.PORT;
-		if (portFromEnv !== undefined && !/^\d+$/.test(portFromEnv.trim())) {
-			log('ERROR', `Error: PORT must be a number, but is "${portFromEnv}".`);
-			process.exit(1);
-			return;
+		let envPort: number | undefined;
+		if (portFromEnv !== undefined) {
+			const parsed = parsePort(portFromEnv);
+			if (parsed === null) {
+				log('ERROR', portError('PORT', portFromEnv));
+				process.exit(1);
+				return;
+			}
+			envPort = parsed;
 		}
 
-		const port =
-			cmdOptions.port != null
-				? Number(cmdOptions.port)
-				: (config.port ?? (portFromEnv === undefined ? 8080 : Number(portFromEnv)));
+		let port: number;
+		if (cmdOptions.port != null) {
+			const parsed = parsePort(String(cmdOptions.port));
+			if (parsed === null) {
+				log('ERROR', portError('--port', String(cmdOptions.port)));
+				process.exit(1);
+				return;
+			}
+			port = parsed;
+		} else {
+			// The config file's port was validated when it was loaded.
+			port = config.port ?? envPort ?? 8080;
+		}
 		const baseUrl = (cmdOptions.baseUrl ?? config.baseUrl ?? `http://localhost:${port}/`) as string;
 		const bucketPrefix = (cmdOptions.directory ?? config.directory ?? '') as string;
 		const fastRecompression = (cmdOptions.fastRecompression ??

@@ -39,6 +39,9 @@ describe('index.ts', () => {
 	});
 
 	afterEach(() => {
+		// PORT is read from the environment, so a stub left in place would decide
+		// the port for every test that runs after it.
+		vi.unstubAllEnvs();
 		rmSync(testDir, { recursive: true, force: true });
 	});
 
@@ -119,6 +122,81 @@ describe('index.ts', () => {
 			rewriteRules: {
 				'/tiles/osm/:path(.+)': '/download.versatiles.org/osm.versatiles\\?:path',
 			},
+		});
+	});
+
+	// An unusable port used to travel all the way to listen() as NaN, which
+	// reported it as "options.port should be >= 0 and < 65536" — a message about
+	// this program's internals rather than about the argument that caused it.
+	describe('port validation', () => {
+		const invalid = ['abc', '', '-1', '65536', '8080.5', '0x1f', '1e3'];
+
+		it.each(invalid)('rejects --port %j', async (value) => {
+			await run('test-bucket', '--port', value);
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('--port must be an integer between 0 and 65535'),
+			);
+			expect(mockedStartServer).not.toHaveBeenCalled();
+		});
+
+		it.each(invalid)('rejects PORT=%j', async (value) => {
+			vi.stubEnv('PORT', value);
+
+			await run('test-bucket');
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('PORT must be an integer between 0 and 65535'),
+			);
+			expect(mockedStartServer).not.toHaveBeenCalled();
+		});
+
+		it('accepts a valid --port', async () => {
+			await run('test-bucket', '--port', '65535');
+
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				baseUrl: 'http://localhost:65535/',
+				port: 65535,
+			});
+		});
+
+		// Surrounding whitespace is tolerated, as it always has been for PORT:
+		// it survives shell quoting and container manifests too easily to treat
+		// as a typo.
+		it('tolerates surrounding whitespace', async () => {
+			await run('test-bucket', '--port', ' 3000 ');
+
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				baseUrl: 'http://localhost:3000/',
+				port: 3000,
+			});
+		});
+
+		it('takes the port from PORT when no other source sets one', async () => {
+			vi.stubEnv('PORT', '9999');
+
+			await run('test-bucket');
+
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				baseUrl: 'http://localhost:9999/',
+				port: 9999,
+			});
+		});
+
+		// A malformed PORT is a deployment mistake worth surfacing even when it is
+		// not the value being used.
+		it('rejects a malformed PORT even when --port overrides it', async () => {
+			vi.stubEnv('PORT', 'abc');
+
+			await run('test-bucket', '--port', '3000');
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(mockedStartServer).not.toHaveBeenCalled();
 		});
 	});
 

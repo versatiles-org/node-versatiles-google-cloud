@@ -313,6 +313,27 @@ verbose: true
 			await expect(loadConfig(path)).rejects.toThrow(/"port" must be an integer/);
 		});
 
+		// Rejected here rather than by listen(), which reports an out-of-range
+		// port as an internal fault rather than as the bad setting it is.
+		it('throws error when port is outside the bindable range', async () => {
+			for (const [name, value] of [
+				['negative', '-1'],
+				['too-large', '65536'],
+			]) {
+				const path = writeConfig(`invalid-port-${name}.yaml`, `port: ${value}`);
+				await expect(loadConfig(path)).rejects.toThrow(
+					/"port" must be an integer between 0 and 65535/,
+				);
+			}
+		});
+
+		it('accepts the edges of the bindable range', async () => {
+			for (const value of [0, 65535]) {
+				const path = writeConfig(`valid-port-${value}.yaml`, `port: ${value}`);
+				await expect(loadConfig(path)).resolves.toStrictEqual({ port: value });
+			}
+		});
+
 		it('throws error when fastRecompression is not a boolean', async () => {
 			const path = writeConfig('invalid-fast.yaml', 'fastRecompression: "yes"');
 			await expect(loadConfig(path)).rejects.toThrow(/"fastRecompression" must be a boolean/);
