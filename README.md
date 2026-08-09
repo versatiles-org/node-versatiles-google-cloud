@@ -148,14 +148,27 @@ Single-page applications usually need every route that is not a file to fall bac
 
 Two endpoints are provided for load balancers and orchestrators. They answer different questions and should be wired to different probes.
 
-| Endpoint       | Question                              | Healthy | Unhealthy                |
-| -------------- | ------------------------------------- | ------- | ------------------------ |
-| `/healthcheck` | Is the process alive?                 | `200`   | no response              |
-| `/readiness`   | Should this instance receive traffic? | `200`   | `503 bucket unavailable` |
+| Endpoint       | Question                              | Healthy      | Unhealthy    |
+| -------------- | ------------------------------------- | ------------ | ------------ |
+| `/healthcheck` | Is the process alive?                 | `200` `ok`   | no response  |
+| `/readiness`   | Should this instance receive traffic? | `200` + JSON | `503` + JSON |
 
-`/healthcheck` checks nothing beyond the process itself and always answers `200`. Use it for liveness probes — the kind that **restart** an instance when they fail.
+`/healthcheck` checks nothing beyond the process itself and always answers `200 ok` as `text/plain`. Use it for liveness probes — the kind that **restart** an instance when they fail.
 
-`/readiness` reports whether the bucket is reachable, which also catches credentials that expire after startup. Use it for readiness probes and load balancer health checks — the kind that **remove** an instance from rotation.
+`/readiness` reports whether the bucket is reachable, which also catches credentials that expire after startup. Use it for readiness probes and load balancer health checks — the kind that **remove** an instance from rotation. It answers with JSON:
+
+```json
+{ "ready": true, "version": "2.0.0" }
+```
+
+Probes should key off the status code; `ready` merely restates it. `version` is the running version of this package, reported on failure as well, so a bad rollout can be identified from the probe alone:
+
+```bash
+curl -s https://your-service/readiness | jq -r .version
+```
+
+> [!NOTE]
+> This is the only place the version is exposed. The `server` response header is deliberately versionless, since advertising a version on every response lets clients match it against known advisories. Bear in mind that `/readiness` is unauthenticated: if that is a concern, restrict it at your load balancer.
 
 > [!IMPORTANT]
 > Do not point a liveness probe at `/readiness`. A Cloud Storage problem affects every instance at once, so restarting on that signal turns a degraded dependency into a dead service. Taking instances out of rotation is recoverable; a restart loop is not.
@@ -460,19 +473,21 @@ L["index.ts"]
 M["cache.ts"]
 N["versatiles.ts"]
 end
-O["shutdown.ts"]
+O["version.ts"]
+P["shutdown.ts"]
 end
 end
 1-->3
 1-->4
 1-->5
-1-->O
+1-->P
 5-->7
 5-->4
 5-->G
 5-->H
 5-->J
 5-->L
+5-->O
 7-->8
 7-->D
 7-->F
@@ -496,7 +511,7 @@ M-->7
 M-->N
 N-->9
 N-->4
-O-->4
+P-->4
 
 class 0,2,6,K subgraphs;
 classDef subgraphs fill-opacity:0.1, fill:#888, color:#888, stroke:#888;

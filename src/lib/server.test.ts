@@ -50,6 +50,12 @@ class ErroringBucket extends AbstractBucket {
 // component containing a space (or other encoded character) would not resolve.
 const basePath = fileURLToPath(new URL('../../', import.meta.url));
 
+// Read from the real package.json rather than hard-coded, so a release does not
+// have to touch this test.
+const { version: packageVersion } = JSON.parse(
+	readFileSync(resolve(basePath, 'package.json'), 'utf8'),
+) as { version: string };
+
 interface MockedServerOptions {
 	bucket?: AbstractBucket | string;
 	bucketPrefix?: string;
@@ -435,7 +441,8 @@ describe('Server', () => {
 			const response = await server.get('/readiness');
 
 			expect(response.status).toBe(200);
-			expect(response.text).toBe('ok');
+			expect(response.contentType).toBe('application/json');
+			expect(JSON.parse(response.text)).toEqual({ ready: true, version: packageVersion });
 		});
 
 		it('reports 503 once the bucket stops answering', async () => {
@@ -448,7 +455,9 @@ describe('Server', () => {
 			const response = await isolated.get('/readiness');
 
 			expect(response.status).toBe(503);
-			expect(response.text).toBe('bucket unavailable');
+			// The version is reported even while failing, so a bad rollout is
+			// identifiable from the probe alone.
+			expect(JSON.parse(response.text)).toEqual({ ready: false, version: packageVersion });
 			// The reason may name buckets or credentials, so it is logged only.
 			expect(response.text).not.toContain('credentials expired');
 

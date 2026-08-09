@@ -84,17 +84,21 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 		void (async (): Promise<void> => {
 			const state = await readiness.get();
 
+			// The running version is reported here, and only here: it is the one
+			// endpoint an operator polls anyway, whereas putting it in the "server"
+			// header would advertise it on every response. The failure case carries
+			// it too, so a bad rollout can be identified from a failing probe.
 			if (state.ready) {
-				serverResponse.status(200).type('text').send('ok');
+				serverResponse.status(200).json({ ready: true, version });
 				return;
 			}
 
-			// Logged, not returned: the reason can name buckets and credentials,
-			// and this endpoint is unauthenticated.
+			// The reason is logged, not returned: it can name buckets and
+			// credentials, and this endpoint is unauthenticated.
 			log('ERROR', `readiness check failed: ${state.error ?? 'unknown error'}`, {
 				error: state.error,
 			});
-			serverResponse.status(503).type('text').send('bucket unavailable');
+			serverResponse.status(503).json({ ready: false, version });
 		})();
 	});
 
