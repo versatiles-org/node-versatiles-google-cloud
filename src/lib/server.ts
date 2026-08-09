@@ -40,7 +40,13 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
 	const rewrite = new Rewrite(rewriteRules, { verbose, cache: true });
-	const baseUrl = new URL(opt.baseUrl).href;
+
+	// Forced to end in "/", because it is concatenated with a slash-less
+	// filename below. URL only supplies that slash when the path is empty, so
+	// "https://example.org" normalises to "https://example.org/" on its own but
+	// "https://example.org/maps" does not — and every style.json served under
+	// such a base URL then pointed at ".../mapsearth.versatiles".
+	const baseUrl = new URL(opt.baseUrl).href.replace(/\/*$/, '/');
 
 	// Owned by this server rather than shared module-wide, so several servers in
 	// one process (as the tests create) cannot read each other's entries.

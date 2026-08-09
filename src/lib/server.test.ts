@@ -57,6 +57,7 @@ const { version: packageVersion } = JSON.parse(
 ) as { version: string };
 
 interface MockedServerOptions {
+	baseUrl?: string;
 	bucket?: AbstractBucket | string;
 	bucketPrefix?: string;
 	localDirectory?: string;
@@ -105,7 +106,7 @@ class MockedServer {
 
 		const port = me.#opt.port ?? 0;
 		const server = await startServer({
-			baseUrl: 'http://localhost:' + port,
+			baseUrl: me.#opt.baseUrl ?? 'http://localhost:' + port,
 			bucket: me.#bucket,
 			bucketPrefix: me.#opt.bucketPrefix ?? '',
 			fastRecompression: false,
@@ -279,6 +280,34 @@ describe('Server', () => {
 				'get parameter must be "?preview", "?meta.json", "?tiles.json", "?style.json", or "?{z}/{x}/{y}"',
 			);
 			expect(response.contentType).toBe('text/plain');
+		});
+	});
+
+	// The base URL is concatenated with a slash-less filename to build the tile
+	// URLs in style.json, so it has to end in "/". URL only adds that slash when
+	// the path is empty, so a base URL naming a subdirectory used to produce
+	// ".../mapsgeodata/test.versatiles" — a URL that resolves to nothing.
+	describe('base URL with a path', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({ baseUrl: 'http://localhost:8080/maps' });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('separates the base URL from the filename in style.json', async () => {
+			const response = await server.get('/geodata/test.versatiles?style.json');
+			expect(response.status).toBe(200);
+
+			const style = JSON.parse(response.text) as { sources: Record<string, { tiles: string[] }> };
+			const [source] = Object.values(style.sources);
+
+			expect(source.tiles).toStrictEqual([
+				'http://localhost:8080/maps/geodata/test.versatiles?{z}/{x}/{y}',
+			]);
 		});
 	});
 
