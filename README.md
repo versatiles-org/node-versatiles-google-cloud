@@ -229,6 +229,23 @@ From there the usual negotiation applies: a client accepting `gzip` gets the sto
 
 `gzip` and `br` are the encodings this server understands. An object stored under any other encoding is forwarded exactly as it is, still labelled with its `Content-Encoding`, rather than being negotiated — there is nothing to negotiate with bytes we cannot decode.
 
+## Compression effort
+
+Responses are compressed as well as the client's `Accept-Encoding` allows, but not at any price. Brotli's best setting is slow enough that a single request for a large object can occupy a core for seconds, and nothing in a request says how large the object behind it is — so above **1 MiB** the next setting down is used instead.
+
+On 8 MiB of GeoJSON-like text, the two settings compare as:
+
+| Setting                     | Time   | Result   |
+| --------------------------- | ------ | -------- |
+| brotli quality 11 (≤ 1 MiB) | 2.25 s | 0.28 MiB |
+| brotli quality 5 (> 1 MiB)  | 0.03 s | 0.36 MiB |
+
+75× the CPU for a quarter off the bytes is worth it on a tile, where neither figure is noticeable, and not worth it on anything large.
+
+A body whose length is not known in advance — a stream the bucket did not declare a size for — counts as large, since that is exactly the case that may turn out to be enormous.
+
+`--fast-recompression` is separate and stronger: it disables recompression altogether wherever the stored encoding is already acceptable to the client, and uses the fastest settings when it is not.
+
 ## Conditional requests
 
 Every response carries an `ETag`, so a client or CDN that already holds a copy can revalidate instead of downloading it again:

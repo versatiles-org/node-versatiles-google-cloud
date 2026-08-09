@@ -1,7 +1,14 @@
 import type { EncodingType } from './encoding.js';
 import type { IncomingHttpHeaders } from 'http';
 import { brotliCompressSync, gzipSync } from 'zlib';
-import { ENCODINGS, acceptEncoding, findBestEncoding, parseContentEncoding } from './encoding.js';
+import {
+	ENCODINGS,
+	SLOW_COMPRESSION_LIMIT,
+	acceptEncoding,
+	findBestEncoding,
+	parseContentEncoding,
+	usesMaxCompression,
+} from './encoding.js';
 import { Readable } from 'stream';
 import { ResponseHeaders } from './response_headers.js';
 import { defaultHeader as defaultHeader0 } from './response_headers.mock.js';
@@ -108,6 +115,44 @@ describe('Encoding Tools', () => {
 				expect(buffer2).toStrictEqual(buffer);
 			});
 		});
+	});
+
+	// Brotli at quality 11 runs at roughly a megabyte per second, and nothing in
+	// a request says how large the object behind it is. Above a threshold the
+	// next setting down is used instead, which is about an order of magnitude
+	// faster for a few percent of size.
+	describe('compression effort is bounded by payload size', () => {
+		it('uses the slowest setting up to the limit', () => {
+			expect(usesMaxCompression(0)).toBe(true);
+			expect(usesMaxCompression(1)).toBe(true);
+			expect(usesMaxCompression(SLOW_COMPRESSION_LIMIT)).toBe(true);
+		});
+
+		it('backs off above the limit', () => {
+			expect(usesMaxCompression(SLOW_COMPRESSION_LIMIT + 1)).toBe(false);
+			expect(usesMaxCompression(1024 ** 3)).toBe(false);
+		});
+
+		// A body with no declared length is the case that could turn out to be
+		// enormous, so it is treated as such rather than optimistically.
+		it('treats an unknown size as too large', () => {
+			expect(usesMaxCompression()).toBe(false);
+			expect(usesMaxCompression(undefined)).toBe(false);
+		});
+
+		// Whatever the setting, the bytes still have to round-trip.
+		it.each([undefined, 1, SLOW_COMPRESSION_LIMIT + 1])(
+			'still round-trips at size %j',
+			async (size) => {
+				for (const name of ['br', 'gzip'] as const) {
+					const encoding = ENCODINGS[name];
+					const compressed = await stream2buffer(
+						Readable.from(buffer).pipe(encoding.compressStream!(false, size)),
+					);
+					expect(await encoding.decompressBuffer!(compressed), name).toStrictEqual(buffer);
+				}
+			},
+		);
 	});
 
 	describe('decompress stream', () => {

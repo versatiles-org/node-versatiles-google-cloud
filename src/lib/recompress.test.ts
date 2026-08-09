@@ -1,4 +1,4 @@
-import { it, describe, expect } from 'vitest';
+import { it, describe, expect, vi } from 'vitest';
 import type { MockedResponder } from './responder.mock.js';
 import type { OutgoingHttpHeaders } from 'http';
 import type { Response } from 'express';
@@ -140,6 +140,54 @@ describe('recompress', () => {
 	// metadata, buffering only recomputes a content-length that is already
 	// correct — and above the buffer threshold BufferStream deletes it and falls
 	// back to chunked encoding, losing information it started with.
+	// compressStream has always accepted a size — for the brotli window hint, and
+	// now to decide how much effort a payload is worth — and nothing ever passed
+	// one, so every compressor ran blind.
+	describe('the payload size reaches the compressor', () => {
+		const sizePassedTo = async (
+			encoding: 'br' | 'gzip',
+			body: Buffer | Readable,
+			responseHeaders: OutgoingHttpHeaders,
+		): Promise<number | undefined> => {
+			const spy = vi.spyOn(ENCODINGS[encoding], 'compressStream');
+			try {
+				const responder = getMockedResponder({
+					requestHeaders: { 'accept-encoding': encoding },
+					responseHeaders,
+				});
+				await recompress(responder, body);
+
+				expect(spy).toHaveBeenCalledTimes(1);
+				return spy.mock.calls[0][1];
+			} finally {
+				spy.mockRestore();
+			}
+		};
+
+		it('uses the buffer length for a buffer body', async () => {
+			// A tile arrives as a buffer with no content-length header set yet, so
+			// this is the only measure available — and without it every tile would
+			// be treated as an unbounded stream.
+			const size = await sizePassedTo('br', testBuffer, { 'content-type': 'text/plain' });
+			expect(size).toBe(testBuffer.length);
+		});
+
+		it('uses the declared content-length for a stream body', async () => {
+			const size = await sizePassedTo('br', Readable.from(testBuffer), {
+				'content-type': 'text/plain',
+				'content-length': String(testBuffer.length),
+			});
+			expect(size).toBe(testBuffer.length);
+		});
+
+		it('passes nothing on for a stream of unknown length', async () => {
+			const size = await sizePassedTo('gzip', Readable.from(testBuffer), {
+				'content-type': 'text/plain',
+			});
+			expect(size).toBeUndefined();
+		});
+	});
+
 	describe('direct forwarding when no recompression is needed', () => {
 		it('keeps the known content-length instead of buffering', async () => {
 			const responder = getMockedResponder({

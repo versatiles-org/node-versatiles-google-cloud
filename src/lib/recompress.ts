@@ -218,6 +218,26 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 		throw Error('neither Readable nor Buffer');
 	}
 
+	// How large the body is, when that is knowable. The compressor uses it to
+	// size its window and to decide whether the slowest setting is affordable;
+	// without it a stream has to be treated as potentially enormous.
+	//
+	// A buffer knows its own length. A stream does not, so the content-length set
+	// from bucket metadata is the only measure available — and it has to be read
+	// here, before the recompression branch below removes it.
+	//
+	// Either way it measures the body as stored, so for a gzip-to-brotli
+	// transcode it counts the compressed input and understates what the
+	// compressor is actually fed. That makes it a lower bound on the work rather
+	// than an exact figure, which is the safe direction to be wrong in.
+	let sizeHint: number | undefined;
+	if (Buffer.isBuffer(body)) {
+		sizeHint = body.length;
+	} else {
+		const knownSize = Number(responder.headers.get('content-length'));
+		if (Number.isInteger(knownSize)) sizeHint = knownSize;
+	}
+
 	// Prepare the streams for the pipeline
 	const transformStreams: Transform[] = [];
 	// Handle recompression if the input and output encodings are different
@@ -229,7 +249,7 @@ export async function recompress(responder: Responder, body: Buffer | Readable):
 		}
 
 		if (encodingOut.compressStream) {
-			transformStreams.push(encodingOut.compressStream(responder.fastRecompression));
+			transformStreams.push(encodingOut.compressStream(responder.fastRecompression, sizeHint));
 		}
 
 		responder.headers.remove('content-length');

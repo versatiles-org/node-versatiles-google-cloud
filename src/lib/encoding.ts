@@ -20,13 +20,41 @@ export interface EncodingTools {
 }
 
 /**
+ * Payload size beyond which the slowest compression settings are not used.
+ *
+ * Brotli at quality 11 runs at a few megabytes per second, so without a bound a
+ * single request for a large object occupies a core for as long as it takes —
+ * and nothing about a request says how big the object behind it is, so an
+ * unauthenticated caller picks that cost.
+ *
+ * On 8 MiB of GeoJSON-like text, quality 11 took 2.25s and produced 0.28 MiB;
+ * quality 5 took 0.03s and produced 0.36 MiB. Paying 75x the CPU for a quarter
+ * off the bytes is a good trade on a tile, which is small enough that neither
+ * number is noticeable, and a bad one on anything large. Hence a size limit
+ * rather than a single setting.
+ */
+export const SLOW_COMPRESSION_LIMIT = 1024 * 1024;
+
+/**
+ * Whether a payload of this size is compressed with the slowest, best setting.
+ *
+ * An unknown size counts as too large: it means the body is being streamed from
+ * somewhere that never declared a length, which is exactly the case that could
+ * turn out to be enormous.
+ */
+export function usesMaxCompression(size?: number): boolean {
+	return size != null && size <= SLOW_COMPRESSION_LIMIT;
+}
+
+/**
  * Record mapping encoding types to their respective tools.
  * Provides implementations for 'br', 'gzip', and 'raw' encodings.
  */
 export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 	br: ((): EncodingTools => {
 		function getOptions(fast: boolean, size?: number): BrotliOptions {
-			const params = { [zlib.constants.BROTLI_PARAM_QUALITY]: fast ? 3 : 11 };
+			const quality = fast ? 3 : usesMaxCompression(size) ? 11 : 5;
+			const params = { [zlib.constants.BROTLI_PARAM_QUALITY]: quality };
 			if (size != null) params[zlib.constants.BROTLI_PARAM_SIZE_HINT] = size;
 			return { params };
 		}
@@ -59,19 +87,19 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 		};
 	})(),
 	gzip: ((): EncodingTools => {
-		function getOptions(fast: boolean): ZlibOptions {
-			return { level: fast ? 3 : 9 };
+		function getOptions(fast: boolean, size?: number): ZlibOptions {
+			return { level: fast ? 3 : usesMaxCompression(size) ? 9 : 6 };
 		}
 
 		// Gzip encoding tools
 		return {
 			name: 'gzip',
 			// Implementations for Gzip-specific methods
-			compressStream: (fast: boolean) => zlib.createGzip(getOptions(fast)),
+			compressStream: (fast: boolean, size?: number) => zlib.createGzip(getOptions(fast, size)),
 			decompressStream: () => zlib.createGunzip(),
 			compressBuffer: async (buffer: Buffer, fast: boolean) =>
 				new Promise((resolve, reject) => {
-					zlib.gzip(buffer, getOptions(fast), (e, b) => {
+					zlib.gzip(buffer, getOptions(fast, buffer.length), (e, b) => {
 						if (e) reject(e);
 						else resolve(b);
 					});
