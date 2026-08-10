@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-08-09
+
+### Breaking Changes
+
+- update changelog for version 2.0.0 with breaking changes and new features ([8c53bff](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/8c53bff89836557faa29d1725408bef50e6ab52e))
+
+### Features
+
+- update readiness endpoint to return JSON with version and readiness status feat: add version test to verify package version from package.json ([dea8420](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/dea8420d45685a6e35059cdbb30f90c9aac87aca))
+- enhance handling of 204 No Content responses for sparse containers with caching and validation ([3310193](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/331019313f9f5092157986d68d2b7a30aa312104))
+- add 'x-content-type-options' header to prevent content type sniffing ([9669828](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/96698289284cda2a04a1702803a0ec7027629f82))
+- set fixed headers for error responses to prevent caching and enforce content type ([17cbd07](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/17cbd072f5d6d808e08779744d8229ae5445ce34))
+- improve error handling for malformed rewrite rules and ensure graceful exits ([32b61d8](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/32b61d80f49645e6b0670cbf5ef40658035fcae5))
+- add port validation and error handling for CLI and environment variables ([6b0943c](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/6b0943cc03598ebead25cdcd99a92dfcd4ac3a96))
+- implement support for content encoding in bucket file handling and metadata ([78af44a](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/78af44ae10d22d566c8e10102fe859f1239b7401))
+- skip the body pipeline for HEAD requests ([a1192fb](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/a1192fb17a2649456cd8ac1bedfff994dd57247e))
+- implement shared loading for concurrent requests in ContainerCache ([45be32f](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/45be32f7a2b905455d76d64cfd8505562a3c1880))
+- update maplibre-gl source to use VersaTiles CDN ([6cbafa9](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/6cbafa969ac6ad1c4b7307f6c3cec39f4e33b045))
+- update TypeScript configuration and add Vitest setup for testing ([d5f04fd](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/d5f04fdb07c6f27668b3ebc14d36f0fafb34b735))
+
+### Bug Fixes
+
+- add baseUrl option to server options and ensure it ends with a slash ([1af29c8](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/1af29c82799e9ebaa8f5f4d48dc0c265cfa144db))
+- update license badge in README to reflect Unlicense ([96007f0](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/96007f00acbca3705a72a8662e98608168ffd022))
+- update upgrade script to ignore specific dependencies ([af51a26](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/af51a26878650e0f8da089aa48dddd14ff38b307))
+
+### Performance Improvements
+
+- cap brotli quality for large payloads ([999487d](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/999487dc3029d4cf5b129709f7de5cde9b3e40a8))
+
+### Code Refactoring
+
+- move function to retrieve package version to separate module ([0b693e4](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/0b693e4548842e566631b00cffe7553e6685ac9a))
+- remove caching mechanism from Rewrite class and related tests ([e65bf90](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/e65bf905570faf001bd993398d9810a87bdeabea))
+- remove unused prefix and eslintConfig from package.json ([59706b7](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/59706b781bb2ba611f3c8549ea011ef9bf348c85))
+
+### Chores
+
+- update devDependencies to latest versions ([92a4eb6](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/92a4eb60800397fd11fd1af06fb7b8c58a7696ff))
+
 ## [2.0.0] - 2026-08-04
 
 This release fixes a case where an overwritten tile container could be served as corrupt tiles, closes a bypass of the `--directory` prefix, and adds HTTP range and conditional requests. It requires Node 22 and changes every `ETag`.
