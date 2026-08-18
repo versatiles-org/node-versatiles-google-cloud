@@ -7,6 +7,9 @@ updates:
     groups:
       npm:
         patterns: ['*']
+      security:
+        applies-to: security-updates
+        patterns: ['*']
     versioning-strategy: increase-if-necessary
     ignore:
       # The rewrite syntax documented in README.md ("Pattern syntax") relies on
@@ -29,4 +32,7 @@ updates:
       interval: monthly
     groups:
       action:
+        patterns: ['*']
+      security:
+        applies-to: security-updates
         patterns: ['*']
