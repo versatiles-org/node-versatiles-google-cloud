@@ -59,7 +59,7 @@
     "versatiles"
   ],
   "dependencies": {
-    "@google-cloud/storage": "^7.21.0",
+    "@google-cloud/storage": "^8.0.0",
     "@versatiles/container": "^1.5.0",
     "@versatiles/style": "^5.13.0",
     "c12": "^3.3.4",
