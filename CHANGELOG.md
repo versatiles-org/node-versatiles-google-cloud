@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-08-18
+
+### Chores
+
+- add security update groups for GitHub Actions and npm in dependabot configuration ([b3a5b99](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/b3a5b9999dbd842c05fd5c9d6e82f7266903ea14))
+- update dependencies to latest versions ([68933c8](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/68933c84f6b53cdeedf8b4e3fcf3e868067b8a27))
+
 ## [2.1.0] - 2026-08-10
 
 ### Breaking Changes
