@@ -1,10 +1,10 @@
-import type { BrotliOptions, ZlibOptions } from 'zlib';
+import type { BrotliOptions, ZlibOptions, ZstdOptions } from 'zlib';
 import type { IncomingHttpHeaders } from 'http';
 import type { Transform } from 'stream';
 import type { ResponseHeaders } from './response_headers.js';
 import zlib from 'zlib';
 
-export type EncodingType = 'br' | 'gzip' | 'raw';
+export type EncodingType = 'br' | 'gzip' | 'raw' | 'zstd';
 
 /**
  * Interface representing tools for handling different encoding types.
@@ -48,7 +48,7 @@ export function usesMaxCompression(size?: number): boolean {
 
 /**
  * Record mapping encoding types to their respective tools.
- * Provides implementations for 'br', 'gzip', and 'raw' encodings.
+ * Provides implementations for 'br', 'gzip', 'zstd', and 'raw' encodings.
  */
 export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 	br: ((): EncodingTools => {
@@ -117,6 +117,42 @@ export const ENCODINGS: Record<EncodingType, EncodingTools> = {
 			},
 		};
 	})(),
+	zstd: ((): EncodingTools => {
+		// The size is not passed on as `pledgedSrcSize`: zstd fails the stream when
+		// the pledge is not met exactly, and the size known here is only a lower
+		// bound.
+		function getOptions(fast: boolean, size?: number): ZstdOptions {
+			const level = fast ? 3 : usesMaxCompression(size) ? 19 : 9;
+			return { params: { [zlib.constants.ZSTD_c_compressionLevel]: level } };
+		}
+
+		// Zstandard encoding tools
+		return {
+			name: 'zstd',
+			// Implementations for Zstandard-specific methods
+			compressStream: (fast: boolean, size?: number) =>
+				zlib.createZstdCompress(getOptions(fast, size)),
+			decompressStream: () => zlib.createZstdDecompress(),
+			compressBuffer: async (buffer: Buffer, fast: boolean) =>
+				new Promise((resolve, reject) => {
+					zlib.zstdCompress(buffer, getOptions(fast, buffer.length), (e, b) => {
+						if (e) reject(e);
+						else resolve(b);
+					});
+				}),
+			decompressBuffer: async (buffer: Buffer) =>
+				new Promise((resolve, reject) => {
+					zlib.zstdDecompress(buffer, (e, b) => {
+						if (e) reject(e);
+						else resolve(b);
+					});
+				}),
+			setEncodingHeader: (headers: ResponseHeaders): void => {
+				headers.set('content-encoding', 'zstd');
+				return;
+			},
+		};
+	})(),
 	raw: {
 		name: 'raw',
 		setEncodingHeader: (headers: ResponseHeaders): void => {
@@ -140,7 +176,7 @@ export function isKnownContentEncoding(contentEncoding: string | undefined): boo
 	if (contentEncoding == null) return true;
 
 	const name = contentEncoding.trim().toLowerCase();
-	return name === '' || name === 'identity' || name === 'br' || name === 'gzip';
+	return name === '' || name === 'identity' || name === 'br' || name === 'gzip' || name === 'zstd';
 }
 
 /**
@@ -168,6 +204,8 @@ export function parseContentEncoding(contentEncoding?: string): EncodingTools {
 			return ENCODINGS.br;
 		case 'gzip':
 			return ENCODINGS.gzip;
+		case 'zstd':
+			return ENCODINGS.zstd;
 	}
 
 	throw Error(`unknown content-encoding ${JSON.stringify(contentEncoding)}`);
@@ -216,7 +254,8 @@ function qualityOf(accepted: Map<string, number>, name: EncodingType): number {
 /**
  * Determines the best encoding supported by the client based on the `accept-encoding` HTTP header.
  * Quality values are respected: a coding with `q=0` is never selected, and the
- * highest-quality supported coding wins (ties prefer Brotli over gzip).
+ * highest-quality supported coding wins (ties prefer Brotli, then Zstandard,
+ * then gzip).
  * @param headers - The incoming HTTP headers.
  * @returns The best available `EncodingTools` based on client's preferences.
  */
@@ -226,9 +265,11 @@ export function findBestEncoding(headers: IncomingHttpHeaders): EncodingTools {
 
 	const accepted = parseAcceptEncoding(encodingHeader);
 	const brQ = qualityOf(accepted, 'br');
+	const zstdQ = qualityOf(accepted, 'zstd');
 	const gzipQ = qualityOf(accepted, 'gzip');
 
-	if (brQ > 0 && brQ >= gzipQ) return ENCODINGS.br;
+	if (brQ > 0 && brQ >= zstdQ && brQ >= gzipQ) return ENCODINGS.br;
+	if (zstdQ > 0 && zstdQ >= gzipQ) return ENCODINGS.zstd;
 	if (gzipQ > 0) return ENCODINGS.gzip;
 	return ENCODINGS.raw;
 }

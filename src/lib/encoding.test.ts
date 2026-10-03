@@ -1,6 +1,6 @@
 import type { EncodingType } from './encoding.js';
 import type { IncomingHttpHeaders } from 'http';
-import { brotliCompressSync, gzipSync } from 'zlib';
+import { brotliCompressSync, gzipSync, zstdCompressSync } from 'zlib';
 import {
 	ENCODINGS,
 	SLOW_COMPRESSION_LIMIT,
@@ -18,7 +18,7 @@ const defaultHeader = { ...defaultHeader0, vary: undefined };
 delete defaultHeader.vary;
 
 describe('Encoding Tools', () => {
-	const encodings: EncodingType[] = ['br', 'gzip', 'raw'];
+	const encodings: EncodingType[] = ['br', 'gzip', 'raw', 'zstd'];
 	const buffer = Buffer.from(
 		'VersaTiles is a completely FLOSS stack for generating, distributing and using map tiles based on OpenStreetMap data, free of any commercial interests.',
 	);
@@ -26,6 +26,7 @@ describe('Encoding Tools', () => {
 		raw: buffer,
 		br: brotliCompressSync(buffer),
 		gzip: gzipSync(buffer),
+		zstd: zstdCompressSync(buffer),
 	};
 
 	describe('ENCODINGS are completely defined', () => {
@@ -87,6 +88,7 @@ describe('Encoding Tools', () => {
 			const garbage = Buffer.from('this is not compressed data');
 			await expect(ENCODINGS.br.decompressBuffer!(garbage)).rejects.toBeDefined();
 			await expect(ENCODINGS.gzip.decompressBuffer!(garbage)).rejects.toBeDefined();
+			await expect(ENCODINGS.zstd.decompressBuffer!(garbage)).rejects.toBeDefined();
 		});
 	});
 
@@ -144,7 +146,7 @@ describe('Encoding Tools', () => {
 		it.each([undefined, 1, SLOW_COMPRESSION_LIMIT + 1])(
 			'still round-trips at size %j',
 			async (size) => {
-				for (const name of ['br', 'gzip'] as const) {
+				for (const name of ['br', 'gzip', 'zstd'] as const) {
 					const encoding = ENCODINGS[name];
 					const compressed = await stream2buffer(
 						Readable.from(buffer).pipe(encoding.compressStream!(false, size)),
@@ -181,6 +183,12 @@ describe('Encoding Tools', () => {
 			expect(header.getHeaders()).toEqual({ ...defaultHeader, 'content-encoding': 'gzip' });
 		});
 
+		it('zstd', () => {
+			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
+			ENCODINGS.zstd.setEncodingHeader(header);
+			expect(header.getHeaders()).toEqual({ ...defaultHeader, 'content-encoding': 'zstd' });
+		});
+
 		it('raw', () => {
 			const header = new ResponseHeaders({ 'content-encoding': 'unknown' });
 			ENCODINGS.raw.setEncodingHeader(header);
@@ -197,6 +205,8 @@ describe('parseContentEncoding', () => {
 		expect(parseContentEncoding('BR').name).toBe('br');
 		expect(parseContentEncoding('gzip').name).toBe('gzip');
 		expect(parseContentEncoding('GZIP').name).toBe('gzip');
+		expect(parseContentEncoding('zstd').name).toBe('zstd');
+		expect(parseContentEncoding('ZSTD').name).toBe('zstd');
 	});
 	it('throws errors on icorrect encodings', () => {
 		expect(() => parseContentEncoding('deflate')).toThrow();
@@ -243,6 +253,14 @@ describe('findBestEncoding', () => {
 	it('selects the highest quality encoding', () => {
 		expect(findBestEncoding({ 'accept-encoding': 'br;q=0.5, gzip;q=0.9' }).name).toBe('gzip');
 		expect(findBestEncoding({ 'accept-encoding': 'br;q=0.9, gzip;q=0.5' }).name).toBe('br');
+	});
+	it('negotiates zstd between brotli and gzip', () => {
+		expect(findBestEncoding({ 'accept-encoding': 'zstd' }).name).toBe('zstd');
+		expect(findBestEncoding({ 'accept-encoding': 'gzip, deflate, br, zstd' }).name).toBe('br');
+		expect(findBestEncoding({ 'accept-encoding': 'gzip, zstd' }).name).toBe('zstd');
+		expect(findBestEncoding({ 'accept-encoding': 'br;q=0.5, zstd' }).name).toBe('zstd');
+		expect(findBestEncoding({ 'accept-encoding': 'zstd;q=0.5, gzip' }).name).toBe('gzip');
+		expect(findBestEncoding({ 'accept-encoding': 'zstd;q=0, gzip' }).name).toBe('gzip');
 	});
 	it('matches whole tokens, not substrings', () => {
 		expect(findBestEncoding({ 'accept-encoding': 'xbr, gzip' }).name).toBe('gzip');

@@ -319,6 +319,9 @@ describe('recompress', () => {
 				case 'br':
 					buffer = zlib.brotliCompressSync(testBuffer);
 					break;
+				case 'zstd':
+					buffer = zlib.zstdCompressSync(testBuffer);
+					break;
 				default:
 					throw Error('unknown encoding: ' + encodingIn);
 			}
@@ -351,6 +354,9 @@ describe('recompress', () => {
 								break;
 							case 'br':
 								bufferOut = zlib.brotliDecompressSync(bufferOut);
+								break;
+							case 'zstd':
+								bufferOut = zlib.zstdDecompressSync(bufferOut);
 								break;
 							default:
 						}
