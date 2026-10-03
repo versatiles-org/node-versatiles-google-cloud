@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-10-03
+
+### Features
+
+- add support for zstd encoding in encoding and recompression tools ([f7178d3](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/f7178d3dfb57a08efc2289bda1c4ac43f3bcdb45))
+
+### Build System
+
+- **deps:** bump qs in the security group across 1 directory ([89c9d0b](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/89c9d0b9618f5f1b643d1eb7a46d91fe44fff31e))
+- **deps:** bump the security group across 1 directory with 2 updates ([f7630df](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/f7630df1b1f6bdae6a283db4ecf0aacd76a713e9))
+
+### Chores
+
+- update dependencies and improve upgrade script ([571382a](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/571382a5f4fa5bb9656c7ec9d48eabcf2de657cc))
+
 ## [2.1.1] - 2026-08-18
 
 ### Chores
