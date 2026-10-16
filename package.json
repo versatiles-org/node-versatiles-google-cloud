@@ -61,7 +61,7 @@
   "dependencies": {
     "@google-cloud/storage": "^8",
     "@versatiles/container": "^2.0.2",
-    "@versatiles/style": "^6.4.0",
+    "@versatiles/style": "^7.0.1",
     "c12": "^3.3.4",
     "commander": "^15.0.0",
     "express": "^5.3.0",
@@ -72,16 +72,16 @@
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
-    "@typescript-eslint/eslint-plugin": "^8.71.1",
-    "@typescript-eslint/parser": "^8.71.1",
+    "@typescript-eslint/eslint-plugin": "^8.71.2",
+    "@typescript-eslint/parser": "^8.71.2",
     "@versatiles/release-tool": "^2.20.0",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^10.12.0",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.1",
-    "vitest": "^5.0.3"
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "uuid": "^11.1.1"
