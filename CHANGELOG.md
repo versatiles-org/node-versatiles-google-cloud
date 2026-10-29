@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-10-29
+
+### Chores
+
+- update dependencies and devDependencies in package.json ([43c9d03](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/43c9d03f778b88008641716118674d88f439fb75))
+- update content-type in tests to application/vnd.mapbox-vector-tile ([553cf7e](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/553cf7ebb300409bb0a0545478582e9845f28e1a))
+
 ## [2.2.2] - 2026-10-16
 
 ### Chores
