@@ -290,7 +290,7 @@ describe('Server', () => {
 			const response = await server.get('/geodata/test.versatiles?14/3740/4505');
 			expect(response.status).toBe(200);
 			expect(response.text).toContain('water_lines');
-			expect(response.contentType).toBe('application/x-protobuf');
+			expect(response.contentType).toBe('application/vnd.mapbox-vector-tile');
 		});
 
 		it('handle missing versatiles tile', async () => {
@@ -1064,7 +1064,7 @@ describe('Server', () => {
 			const response = await server.get('/tiles/osm/14/3740/4505');
 			expect(response.status).toBe(200);
 			expect(response.text).toContain('water_lines');
-			expect(response.contentType).toBe('application/x-protobuf');
+			expect(response.contentType).toBe('application/vnd.mapbox-vector-tile');
 		});
 
 		it('handle missing tile via rewrite', async () => {

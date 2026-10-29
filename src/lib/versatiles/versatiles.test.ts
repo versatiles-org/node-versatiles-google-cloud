@@ -52,7 +52,7 @@ describe('VersaTiles', () => {
 			await checkResponse('?13/1870/2252', 200, '9bf3b76efbf8c96e', {
 				...defaultHeader,
 				'content-encoding': 'br',
-				'content-type': 'application/x-protobuf',
+				'content-type': 'application/vnd.mapbox-vector-tile',
 			});
 		});
 
