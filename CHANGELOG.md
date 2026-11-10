@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.6] - 2026-11-10
+
+### Chores
+
+- update @versatiles/container and @versatiles/release-tool to latest versions ([86f8d45](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/86f8d456b6cc804d4fd531d3b63897d4c16b534a))
+
 ## [2.2.5] - 2026-11-10
 
 ### CI/CD
