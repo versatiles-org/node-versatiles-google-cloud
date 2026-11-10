@@ -1,0 +1,113 @@
+name: Release
+
+# `npm run release` (`vrt release-npm --no-publish`) raises the version, updates the changelog, tags,
+# pushes and creates the GitHub release. This workflow runs on the pushed tag and publishes that tag
+# to npm, so npm gets what CI checked, with provenance, and no npm token is needed anywhere.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  FORCE_COLOR: 1
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Publishes the version in package.json, so it has to be the one the tag names. A dispatch
+      # from a branch has no tag at all and is refused, a mismatch is refused before the build.
+      #
+      # `github.*` goes through `env` rather than into the script: a `${{ }}` inside `run:` is
+      # textual substitution, so a tag name could carry shell metacharacters.
+      - name: Verify the tag matches package.json
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          VERSION="$(jq -r '.version' package.json)"
+          if [ "$REF_TYPE" != "tag" ]; then
+            echo "::error::This workflow publishes the tag it runs on, so it has to run from one — got $REF_TYPE '$REF_NAME'. Re-run it against tag v$VERSION."
+            exit 1
+          fi
+          if [ "$REF_NAME" != "v$VERSION" ]; then
+            echo "::error::Tag '$REF_NAME' does not match package.json version '$VERSION'."
+            exit 1
+          fi
+          echo "Releasing $REF_NAME."
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check vulnerabilities
+        run: npm audit --omit=dev
+
+      # Format, typecheck, lint, test and build, the same as `vrt release-npm` runs before tagging.
+      - name: Check
+        run: npm run check
+
+  # A job of its own because it is the one allowed to publish: no write access to the repository,
+  # and no cache that other runs have written (cache poisoning).
+  publish:
+    name: Publish to npm
+
+    needs: check
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      # npm trusted publishing and provenance. The package settings on npmjs.com name this workflow
+      # file as trusted publisher.
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          # npm 11.5.1 or newer is needed for trusted publishing
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The tag was checked against package.json by the job above. A version already on npm is
+      # skipped, so a re-run can turn green. A prerelease ("2.3.0-rc.1") goes to the dist-tag "next",
+      # so "latest" stays the last release.
+      #
+      # `prepack` runs `npm run build`, which builds `dist/` and regenerates the README sections.
+      - name: Publish
+        run: |
+          NAME="$(jq -r '.name' package.json)"
+          VERSION="$(jq -r '.version' package.json)"
+          if [ "$(npm view "$NAME@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "$NAME@$VERSION is already on npm, nothing to publish."
+            exit 0
+          fi
+          case "$VERSION" in
+            *-*) TAG=next ;;
+            *) TAG=latest ;;
+          esac
+          npm publish --provenance --access public --tag "$TAG"
