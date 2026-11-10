@@ -1,6 +1,6 @@
 {
   "name": "@versatiles/google-cloud",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "A server for VersaTiles in Google Cloud Run",
   "bin": {
     "versatiles-google-cloud": "dist/index.js"
@@ -38,8 +38,14 @@
   "author": "yetzt <node@yetzt.me>, Michael Kreil <versatiles@michael-kreil.de>",
   "license": "Unlicense",
   "funding": [
-    { "type": "github", "url": "https://github.com/sponsors/versatiles-org" },
-    { "type": "opencollective", "url": "https://opencollective.com/versatiles" }
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/versatiles-org"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/versatiles"
+    }
   ],
   "engines": {
     "node": ">= 22"

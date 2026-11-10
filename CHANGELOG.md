@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-11-10
+
+### CI/CD
+
+- publish to npm from a release workflow with trusted publishing, closes #61 ([27fbbea](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/27fbbea6a70e73492005882807926b6ceb6da17d))
+
+### Chores
+
+- add funding information to package.json ([c0b5aad](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/c0b5aad5ae8b54710f6a5d6b938b15fa7a2a629f))
+- update dependencies to latest versions ([11503a4](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/11503a4528ea6960b588b230676f366adaf4cb73))
+
 ## [2.2.4] - 2026-11-03
 
 ### Chores
