@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.7] - 2026-11-24
+
+### Chores
+
+- update dependencies, @google-cloud/storage to v9 ([7fba044](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/7fba044b78484564b3924e3769dbf8fce9d363c6))
+
 ## [2.2.6] - 2026-11-10
 
 ### Chores
