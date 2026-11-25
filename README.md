@@ -25,7 +25,7 @@ E.g. for data journalists, academia, ...
 
 - Now you can serve the files in the Bucket publicly.
 - This server will make sure that every file will be compressed optimally according to "accept-encoding" header of the browser.
-- \*.versatiles files will not be served. Instead the server will provide a simple GET API to access every tile, and serve them with optimal compression. E.g. tile x=4, y=5, z=6 in file `gs://bucket/map/earth.versatiles` could be accessed via `https://public.domain.com/map/earth.versatiles?tiles/6/4/5`
+- \*.versatiles files will not be served. Instead the server will provide a simple GET API to access every tile, and serve them with optimal compression. E.g. tile x=4, y=5, z=6 in file `gs://bucket/map/earth.versatiles` could be accessed via `https://public.domain.com/map/earth.versatiles?6/4/5`
 
 ## Run in Google Cloud Run
 
