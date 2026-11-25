@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-11-25
+
+### Features
+
+- let browsers revalidate bucket files on every use and the CDN keep them for an hour (closes #62) ([8e56304](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/8e563046a24f87e480f0c3b5b4d8e936f6e9d7ab))
+- keep bucket files without their own Cache-Control for an hour instead of a week, and let --cache-control change it (closes #62) ([c823e66](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/c823e664467b6407918321b7df4996f049c57566))
+
+### Chores
+
+- update @versatiles/style to v9.1.2 and @types/node to v26.6.10; bump @vitest/coverage-v8 and vitest to v5.1.2 ([83f067e](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/83f067e46d46f614f17c5fba823f9bb71c7e2d52))
+
 ## [2.2.7] - 2026-11-24
 
 ### Chores
