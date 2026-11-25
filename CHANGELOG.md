@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.3.0] - 2026-11-25
 
+### Upgrading
+
+- Bucket files whose object sets no `Cache-Control` are sent with `public, max-age=3600` instead of `max-age=604800`: an updated page reaches returning users within about two hours instead of a week. `--cache-control "max-age=604800"`, or `cacheControl` in the configuration file, restores the old behaviour. Tiles and the other answers of a container keep `max-age=86400`.
+
 ### Features
 
-- let browsers revalidate bucket files on every use and the CDN keep them for an hour (closes #62) ([8e56304](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/8e563046a24f87e480f0c3b5b4d8e936f6e9d7ab))
-- keep bucket files without their own Cache-Control for an hour instead of a week, and let --cache-control change it (closes #62) ([c823e66](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/c823e664467b6407918321b7df4996f049c57566))
+- keep bucket files without their own Cache-Control for an hour instead of a week, and let --cache-control change it (closes #62) ([c823e66](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/c823e664467b6407918321b7df4996f049c57566), [8e56304](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/8e563046a24f87e480f0c3b5b4d8e936f6e9d7ab))
 
 ### Chores
 
