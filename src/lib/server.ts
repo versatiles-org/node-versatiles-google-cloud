@@ -22,6 +22,7 @@ export interface ServerOptions {
 	baseUrl: string; // Base URL for the server
 	bucket: AbstractBucket | string; // Google Cloud Storage bucket or its name
 	bucketPrefix: string; // Prefix for objects in the bucket
+	cacheControl?: string; // Cache-Control for bucket files whose object sets none
 	fastRecompression: boolean; // Flag for fast recompression
 	localDirectory?: string; // Local directory path to use instead of GCS bucket
 	rewriteRules: Record<string, string>;
@@ -35,7 +36,7 @@ export interface ServerOptions {
  * @returns A promise resolving to the Express server instance.
  */
 export async function startServer(opt: ServerOptions): Promise<Server | null> {
-	const { port, fastRecompression, rewriteRules, verbose } = opt;
+	const { cacheControl, port, fastRecompression, rewriteRules, verbose } = opt;
 	let bucketPrefix = opt.bucketPrefix.replace(/^\/+|\/+$/g, '');
 	if (bucketPrefix !== '') bucketPrefix += '/';
 
@@ -113,6 +114,7 @@ export async function startServer(opt: ServerOptions): Promise<Server | null> {
 		void (async (): Promise<void> => {
 			requestNo++;
 			const responder = new Responder({
+				fileCacheControl: cacheControl,
 				fastRecompression,
 				// Express routes HEAD to this GET handler when no HEAD route is
 				// registered, so without this the whole body would be read from the

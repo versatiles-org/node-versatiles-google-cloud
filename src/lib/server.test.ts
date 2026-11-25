@@ -60,6 +60,7 @@ interface MockedServerOptions {
 	baseUrl?: string;
 	bucket?: AbstractBucket | string;
 	bucketPrefix?: string;
+	cacheControl?: string;
 	localDirectory?: string;
 	port?: number;
 	returnRawBuffer?: boolean;
@@ -109,6 +110,7 @@ class MockedServer {
 			baseUrl: me.#opt.baseUrl ?? 'http://localhost:' + port,
 			bucket: me.#bucket,
 			bucketPrefix: me.#opt.bucketPrefix ?? '',
+			cacheControl: me.#opt.cacheControl,
 			fastRecompression: false,
 			localDirectory: me.#opt.localDirectory,
 			port,
@@ -246,9 +248,9 @@ describe('Server', () => {
 			expect(response.status).toBe(200);
 			expect(JSON.parse(response.text)).toMatchObject({ name: '@versatiles/google-cloud' });
 			expect(response.contentType).toBe('application/json');
-			// A file whose object sets no Cache-Control: browsers revalidate it on
-			// every use, the CDN keeps it for an hour.
-			expect(response.headers['cache-control']).toBe('public, max-age=0, s-maxage=3600');
+			// A file whose object sets no Cache-Control: browsers and the CDN keep
+			// it for an hour.
+			expect(response.headers['cache-control']).toBe('public, max-age=3600');
 		});
 
 		it('serve static file with a space in the path', async () => {
@@ -352,6 +354,30 @@ describe('Server', () => {
 	// URLs in style.json, so it has to end in "/". URL only adds that slash when
 	// the path is empty, so a base URL naming a subdirectory used to produce
 	// ".../mapsgeodata/test.versatiles" — a URL that resolves to nothing.
+	// `--cache-control` replaces the default for bucket files whose object sets
+	// none, and leaves the answers of a container alone.
+	describe('a configured Cache-Control', () => {
+		let server: MockedServer;
+
+		beforeAll(async () => {
+			server = await MockedServer.create({ cacheControl: 'public, max-age=604800' });
+		});
+
+		afterAll(async () => {
+			await server.close();
+		});
+
+		it('is sent with a bucket file', async () => {
+			const response = await server.get('/static/package.json');
+			expect(response.headers['cache-control']).toBe('public, max-age=604800');
+		});
+
+		it('is not sent with a tile', async () => {
+			const response = await server.get('/geodata/test.versatiles?14/3740/4505');
+			expect(response.headers['cache-control']).toBe('max-age=86400');
+		});
+	});
+
 	describe('base URL with a path', () => {
 		let server: MockedServer;
 

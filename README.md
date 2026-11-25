@@ -248,14 +248,20 @@ A body whose length is not known in advance — a stream the bucket did not decl
 
 ## Caching
 
-| Response                                                         | `Cache-Control`                    |
-| ---------------------------------------------------------------- | ---------------------------------- |
-| Tiles and the other answers of a container (`?tiles.json` …)     | `max-age=86400` (one day)          |
-| A file from the bucket whose object sets its own `Cache-Control` | the object's                       |
-| Any other file from the bucket                                   | `public, max-age=0, s-maxage=3600` |
-| Errors                                                           | `no-store`                         |
+| Response                                                         | `Cache-Control`                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------- |
+| Tiles and the other answers of a container (`?tiles.json` …)     | `max-age=86400` (one day)                               |
+| A file from the bucket whose object sets its own `Cache-Control` | the object's                                            |
+| Any other file from the bucket                                   | `public, max-age=3600` (one hour), or `--cache-control` |
+| Errors                                                           | `no-store`                                              |
 
-Most files in a bucket keep their URL when their content changes: `index.html`, `style.json`, unversioned libraries. Browsers therefore revalidate them on every use (`max-age=0`), but against the CDN, which keeps a file for an hour (`s-maxage=3600`) and answers with a `304` from its copy. An update reaches every user within an hour, and Cloud Run is asked at most once an hour per file and CDN node. To make an update visible at once, invalidate the CDN's cache, for example with `gcloud compute url-maps invalidate-cdn-cache`.
+Most files in a bucket keep their URL when their content changes: `index.html`, `style.json`, unversioned libraries. Browsers and the CDN keep them for an hour, so loading a page again within a visit causes no request, and an update reaches every user within about two hours: an hour at the CDN, then an hour in the browser. Until version 2.2 the default was a week, so an updated page could stay invisible to returning users for that long. To make an update visible at the CDN at once, invalidate its cache, for example with `gcloud compute url-maps invalidate-cdn-cache`; browsers still keep their copy for up to an hour.
+
+`--cache-control`, or `cacheControl` in the configuration file, sets another value for these files:
+
+- **Without a CDN**, every request reaches Cloud Run. The default of an hour keeps that to one request per file, browser and hour. A longer value, such as `public, max-age=604800` (the week of version 2.2), means fewer requests and longer stale pages after an update.
+- **Behind authentication**, such as Identity-Aware Proxy, use `private, max-age=3600` or `no-store`. `public` allows a CDN or proxy to keep a file even if the request carried credentials, and to give it to others.
+- **Files that change often**, for example while you build a site, want `no-cache`: browsers then ask every time and get an empty `304` while the file is unchanged.
 
 Files whose URL contains a version never change under that URL and can be kept for a year. The [frontend](https://github.com/versatiles-org/versatiles-frontend) has each library in such a folder (`assets/lib/<name>@<version>/`). Set the header on these objects after uploading:
 
@@ -313,7 +319,7 @@ That cannot happen: **every read names the revision its index came from**. Cloud
 The background check runs at most once every 30 seconds per container and never blocks a response, because a cached container is safe to serve regardless. With versioning enabled, a replacement can therefore serve the **previous** container for up to that interval — stale, but never inconsistent.
 
 > [!NOTE]
-> This is not the dominant source of staleness. Tile responses are sent with `cache-control: max-age=86400`, so a CDN in front of this server keeps serving the old tiles for up to a day regardless of what the origin does — and other files for up to an hour, unless the object sets its own header (see [Caching](#caching)). Publishing under a new name avoids the problem entirely.
+> This is not the dominant source of staleness. Tile responses are sent with `cache-control: max-age=86400`, so a CDN in front of this server keeps serving the old tiles for up to a day regardless of what the origin does — and other files for up to an hour by default (see [Caching](#caching)). Publishing under a new name avoids the problem entirely.
 >
 > Clients cannot shorten this: `Cache-Control: no-cache` on a request is ignored, both here and typically at the CDN. Letting an unauthenticated caller force a cache bypass would turn each request into a metadata lookup plus a full index read against the bucket.
 
@@ -406,17 +412,18 @@ When using `extends`:
 
 ### Configuration options
 
-| Option              | Type    | Description                                  |
-| ------------------- | ------- | -------------------------------------------- |
-| `bucket`            | string  | Name of the Google Cloud Storage bucket      |
-| `baseUrl`           | string  | Public base URL                              |
-| `directory`         | string  | Bucket directory prefix                      |
-| `port`              | integer | Server port (default: 8080)                  |
-| `fastRecompression` | boolean | Enable fast recompression mode               |
-| `localDirectory`    | string  | Use local directory instead of bucket        |
-| `verbose`           | boolean | Enable verbose logging                       |
-| `rewriteRules`      | object  | Object mapping source paths to target paths  |
-| `extends`           | string  | Path to parent configuration file to inherit |
+| Option              | Type    | Description                                                                       |
+| ------------------- | ------- | --------------------------------------------------------------------------------- |
+| `bucket`            | string  | Name of the Google Cloud Storage bucket                                           |
+| `baseUrl`           | string  | Public base URL                                                                   |
+| `cacheControl`      | string  | `Cache-Control` for bucket files whose object sets none (see [Caching](#caching)) |
+| `directory`         | string  | Bucket directory prefix                                                           |
+| `port`              | integer | Server port (default: 8080)                                                       |
+| `fastRecompression` | boolean | Enable fast recompression mode                                                    |
+| `localDirectory`    | string  | Use local directory instead of bucket                                             |
+| `verbose`           | boolean | Enable verbose logging                                                            |
+| `rewriteRules`      | object  | Object mapping source paths to target paths                                       |
+| `extends`           | string  | Path to parent configuration file to inherit                                      |
 
 > [!NOTE]
 > When using `--config`, the bucket name can be omitted from the command line if it's specified in the config file. The bucket is only required if `localDirectory` is not set.
@@ -468,6 +475,10 @@ Options:
                                   "http://localhost:<port>/".
   -c, --config <path>             Load configuration from a YAML file. CLI
                                   arguments override config file values.
+  --cache-control <header>        Set the Cache-Control header for bucket files
+                                  whose object sets none. Default: "public,
+                                  max-age=3600". Tiles and other answers of a
+                                  container keep "max-age=86400".
   -d, --directory <prefix>        Set the bucket directory (prefix), e.g.,
                                   "/public/".
   -f, --fast-recompression        Enable faster server responses by avoiding
@@ -556,6 +567,7 @@ D-->8
 D-->E
 F-->8
 F-->E
+H-->E
 H-->A
 H-->4
 H-->C

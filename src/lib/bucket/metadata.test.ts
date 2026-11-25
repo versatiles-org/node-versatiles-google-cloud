@@ -13,7 +13,6 @@ describe('BucketFileMetadata', () => {
 		expect(JSON.parse(metadata.toString())).toMatchObject({
 			contentType: 'image/jpeg',
 			contentLength: '1024',
-			cacheControl: 'public, max-age=0, s-maxage=3600',
 			etag: expect.any(String),
 		});
 	});
@@ -39,6 +38,37 @@ describe('BucketFileMetadata', () => {
 			['etag', '"abc123"'],
 			['content-type', 'image/jpeg'],
 		]);
+	});
+
+	describe('Cache-Control', () => {
+		function cacheControlOf(metadata: BucketFileMetadata, defaultCacheControl?: string): string {
+			const headers = new ResponseHeaders();
+			metadata.setHeaders(headers, defaultCacheControl);
+			return headers.get('cache-control') ?? '';
+		}
+
+		it('is an hour for an object that sets none', () => {
+			const metadata = new BucketFileMetadata({ filename: 'index.html' });
+			expect(cacheControlOf(metadata)).toBe('public, max-age=3600');
+		});
+
+		it("is the server's default for an object that sets none", () => {
+			const metadata = new BucketFileMetadata({ filename: 'index.html' });
+			expect(cacheControlOf(metadata, 'no-cache')).toBe('no-cache');
+		});
+
+		it("is the object's own, whatever the server's default", () => {
+			const metadata = new BucketFileMetadata({
+				filename: 'lib.js',
+				cacheControl: 'public, max-age=31536000, immutable',
+			});
+			expect(cacheControlOf(metadata, 'no-cache')).toBe('public, max-age=31536000, immutable');
+		});
+
+		it('treats an empty value on the object as none', () => {
+			const metadata = new BucketFileMetadata({ filename: 'index.html', cacheControl: ' ' });
+			expect(cacheControlOf(metadata, 'no-cache')).toBe('no-cache');
+		});
 	});
 
 	// RFC 9110 §8.8.3 requires an ETag to be a quoted-string. It used to be sent
@@ -125,7 +155,6 @@ describe('BucketFileMetadata', () => {
 		expect(JSON.parse(metadata.toString())).toMatchObject({
 			contentType: 'image/png',
 			contentLength: '2048',
-			cacheControl: 'public, max-age=0, s-maxage=3600',
 			etag: expect.any(String),
 		});
 	});

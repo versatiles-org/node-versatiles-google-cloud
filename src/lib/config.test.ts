@@ -334,6 +334,26 @@ verbose: true
 			}
 		});
 
+		it('reads cacheControl', async () => {
+			const path = writeConfig('cache-control.yaml', 'cacheControl: "public, max-age=604800"');
+			await expect(loadConfig(path)).resolves.toStrictEqual({
+				cacheControl: 'public, max-age=604800',
+			});
+		});
+
+		// Refused at start: Node would refuse the header only on the first file
+		// request, and then on every one.
+		it('throws error when cacheControl is not a usable header value', async () => {
+			for (const [name, value] of [
+				['number', '3600'],
+				['empty', '""'],
+				['newline', '"no-cache\\nX-Injected: 1"'],
+			]) {
+				const path = writeConfig(`invalid-cache-control-${name}.yaml`, `cacheControl: ${value}`);
+				await expect(loadConfig(path)).rejects.toThrow(/"cacheControl" must be a non-empty string/);
+			}
+		});
+
 		it('throws error when fastRecompression is not a boolean', async () => {
 			const path = writeConfig('invalid-fast.yaml', 'fastRecompression: "yes"');
 			await expect(loadConfig(path)).rejects.toThrow(/"fastRecompression" must be a boolean/);

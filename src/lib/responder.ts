@@ -5,11 +5,17 @@ import { ENCODINGS, acceptEncoding, findBestEncoding } from './encoding.js';
 import { recompress } from './recompress.js';
 import { ResponseHeaders } from './response_headers.js';
 import { log, traceFieldFrom } from './logger.js';
+import { DEFAULT_FILE_CACHE_CONTROL } from './bucket/metadata.js';
 
 /**
  * Interface defining the structure and methods of a Responder.
  */
 export interface ResponderOptions {
+	/**
+	 * `Cache-Control` for a bucket file whose object sets none (`--cache-control`).
+	 * Defaults to {@link DEFAULT_FILE_CACHE_CONTROL}.
+	 */
+	fileCacheControl?: string;
 	fastRecompression: boolean; // Flag for fast recompression mode
 	/**
 	 * Whether the client asked for headers only. Node discards the body of a HEAD
@@ -53,6 +59,11 @@ export class Responder {
 
 	public get fastRecompression(): boolean {
 		return this.#options.fastRecompression;
+	}
+
+	/** `Cache-Control` for a bucket file whose object sets none. */
+	public get fileCacheControl(): string {
+		return this.#options.fileCacheControl ?? DEFAULT_FILE_CACHE_CONTROL;
 	}
 
 	/** Whether this response is to carry headers only. */

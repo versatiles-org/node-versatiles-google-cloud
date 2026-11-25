@@ -1,5 +1,6 @@
 import { loadConfig as loadConfigC12 } from 'c12';
 import { existsSync, readFileSync } from 'node:fs';
+import { validateHeaderValue } from 'node:http';
 
 /**
  * Configuration file interface defining all optional config fields.
@@ -7,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 export interface ConfigFile {
 	bucket?: string;
 	baseUrl?: string;
+	cacheControl?: string;
 	directory?: string;
 	port?: number;
 	fastRecompression?: boolean;
@@ -29,6 +31,23 @@ export interface ConfigFile {
  */
 export function isValidPort(value: unknown): value is number {
 	return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 65535;
+}
+
+/**
+ * Whether a value can be sent as the `Cache-Control` of bucket files.
+ *
+ * Checked when the server starts, like the port: Node would otherwise refuse
+ * the header only on the first request for a file, and every file request
+ * would fail.
+ */
+export function isValidCacheControl(value: unknown): value is string {
+	if (typeof value !== 'string' || value.trim() === '') return false;
+	try {
+		validateHeaderValue('cache-control', value);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -121,6 +140,15 @@ function validateConfig(config: Record<string, unknown>, path: string): ConfigFi
 			throw new Error(`Config file "${path}": "baseUrl" must be a string`);
 		}
 		result.baseUrl = config.baseUrl;
+	}
+
+	if ('cacheControl' in config) {
+		if (!isValidCacheControl(config.cacheControl)) {
+			throw new Error(
+				`Config file "${path}": "cacheControl" must be a non-empty string that is a valid header value`,
+			);
+		}
+		result.cacheControl = config.cacheControl;
 	}
 
 	if ('directory' in config) {

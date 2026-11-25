@@ -80,7 +80,7 @@ export abstract class AbstractBucketFile {
 		const metadata = await this.getMetadata();
 		responder.log(`metadata: ${metadata.toString()}`);
 
-		metadata.setHeaders(responder.headers);
+		metadata.setHeaders(responder.headers, responder.fileCacheControl);
 		responder.headers.set('accept-ranges', 'bytes');
 
 		// Evaluated before Range, as RFC 9110 §13.2.1 requires: if the client's

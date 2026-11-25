@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { startServer } from './lib/server.js';
-import { isValidPort, loadConfig, type ConfigFile } from './lib/config.js';
+import { isValidCacheControl, isValidPort, loadConfig, type ConfigFile } from './lib/config.js';
 import { installGracefulShutdown } from './lib/shutdown.js';
 import { log } from './lib/logger.js';
 
@@ -65,6 +65,11 @@ program
 	.option(
 		'-c, --config <path>',
 		'Load configuration from a YAML file. CLI arguments override config file values.',
+	)
+	.option(
+		'--cache-control <header>',
+		'Set the Cache-Control header for bucket files whose object sets none. ' +
+			'Default: "public, max-age=3600". Tiles and other answers of a container keep "max-age=86400".',
 	)
 	.option('-d, --directory <prefix>', 'Set the bucket directory (prefix), e.g., "/public/".')
 	.option('-f, --fast-recompression', 'Enable faster server responses by avoiding recompression.')
@@ -141,6 +146,19 @@ program
 		}
 		const baseUrl = (cmdOptions.baseUrl ?? config.baseUrl ?? `http://localhost:${port}/`) as string;
 		const bucketPrefix = (cmdOptions.directory ?? config.directory ?? '') as string;
+		// The config file's value was validated when it was loaded.
+		let cacheControl = config.cacheControl;
+		if (cmdOptions.cacheControl != null) {
+			if (!isValidCacheControl(cmdOptions.cacheControl)) {
+				log(
+					'ERROR',
+					`Error: --cache-control must be a non-empty, valid header value, but is "${String(cmdOptions.cacheControl)}".`,
+				);
+				process.exit(1);
+				return;
+			}
+			cacheControl = cmdOptions.cacheControl;
+		}
 		const fastRecompression = (cmdOptions.fastRecompression ??
 			config.fastRecompression ??
 			false) as boolean;
@@ -205,6 +223,7 @@ program
 				baseUrl,
 				bucket,
 				bucketPrefix,
+				cacheControl,
 				fastRecompression,
 				localDirectory,
 				port,
@@ -228,6 +247,7 @@ program
 				baseUrl,
 				bucket: bucket ?? '',
 				bucketPrefix,
+				cacheControl,
 				fastRecompression,
 				localDirectory,
 				port,

@@ -21,6 +21,7 @@ describe('index.ts', () => {
 		baseUrl: 'http://localhost:8080/',
 		bucket: 'test-bucket',
 		bucketPrefix: '',
+		cacheControl: undefined,
 		fastRecompression: false,
 		localDirectory: undefined,
 		port: 8080,
@@ -196,6 +197,52 @@ describe('index.ts', () => {
 			await run('test-bucket', '--port', '3000');
 
 			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(mockedStartServer).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('--cache-control', () => {
+		it('starts server with a Cache-Control for bucket files', async () => {
+			await run('test-bucket', '--cache-control', 'public, max-age=604800');
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				cacheControl: 'public, max-age=604800',
+			});
+		});
+
+		it('takes it from the config file', async () => {
+			const configPath = writeConfig(
+				'config.yaml',
+				'bucket: test-bucket\ncacheControl: no-cache\n',
+			);
+			await run('--config', configPath);
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				cacheControl: 'no-cache',
+			});
+		});
+
+		it('overrides the config file', async () => {
+			const configPath = writeConfig(
+				'config.yaml',
+				'bucket: test-bucket\ncacheControl: no-cache\n',
+			);
+			await run('--config', configPath, '--cache-control', 'private, max-age=60');
+			expect(mockedStartServer).toHaveBeenCalledWith({
+				...defaultResults,
+				cacheControl: 'private, max-age=60',
+			});
+		});
+
+		// Refused at start: Node would refuse the header only on the first file
+		// request, and then on every one.
+		it('exits with error for a value that is no usable header', async () => {
+			await run('test-bucket', '--cache-control', ' ');
+
+			expect(process.exit).toHaveBeenCalledWith(1);
+			expect(console.error).toHaveBeenCalledWith(
+				expect.stringContaining('--cache-control must be a non-empty, valid header value'),
+			);
 			expect(mockedStartServer).not.toHaveBeenCalled();
 		});
 	});

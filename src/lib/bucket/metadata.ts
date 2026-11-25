@@ -17,18 +17,20 @@ function toEntityTag(value: string): string {
 }
 
 /**
- * `Cache-Control` for a bucket file whose object sets none.
+ * `Cache-Control` for a bucket file whose object sets none, unless
+ * `--cache-control` says otherwise.
  *
  * Most such files keep their URL when their content changes: `index.html`,
- * `style.json`, unversioned libraries. Browsers revalidate them on every use
- * (`max-age=0`), but against the CDN in front of this server, which keeps a
- * file for an hour (`s-maxage=3600`) and answers with a `304` from its copy.
- * So an update reaches every user within an hour, and Cloud Run is asked at
- * most once an hour per file and CDN node. Plain `no-cache` would send every
- * request on to Cloud Run. An object's own `Cache-Control` metadata wins, for
- * example a year with `immutable` for versioned folders.
+ * `style.json`, unversioned libraries. Kept for a week, as before, an update
+ * stayed invisible to returning users for that long. An hour keeps every asset
+ * load within a visit in the browser, so a server without a CDN still sees at
+ * most one request per file, browser and hour, and an update reaches users
+ * within about two hours (an hour each at the CDN and in the browser).
+ * Revalidating on every use would end the stale pages sooner, but turn every
+ * asset load into a request. An object's own `Cache-Control` metadata wins,
+ * for example a year with `immutable` for versioned folders.
  */
-export const DEFAULT_FILE_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
+export const DEFAULT_FILE_CACHE_CONTROL = 'public, max-age=3600';
 
 export class BucketFileMetadata {
 	readonly #header: {
@@ -75,7 +77,9 @@ export class BucketFileMetadata {
 		const contentEncoding = options.contentEncoding?.trim();
 
 		this.#header = {
-			cacheControl: options.cacheControl ?? DEFAULT_FILE_CACHE_CONTROL,
+			// Kept unset when the object has none, so that the server's default
+			// (see setHeaders) applies only to objects that don't choose for themselves.
+			cacheControl: options.cacheControl?.trim() || undefined,
 			contentEncoding:
 				contentEncoding == null || contentEncoding === '' || /^identity$/i.test(contentEncoding)
 					? undefined
@@ -120,11 +124,20 @@ export class BucketFileMetadata {
 		return this.#header.contentEncoding;
 	}
 
-	public setHeaders(headers: ResponseHeaders): void {
+	/**
+	 * Sets the headers describing this file.
+	 *
+	 * @param defaultCacheControl - `Cache-Control` for an object that sets none:
+	 *   the server's `--cache-control`, or {@link DEFAULT_FILE_CACHE_CONTROL}.
+	 */
+	public setHeaders(
+		headers: ResponseHeaders,
+		defaultCacheControl: string = DEFAULT_FILE_CACHE_CONTROL,
+	): void {
 		const header = this.#header;
 
 		if (header.size != null) headers.set('content-length', header.size);
-		if (header.cacheControl != null) headers.set('cache-control', header.cacheControl);
+		headers.set('cache-control', header.cacheControl ?? defaultCacheControl);
 		if (header.contentEncoding != null) headers.set('content-encoding', header.contentEncoding);
 		headers.set('etag', header.etag);
 		headers.set('content-type', header.contentType);
