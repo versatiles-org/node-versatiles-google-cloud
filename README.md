@@ -15,7 +15,7 @@ E.g. for data journalists, academia, ...
 > - always use a CDN in front of this server and
 > - to publish an updated tile set under a new name rather than overwriting one in place.
 >
-> Overwriting a container no longer serves corrupt tiles — see [Container caching](#container-caching) — but CDN and browser caches keep serving the previous tiles until they expire, which is a week by default. Clients can therefore see a mix of old and new tiles for some time after an in-place replacement.
+> Overwriting a container no longer serves corrupt tiles — see [Container caching](#container-caching) — but CDN and browser caches keep serving the previous tiles until they expire, which is a day by default (see [Caching](#caching)). Clients can therefore see a mix of old and new tiles for some time after an in-place replacement.
 
 ## Outline:
 
@@ -246,6 +246,26 @@ A body whose length is not known in advance — a stream the bucket did not decl
 
 `--fast-recompression` is separate and stronger: it disables recompression altogether wherever the stored encoding is already acceptable to the client, and uses the fastest settings when it is not.
 
+## Caching
+
+| Response                                                         | `Cache-Control`                    |
+| ---------------------------------------------------------------- | ---------------------------------- |
+| Tiles and the other answers of a container (`?tiles.json` …)     | `max-age=86400` (one day)          |
+| A file from the bucket whose object sets its own `Cache-Control` | the object's                       |
+| Any other file from the bucket                                   | `public, max-age=0, s-maxage=3600` |
+| Errors                                                           | `no-store`                         |
+
+Most files in a bucket keep their URL when their content changes: `index.html`, `style.json`, unversioned libraries. Browsers therefore revalidate them on every use (`max-age=0`), but against the CDN, which keeps a file for an hour (`s-maxage=3600`) and answers with a `304` from its copy. An update reaches every user within an hour, and Cloud Run is asked at most once an hour per file and CDN node. To make an update visible at once, invalidate the CDN's cache, for example with `gcloud compute url-maps invalidate-cdn-cache`.
+
+Files whose URL contains a version never change under that URL and can be kept for a year. The [frontend](https://github.com/versatiles-org/versatiles-frontend) has each library in such a folder (`assets/lib/<name>@<version>/`). Set the header on these objects after uploading:
+
+```bash
+gcloud storage objects update "gs://bucket_name/assets/lib/*@*/**" \
+  --cache-control="public, max-age=31536000, immutable"
+```
+
+Set such a header only on versioned folders: a file with a fixed URL would then stay in browsers for a year after an update. The [Caching page](https://docs.versatiles.org/basics/caching) on docs.versatiles.org explains the reasons.
+
 ## Conditional requests
 
 Every response carries an `ETag`, so a client or CDN that already holds a copy can revalidate instead of downloading it again:
@@ -293,7 +313,7 @@ That cannot happen: **every read names the revision its index came from**. Cloud
 The background check runs at most once every 30 seconds per container and never blocks a response, because a cached container is safe to serve regardless. With versioning enabled, a replacement can therefore serve the **previous** container for up to that interval — stale, but never inconsistent.
 
 > [!NOTE]
-> This is not the dominant source of staleness. Tile responses are sent with `cache-control: max-age=86400`, so a CDN in front of this server keeps serving the old tiles for up to a day regardless of what the origin does — and static files are sent with `max-age=604800`, a week, unless the object overrides it. Publishing under a new name avoids the problem entirely.
+> This is not the dominant source of staleness. Tile responses are sent with `cache-control: max-age=86400`, so a CDN in front of this server keeps serving the old tiles for up to a day regardless of what the origin does — and other files for up to an hour, unless the object sets its own header (see [Caching](#caching)). Publishing under a new name avoids the problem entirely.
 >
 > Clients cannot shorten this: `Cache-Control: no-cache` on a request is ignored, both here and typically at the CDN. Letting an unauthenticated caller force a cache bypass would turn each request into a metadata lookup plus a full index read against the bucket.
 

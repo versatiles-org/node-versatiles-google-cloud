@@ -48,7 +48,7 @@ describe('BucketFileLocal', () => {
 		const metadata = await file.getMetadata();
 		expect(metadata).toBeInstanceOf(BucketFileMetadata);
 		expect(JSON.parse(metadata.toString())).toStrictEqual({
-			cacheControl: 'max-age=604800',
+			cacheControl: 'public, max-age=0, s-maxage=3600',
 			contentLength: '1024',
 			contentType: 'application/json',
 

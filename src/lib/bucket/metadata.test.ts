@@ -13,7 +13,7 @@ describe('BucketFileMetadata', () => {
 		expect(JSON.parse(metadata.toString())).toMatchObject({
 			contentType: 'image/jpeg',
 			contentLength: '1024',
-			cacheControl: 'max-age=604800',
+			cacheControl: 'public, max-age=0, s-maxage=3600',
 			etag: expect.any(String),
 		});
 	});
@@ -125,7 +125,7 @@ describe('BucketFileMetadata', () => {
 		expect(JSON.parse(metadata.toString())).toMatchObject({
 			contentType: 'image/png',
 			contentLength: '2048',
-			cacheControl: 'max-age=604800',
+			cacheControl: 'public, max-age=0, s-maxage=3600',
 			etag: expect.any(String),
 		});
 	});

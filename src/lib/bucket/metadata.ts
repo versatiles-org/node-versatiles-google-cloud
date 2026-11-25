@@ -16,6 +16,20 @@ function toEntityTag(value: string): string {
 	return `"${value.replace(/"/g, '')}"`;
 }
 
+/**
+ * `Cache-Control` for a bucket file whose object sets none.
+ *
+ * Most such files keep their URL when their content changes: `index.html`,
+ * `style.json`, unversioned libraries. Browsers revalidate them on every use
+ * (`max-age=0`), but against the CDN in front of this server, which keeps a
+ * file for an hour (`s-maxage=3600`) and answers with a `304` from its copy.
+ * So an update reaches every user within an hour, and Cloud Run is asked at
+ * most once an hour per file and CDN node. Plain `no-cache` would send every
+ * request on to Cloud Run. An object's own `Cache-Control` metadata wins, for
+ * example a year with `immutable` for versioned folders.
+ */
+export const DEFAULT_FILE_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600';
+
 export class BucketFileMetadata {
 	readonly #header: {
 		cacheControl?: string;
@@ -61,7 +75,7 @@ export class BucketFileMetadata {
 		const contentEncoding = options.contentEncoding?.trim();
 
 		this.#header = {
-			cacheControl: options.cacheControl ?? 'max-age=604800',
+			cacheControl: options.cacheControl ?? DEFAULT_FILE_CACHE_CONTROL,
 			contentEncoding:
 				contentEncoding == null || contentEncoding === '' || /^identity$/i.test(contentEncoding)
 					? undefined

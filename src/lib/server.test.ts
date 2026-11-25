@@ -246,6 +246,9 @@ describe('Server', () => {
 			expect(response.status).toBe(200);
 			expect(JSON.parse(response.text)).toMatchObject({ name: '@versatiles/google-cloud' });
 			expect(response.contentType).toBe('application/json');
+			// A file whose object sets no Cache-Control: browsers revalidate it on
+			// every use, the CDN keeps it for an hour.
+			expect(response.headers['cache-control']).toBe('public, max-age=0, s-maxage=3600');
 		});
 
 		it('serve static file with a space in the path', async () => {
