@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-11-26
+
+### Documentation
+
+- give the tile URL as ?6/4/5, the only form the server accepts ([10a4503](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/10a4503e1bbe5cfa5de1979e601ea79fac5ccd38))
+
+### Chores
+
+- update changelog for version 2.3.0, add upgrading notes and clarify Cache-Control behavior ([49176c0](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/49176c0b6ae506df7ea44b0d8b654319d83dbf74))
+- update dependencies, @versatiles/style to 9.1.3 ([b448a08](https://github.com/versatiles-org/node-versatiles-google-cloud/commit/b448a083fccba6ba87886db7ea3b475670f62566))
+
 ## [2.3.0] - 2026-11-25
 
 ### Upgrading
